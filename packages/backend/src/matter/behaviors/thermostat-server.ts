@@ -20,24 +20,17 @@ import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 // For dual-mode thermostats (heating + cooling), AutoMode is ENABLED so Apple Home
 // can offer Auto mode and dual setpoints. Without AutoMode, Apple Home loses Auto.
 //
-// thermostatRunningMode: Matter.js's reactor (#handleSystemModeChange) handles it
-// for Heat/Cool/Off modes by setting runningMode to match systemMode. However, the
-// reactor EXPLICITLY SKIPS Auto mode (code: `newMode !== SystemMode.Auto`).
-// This means when switching from Heat→Auto, thermostatRunningMode stays at Heat
-// (stale value), causing Apple Home to think the device is in Heat mode, not Auto.
-//
-// Fix: We set thermostatRunningMode ourselves, but ONLY for Auto mode (from
-// hvac_action). For non-Auto modes, the reactor handles it correctly.
-// Previous attempts that failed:
-//   889010b: Set for ALL modes → conflicted with reactor for non-Auto modes
-//   0678d35: Set for NO modes → stale runningMode in Auto mode
-//
-// thermostatRunningState: Set by us from hvac_action to indicate active heating/
-// cooling. This bitmap is the correct signal for "Heating to 26" vs "Heat to 26".
+// localTemperature: null when current_temperature is unavailable (not setpoint!)
+//   Apple Home uses localTemp vs setpoint comparison for "Heating to..." display.
+//   Setting localTemp = setpoint makes Apple Home think target is already reached.
+// thermostatRunningMode: Set ONLY for Auto mode from hvac_action. Matter.js reactor
+//   handles Heat/Cool/Off but SKIPS Auto — without our update, switching Heat→Auto
+//   leaves runningMode stale at Heat. (889010b: all modes = conflict, 0678d35: none
+//   = stale, da04b2e: Auto only = correct)
+// thermostatRunningState: Set from hvac_action for controllers that support it.
 //
 // For heat-only / cool-only devices, AutoMode is NOT enabled:
 // - Prevents Alexa from expecting dual setpoints (→ "not supported" errors)
-// - thermostatRunningState is still set for controllers that support it
 
 // Default state values for each feature combination.
 // These MUST be set via .set() when creating the behavior class because Matter.js
@@ -139,11 +132,13 @@ function thermostatPreInitialize(self: any): void {
     `initialize: features - heating=${self.features.heating}, cooling=${self.features.cooling}`,
   );
 
-  // Force-set local temperature (always available)
+  // Force-set local temperature. null is valid per Matter spec (nullable int16).
   const localValue =
     typeof currentLocal === "number" && !Number.isNaN(currentLocal)
       ? currentLocal
-      : 2100;
+      : currentLocal === null
+        ? null
+        : 2100;
   self.state.localTemperature = localValue;
 
   // Force-set heating values (only if Heating feature enabled)
@@ -194,7 +189,7 @@ function thermostatPreInitialize(self: any): void {
   self.state.thermostatRunningState = runningStateAllOff;
 
   // For full HVAC devices (AutoMode enabled): ensure minSetpointDeadBand is set.
-  // thermostatRunningMode: reactor handles non-Auto; we handle Auto in update().
+  // thermostatRunningMode: updated for Auto mode only in update().
   if (self.features.heating && self.features.cooling) {
     self.state.minSetpointDeadBand = self.state.minSetpointDeadBand ?? 0;
   }
@@ -301,19 +296,16 @@ export class ThermostatServerBase extends FullFeaturedBase {
       ? config.getRunningMode(entity.state, this.agent)
       : Thermostat.ThermostatRunningMode.Off;
 
-    // When current_temperature is not available (common for AC controllers),
-    // fall back to the target setpoint temperature (matching HA's UI behavior)
-    // Final guard: if everything is undefined/NaN, use 2100 (21°C) to prevent
-    // Matter.js validation errors from NaN values.
-    const rawLocalTemp =
-      currentTemperature ??
-      targetHeatingTemperature ??
-      targetCoolingTemperature ??
-      this.state.localTemperature;
+    // localTemperature: null when current_temperature is unavailable.
+    // Valid per Matter spec (nullable int16). Previously we fell back to the
+    // setpoint, but that made Apple Home think the target was already reached
+    // (localTemp == setpoint → shows "Heat" instead of "Heating to...").
+    // Null tells the controller "temperature unknown".
     const localTemperature =
-      typeof rawLocalTemp === "number" && !Number.isNaN(rawLocalTemp)
-        ? rawLocalTemp
-        : 2100;
+      typeof currentTemperature === "number" &&
+      !Number.isNaN(currentTemperature)
+        ? currentTemperature
+        : null;
 
     // Temperature limit handling:
     // Use HA's actual min/max limits for ALL modes (single and dual).
@@ -384,7 +376,10 @@ export class ThermostatServerBase extends FullFeaturedBase {
       systemMode: systemMode,
       // thermostatRunningMode: Only set for Auto mode. Matter.js's reactor handles
       // Heat/Cool/Off but SKIPS Auto (see #handleSystemModeChange in Matter.js).
-      // Without this, runningMode retains the stale value from the previous mode.
+      // Without this, switching Heat→Auto leaves runningMode stale at Heat.
+      // 889010b set for ALL modes (conflicted with reactor), 0678d35 set for NONE
+      // (stale in Auto). da04b2e's Auto-only approach is correct — the issues
+      // reported after it were caused by localTemperature fallback, not runningMode.
       ...(this.features.heating &&
       this.features.cooling &&
       systemMode === Thermostat.SystemMode.Auto

@@ -196,11 +196,11 @@ export function ClimateDevice(
   // These values are passed to Matter.js during registration to prevent
   // NaN validation errors (Matter.js validates BEFORE our initialize() runs).
   const initialState: InitialThermostatState = {
-    // When current_temperature is unavailable (common for AC controllers),
-    // fall back to the target setpoint (matching HA's UI behavior)
-    localTemperature:
-      toMatterTemp(attributes.current_temperature) ??
-      toMatterTemp(attributes.temperature),
+    // Pass actual current_temperature only. Don't fall back to setpoint —
+    // null is valid per Matter spec. Falling back to the setpoint makes
+    // Apple Home think the target is reached (localTemp == setpoint →
+    // shows "Heat" instead of "Heating to...").
+    localTemperature: toMatterTemp(attributes.current_temperature),
     occupiedHeatingSetpoint:
       toMatterTemp(attributes.target_temp_low) ??
       toMatterTemp(attributes.temperature) ??
@@ -251,7 +251,7 @@ export function ClimateDevice(
               initialState.occupiedCoolingSetpoint ?? 2400,
           }
         : {}),
-      localTemperature: initialState.localTemperature ?? 2100,
+      localTemperature: initialState.localTemperature ?? null,
       ...(supportsHeating && supportsCooling ? { minSetpointDeadBand: 0 } : {}),
     },
   });
