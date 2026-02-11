@@ -30,6 +30,7 @@ export type MatterDeviceType =
   | "speaker"
   | "temperature_sensor"
   | "thermostat"
+  | "tvoc_sensor"
   | "water_heater"
   | "water_leak_detector"
   | "water_valve"
@@ -130,6 +131,7 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   speaker: "Speaker",
   temperature_sensor: "Temperature Sensor",
   thermostat: "Thermostat",
+  tvoc_sensor: "TVOC / VOC Index Sensor",
   water_heater: "Water Heater",
   water_leak_detector: "Water Leak Detector",
   water_valve: "Water Valve",
@@ -165,6 +167,7 @@ export const domainToDefaultMatterTypes: Partial<
     "light_sensor",
     "pressure_sensor",
     "temperature_sensor",
+    "tvoc_sensor",
   ],
   switch: ["on_off_plugin_unit", "on_off_switch", "pump", "water_valve"],
   vacuum: ["robot_vacuum_cleaner"],

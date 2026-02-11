@@ -45,48 +45,44 @@ function applyPatch<T extends object>(
     }
   }
 
-  // Set properties individually to avoid transaction conflicts
-  try {
-    for (const key in actualPatch) {
-      if (Object.hasOwn(actualPatch, key)) {
-        state[key] = actualPatch[key] as T[Extract<keyof T, string>];
+  // Set properties individually with per-property error handling.
+  // Previously, a single try-catch wrapped the entire loop, so if ANY property
+  // write failed (e.g., a Fixed quality attribute), ALL subsequent properties
+  // were skipped — including critical ones like systemMode, localTemperature,
+  // and setpoints. This caused thermostats to appear completely broken (#52).
+  const failedKeys: string[] = [];
+  for (const key in actualPatch) {
+    if (!Object.hasOwn(actualPatch, key)) continue;
+    try {
+      state[key] = actualPatch[key] as T[Extract<keyof T, string>];
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      // Endpoint not yet attached to a node — all remaining writes will fail too
+      if (
+        errorMessage.includes(
+          "Endpoint storage inaccessible because endpoint is not a node and is not owned by another endpoint",
+        )
+      ) {
+        logger.debug(
+          `Suppressed endpoint storage error, patch not applied: ${JSON.stringify(actualPatch)}`,
+        );
+        return actualPatch;
       }
+      // Transaction conflict — all remaining writes will also fail
+      if (errorMessage.includes("synchronous-transaction-conflict")) {
+        logger.warn(
+          `Transaction conflict, state update DROPPED: ${JSON.stringify(actualPatch)}`,
+        );
+        return actualPatch;
+      }
+      // Per-property failure: log warning and continue with remaining properties
+      failedKeys.push(key);
+      logger.warn(`Failed to set property '${key}': ${errorMessage}`);
     }
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    // Suppress transient Matter.js errors that occur when an endpoint is still
-    // being constructed/attached to a node. The state update will be retried
-    // once the endpoint is fully initialized and receives its first HA update.
-    if (
-      errorMessage.includes(
-        "Endpoint storage inaccessible because endpoint is not a node and is not owned by another endpoint",
-      )
-    ) {
-      logger.debug(
-        `Suppressed endpoint storage error, patch not applied: ${JSON.stringify(actualPatch)}`,
-      );
-      return actualPatch;
-    }
-    // Suppress synchronous transaction conflicts that occur when a reactor
-    // tries to update state while another transaction holds the lock.
-    // This can happen during rapid state changes (e.g., cover position updates).
-    // The state will be corrected on the next HA state update.
-    if (errorMessage.includes("synchronous-transaction-conflict")) {
-      logger.warn(
-        `Transaction conflict, state update DROPPED: ${JSON.stringify(actualPatch)}`,
-      );
-      return actualPatch;
-    }
-    // Suppress synchronous transaction conflicts that occur when a reactor
-    // tries to update state while another transaction holds the lock.
-    // This can happen during rapid state changes (e.g., cover position updates).
-    // The state will be corrected on the next HA state update.
-    if (errorMessage.includes("synchronous-transaction-conflict")) {
-      return actualPatch;
-    }
-    throw new Error(
-      `Failed to patch the following properties: ${JSON.stringify(actualPatch, null, 2)}`,
-      { cause: e },
+  }
+  if (failedKeys.length > 0) {
+    logger.warn(
+      `${failedKeys.length} properties failed to update: [${failedKeys.join(", ")}]`,
     );
   }
 

@@ -1,4 +1,5 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import { RvcOperationalStateServer as Base } from "@matter/main/behaviors/rvc-operational-state";
 import { RvcOperationalState } from "@matter/main/clusters/rvc-operational-state";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
@@ -8,10 +9,19 @@ import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
 import OperationalState = RvcOperationalState.OperationalState;
 import ErrorState = RvcOperationalState.ErrorState;
 
+const logger = Logger.get("RvcOperationalStateServer");
+
+// States that indicate the vacuum is actively performing work
+const activeStates = new Set([
+  OperationalState.Running,
+  OperationalState.SeekingCharger,
+]);
+
 export interface RvcOperationalStateServerConfig {
   getOperationalState: ValueGetter<OperationalState>;
   pause: ValueSetter<void>;
   resume: ValueSetter<void>;
+  goHome?: ValueSetter<void>;
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: Biome thinks this is unused, but it's used by the function below
@@ -43,26 +53,48 @@ class RvcOperationalStateServerBase extends Base {
     if (!entity.state) {
       return;
     }
-    const operationalState = this.state.config.getOperationalState(
+    const newState = this.state.config.getOperationalState(
       entity.state,
       this.agent,
     );
-    const operationalStateList = Object.values(OperationalState)
-      .filter((id): id is number => !Number.isNaN(+id))
-      .map((id) => ({
-        operationalStateId: id,
-      }));
+    const previousState = this.state.operationalState;
 
     applyPatchState(this.state, {
-      operationalState,
-      operationalStateList,
+      operationalState: newState,
       operationalError: {
         errorStateId:
-          operationalState === OperationalState.Error
+          newState === OperationalState.Error
             ? ErrorState.Stuck
             : ErrorState.NoError,
       },
     });
+
+    // Emit OperationCompletion event when transitioning from an active state
+    // (Running, SeekingCharger) to an inactive state (Docked, Stopped, Paused).
+    // This is MANDATORY for the RoboticVacuumCleaner device type.
+    if (
+      activeStates.has(previousState as OperationalState) &&
+      !activeStates.has(newState)
+    ) {
+      logger.info(
+        `Operation completed: ${OperationalState[previousState]} -> ${OperationalState[newState]}`,
+      );
+      try {
+        this.events.operationCompletion?.emit(
+          {
+            completionErrorCode:
+              newState === OperationalState.Error
+                ? ErrorState.Stuck
+                : ErrorState.NoError,
+            totalOperationalTime: null,
+            pausedTime: null,
+          },
+          this.context,
+        );
+      } catch (e) {
+        logger.debug("Failed to emit operationCompletion event:", e);
+      }
+    }
   }
 
   override pause(): RvcOperationalState.OperationalCommandResponse {
@@ -78,6 +110,34 @@ class RvcOperationalStateServerBase extends Base {
   override resume(): RvcOperationalState.OperationalCommandResponse {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     homeAssistant.callAction(this.state.config.resume(void 0, this.agent));
+    return {
+      commandResponseState: {
+        errorStateId: ErrorState.NoError,
+      },
+    };
+  }
+
+  override goHome(): RvcOperationalState.OperationalCommandResponse {
+    // Already docked or charging - command is valid but no-op
+    if (
+      this.state.operationalState === OperationalState.Docked ||
+      this.state.operationalState === OperationalState.Charging
+    ) {
+      return {
+        commandResponseState: {
+          errorStateId: ErrorState.NoError,
+        },
+      };
+    }
+
+    const goHomeAction = this.state.config.goHome;
+    if (goHomeAction) {
+      const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+      homeAssistant.callAction(goHomeAction(void 0, this.agent));
+    } else {
+      logger.warn("GoHome command received but no goHome action configured");
+    }
+
     return {
       commandResponseState: {
         errorStateId: ErrorState.NoError,

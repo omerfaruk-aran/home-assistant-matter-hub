@@ -86,6 +86,7 @@ export const BridgesPage = () => {
             <Box
               display="flex"
               justifyContent="end"
+              flexWrap="wrap"
               gap={1}
               paddingTop={{ xs: 1, sm: 0 }}
             >

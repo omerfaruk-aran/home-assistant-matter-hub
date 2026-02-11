@@ -43,6 +43,9 @@ interface DeviceInfo {
   endpoint: EndpointData;
 }
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const PAGE_SIZE_KEY = "hamh-devices-page-size";
+
 export const DevicesPage = () => {
   const dispatch = useAppDispatch();
   const { content: bridges, isLoading: bridgesLoading } = useBridges();
@@ -52,7 +55,20 @@ export const DevicesPage = () => {
   const [sortBy, setSortBy] = useState<"name" | "type" | "bridge">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
-  const itemsPerPage = 12;
+  const [itemsPerPage, setItemsPerPageRaw] = useState<number>(() => {
+    const stored = localStorage.getItem(PAGE_SIZE_KEY);
+    if (!stored) return 12;
+    if (stored === "all") return 0;
+    const num = parseInt(stored, 10);
+    return num > 0 ? num : 12;
+  });
+  const [customPageSize, setCustomPageSize] = useState("");
+
+  const setItemsPerPage = useCallback((size: number) => {
+    setItemsPerPageRaw(size);
+    localStorage.setItem(PAGE_SIZE_KEY, size === 0 ? "all" : String(size));
+    setPage(1);
+  }, []);
 
   // Entity Mapping Dialog state
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
@@ -185,11 +201,12 @@ export const DevicesPage = () => {
   }, [filteredDevices, sortBy, sortDirection]);
 
   // Pagination
-  const totalPages = Math.ceil(sortedDevices.length / itemsPerPage);
-  const paginatedDevices = sortedDevices.slice(
-    (page - 1) * itemsPerPage,
-    page * itemsPerPage,
-  );
+  const totalPages =
+    itemsPerPage === 0 ? 1 : Math.ceil(sortedDevices.length / itemsPerPage);
+  const paginatedDevices =
+    itemsPerPage === 0
+      ? sortedDevices
+      : sortedDevices.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   // Get unique device types (always sorted alphabetically)
   const deviceTypes = useMemo(() => {
@@ -380,17 +397,106 @@ export const DevicesPage = () => {
         ))}
       </Grid>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+      {/* Pagination & Page Size */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          mt: 3,
+          gap: 2,
+          flexWrap: "wrap",
+        }}
+      >
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            Per page:
+          </Typography>
+          <Select
+            value={
+              itemsPerPage === 0
+                ? "all"
+                : PAGE_SIZE_OPTIONS.includes(itemsPerPage)
+                  ? String(itemsPerPage)
+                  : ""
+            }
+            onChange={(e) => {
+              const val = e.target.value;
+              setCustomPageSize("");
+              if (val === "all") {
+                setItemsPerPage(0);
+              } else {
+                setItemsPerPage(parseInt(val, 10));
+              }
+            }}
+            displayEmpty
+            renderValue={(value) => {
+              if (value === "all") return "All";
+              if (value === "") return String(itemsPerPage);
+              return value;
+            }}
+            size="small"
+            sx={{ minWidth: 80 }}
+          >
+            {PAGE_SIZE_OPTIONS.map((opt) => (
+              <MenuItem key={opt} value={String(opt)}>
+                {opt}
+              </MenuItem>
+            ))}
+            <MenuItem value="all">All</MenuItem>
+          </Select>
+          <TextField
+            size="small"
+            type="number"
+            placeholder="Custom"
+            value={customPageSize}
+            onChange={(e) => setCustomPageSize(e.target.value)}
+            onBlur={() => {
+              const num = parseInt(customPageSize, 10);
+              if (num > 0) {
+                setItemsPerPage(num);
+              }
+              setCustomPageSize("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const num = parseInt(customPageSize, 10);
+                if (num > 0) {
+                  setItemsPerPage(num);
+                }
+                setCustomPageSize("");
+              }
+            }}
+            slotProps={{
+              htmlInput: { min: 1, style: { textAlign: "center" } },
+            }}
+            sx={{ width: 80 }}
+          />
+        </Stack>
+
+        {totalPages > 1 && (
           <Pagination
             count={totalPages}
             page={page}
             onChange={(_, newPage) => setPage(newPage)}
             color="primary"
           />
-        </Box>
-      )}
+        )}
+
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ whiteSpace: "nowrap" }}
+        >
+          {filteredDevices.length === devices.length
+            ? `${devices.length} device${devices.length !== 1 ? "s" : ""}`
+            : `${filteredDevices.length} of ${devices.length} devices`}
+        </Typography>
+      </Box>
 
       {filteredDevices.length === 0 && (
         <Box sx={{ textAlign: "center", py: 8 }}>

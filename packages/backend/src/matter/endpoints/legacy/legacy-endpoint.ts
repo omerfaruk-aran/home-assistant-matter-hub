@@ -62,7 +62,7 @@ export class LegacyEndpoint extends EntityEndpoint {
     let effectiveMapping = mapping;
     if (entity.device_id) {
       // 1. Auto-assign humidity entity to temperature sensors FIRST
-      // Only applies when autoHumidityMapping feature flag is enabled (default: true)
+      // Only applies when autoHumidityMapping feature flag is enabled (default: false)
       if (registry.isAutoHumidityMappingEnabled()) {
         const attrs = state.attributes as SensorDeviceAttributes;
         if (
@@ -115,7 +115,8 @@ export class LegacyEndpoint extends EntityEndpoint {
       registry: entity,
       deviceRegistry,
     };
-    const type = createLegacyEndpointType(payload, effectiveMapping);
+    const areaName = registry.getAreaName(entityId);
+    const type = createLegacyEndpointType(payload, effectiveMapping, areaName);
     if (!type) {
       return;
     }

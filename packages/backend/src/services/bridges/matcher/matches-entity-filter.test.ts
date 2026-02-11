@@ -102,6 +102,34 @@ describe("matchEntityFilter.testMatcher", () => {
       ),
     ).toBeFalsy();
   });
+  it("should match label on device when entity has no matching label", () => {
+    const entityWithoutLabel = { ...registry, labels: [] };
+    const deviceWithLabel = { ...deviceRegistry, labels: ["device_label"] };
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.Label,
+          value: "device_label",
+        },
+        deviceWithLabel,
+        entityWithoutLabel,
+      ),
+    ).toBeTruthy();
+  });
+  it("should not match label when neither entity nor device has it", () => {
+    const entityWithoutLabel = { ...registry, labels: [] };
+    const deviceWithLabel = { ...deviceRegistry, labels: ["other_label"] };
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.Label,
+          value: "missing_label",
+        },
+        deviceWithLabel,
+        entityWithoutLabel,
+      ),
+    ).toBeFalsy();
+  });
 
   it("should match the platform", () => {
     expect(

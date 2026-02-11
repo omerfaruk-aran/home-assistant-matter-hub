@@ -47,7 +47,7 @@ export function MediaPlayerDevice(
   }
 
   if (supportsVolume) {
-    // SpeakerLevelControlServer uses 0-100 range for Google Home compatibility
+    // SpeakerLevelControlServer uses 0-254 range for Google Home compatibility
     device = device.with(MediaPlayerLevelControlServer);
   }
 

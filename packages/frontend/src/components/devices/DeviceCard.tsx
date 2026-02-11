@@ -18,7 +18,6 @@ import {
 import { navigation } from "../../routes.tsx";
 import { BridgeStatusIcon } from "../bridge/BridgeStatusIcon.tsx";
 import { getBridgeIcon, getBridgeIconColor } from "../bridge/bridgeIconUtils";
-import { DeviceLimitWarning } from "../bridge/DeviceLimitWarning.tsx";
 
 export interface DeviceCardProps {
   bridge: BridgeDataWithMetadata;
@@ -112,8 +111,6 @@ export const DeviceCard = ({ bridge }: DeviceCardProps) => {
                     Port {bridge.port}
                   </Typography>
                 </Box>
-
-                <DeviceLimitWarning bridge={bridge} compact />
               </Stack>
             </Box>
           </Box>

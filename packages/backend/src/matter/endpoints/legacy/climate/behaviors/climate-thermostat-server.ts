@@ -14,6 +14,7 @@ import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistan
 import {
   ThermostatServer,
   type ThermostatServerConfig,
+  type ThermostatServerFeatures,
   type ThermostatServerInitialState,
 } from "../../../../behaviors/thermostat-server.js";
 
@@ -98,9 +99,34 @@ const config: ThermostatServerConfig = {
     getTemp(agent, entity, "target_temp_high") ??
     getTemp(agent, entity, "target_temperature") ??
     getTemp(agent, entity, "temperature"),
-  getSystemMode: (entity) =>
-    hvacModeToSystemMode[entity.state as ClimateHvacMode] ??
-    Thermostat.SystemMode.Off,
+  getSystemMode: (entity) => {
+    const hvacMode = entity.state as ClimateHvacMode;
+    const systemMode =
+      hvacModeToSystemMode[hvacMode] ?? Thermostat.SystemMode.Off;
+    // For heat-only or cool-only thermostats (e.g. TRVs with auto+heat but no cool),
+    // don't expose SystemMode.Auto — controllers like Alexa interpret Auto as
+    // dual-setpoint and refuse single temperature commands ("keeps temperature
+    // between X and Y"). Map auto → Heat or Cool based on actual capabilities.
+    if (systemMode === Thermostat.SystemMode.Auto) {
+      const modes = attributes(entity).hvac_modes ?? [];
+      const hasCooling = modes.some(
+        (m) => m === ClimateHvacMode.cool || m === ClimateHvacMode.heat_cool,
+      );
+      const hasHeating = modes.some(
+        (m) =>
+          m === ClimateHvacMode.heat ||
+          m === ClimateHvacMode.heat_cool ||
+          m === ClimateHvacMode.auto,
+      );
+      if (hasHeating && !hasCooling) {
+        return Thermostat.SystemMode.Heat;
+      }
+      if (hasCooling && !hasHeating) {
+        return Thermostat.SystemMode.Cool;
+      }
+    }
+    return systemMode;
+  },
   getRunningMode: (entity) => {
     const action = attributes(entity).hvac_action;
     if (!action) {
@@ -109,6 +135,25 @@ const config: ThermostatServerConfig = {
     return (
       hvacActionToRunningMode[action] ?? Thermostat.ThermostatRunningMode.Off
     );
+  },
+  getControlSequence: (entity) => {
+    const modes = attributes(entity).hvac_modes ?? [];
+    const hasCooling = modes.some(
+      (m) => m === ClimateHvacMode.cool || m === ClimateHvacMode.heat_cool,
+    );
+    const hasHeating = modes.some(
+      (m) =>
+        m === ClimateHvacMode.heat ||
+        m === ClimateHvacMode.heat_cool ||
+        m === ClimateHvacMode.auto,
+    );
+    if (hasCooling && hasHeating) {
+      return Thermostat.ControlSequenceOfOperation.CoolingAndHeating;
+    }
+    if (hasCooling) {
+      return Thermostat.ControlSequenceOfOperation.CoolingOnly;
+    }
+    return Thermostat.ControlSequenceOfOperation.HeatingOnly;
   },
   setSystemMode: (systemMode, agent) => {
     const homeAssistant = agent.get(HomeAssistantEntityBehavior);
@@ -155,6 +200,7 @@ const config: ThermostatServerConfig = {
  */
 export function ClimateThermostatServer(
   initialState: ThermostatServerInitialState = {},
+  features?: ThermostatServerFeatures,
 ) {
-  return ThermostatServer(config, initialState);
+  return ThermostatServer(config, initialState, features);
 }

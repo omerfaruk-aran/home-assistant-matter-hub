@@ -6,6 +6,7 @@ RUN apk add --no-cache netcat-openbsd tini
 ARG PACKAGE_VERSION="unknown"
 ENV HAMH_STORAGE_LOCATION="/data"
 ENV APP_VERSION="${PACKAGE_VERSION}"
+ENV NODE_OPTIONS="--max-old-space-size=512"
 VOLUME /data
 
 LABEL package.version="$PACKAGE_VERSION"

@@ -17,42 +17,75 @@ import RunningMode = Thermostat.ThermostatRunningMode;
 import type { ActionContext } from "@matter/main";
 import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 
-// NOTE: AutoMode feature intentionally NOT included.
-// Matter.js's internal #handleSystemModeChange reactor tries to write thermostatRunningMode
-// in post-commit without asLocalActor, causing "Permission denied: Value is read-only" errors.
-// By not including AutoMode, thermostatRunningMode is undefined and the internal reactor skips
-// the problematic write. We still support Auto systemMode - the AutoMode feature only adds
-// thermostatRunningMode attribute, not the ability to use SystemMode.Auto.
-// See: https://github.com/matter-js/matter.js/issues/3105
+// For dual-mode thermostats (heating + cooling), AutoMode is ENABLED so Apple Home
+// can offer Auto mode and dual setpoints. Without AutoMode, Apple Home loses Auto.
+//
+// localTemperature: null when current_temperature is unavailable (not setpoint!)
+//   Apple Home uses localTemp vs setpoint comparison for "Heating to..." display.
+//   Setting localTemp = setpoint makes Apple Home think target is already reached.
+// thermostatRunningMode: Set ONLY for Auto mode from hvac_action. Matter.js reactor
+//   handles Heat/Cool/Off but SKIPS Auto — without our update, switching Heat→Auto
+//   leaves runningMode stale at Heat. (889010b: all modes = conflict, 0678d35: none
+//   = stale, da04b2e: Auto only = correct)
+// thermostatRunningState: Set from hvac_action for controllers that support it.
+//
+// For heat-only / cool-only devices, AutoMode is NOT enabled:
+// - Prevents Alexa from expecting dual setpoints (→ "not supported" errors)
 
-// Default state values to prevent NaN validation errors during initialization.
+// Default state values for each feature combination.
 // These MUST be set via .set() when creating the behavior class because Matter.js
 // validates setpoints before our initialize() method runs.
-const defaultState = {
+//
+// thermostatRunningState (optional attribute) MUST be initialized here so
+// controllers discover and subscribe to it from the start. Without this,
+// Apple Home cannot distinguish "Heating to 26" (active) from "Heat to 26" (idle).
+const runningStateAllOff = {
+  heat: false,
+  cool: false,
+  fan: false,
+  heatStage2: false,
+  coolStage2: false,
+  fanStage2: false,
+  fanStage3: false,
+};
+
+const heatingOnlyDefaults = {
   localTemperature: 2100, // 21°C
   occupiedHeatingSetpoint: 2000, // 20°C
-  occupiedCoolingSetpoint: 2400, // 24°C
-  // Wide limits (0-50°C)
   minHeatSetpointLimit: 0,
   maxHeatSetpointLimit: 5000,
-  minCoolSetpointLimit: 0,
-  maxCoolSetpointLimit: 5000,
   absMinHeatSetpointLimit: 0,
   absMaxHeatSetpointLimit: 5000,
+  thermostatRunningState: runningStateAllOff,
+};
+
+const coolingOnlyDefaults = {
+  localTemperature: 2100, // 21°C
+  occupiedCoolingSetpoint: 2400, // 24°C
+  minCoolSetpointLimit: 0,
+  maxCoolSetpointLimit: 5000,
   absMinCoolSetpointLimit: 0,
   absMaxCoolSetpointLimit: 5000,
-  // Allow same setpoint for heating and cooling (HA heat_cool thermostats often
-  // only have a single temperature setpoint, not separate high/low targets)
+  thermostatRunningState: runningStateAllOff,
+};
+
+// Full defaults include both heating, cooling, and AutoMode.
+// minSetpointDeadBand: 0 allows heat/cool setpoints to be equal (no gap required).
+const fullDefaults = {
+  ...heatingOnlyDefaults,
+  ...coolingOnlyDefaults,
   minSetpointDeadBand: 0,
 };
 
-// Create the FeaturedBase with Heating, Cooling, and AutoMode features.
-// AutoMode is required to expose minSetpointDeadBand attribute, which we set to 0
-// to allow heat_cool thermostats with a single temperature setpoint.
-// NOTE: We don't include AutoMode's thermostatRunningMode to avoid Matter.js issue #3105
-// where the internal reactor tries to write without permissions.
-const FeaturedBase = Base.with("Heating", "Cooling", "AutoMode").set(
-  defaultState,
+// Feature-specific bases for different thermostat types.
+// Controllers like Alexa use these feature flags to determine capabilities.
+// A heat-only thermostat with Cooling feature causes Alexa to expect dual setpoints
+// and refuse single-temperature commands ("not supported").
+// See: https://github.com/RiDDiX/home-assistant-matter-hub/issues/136
+const HeatingOnlyFeaturedBase = Base.with("Heating").set(heatingOnlyDefaults);
+const CoolingOnlyFeaturedBase = Base.with("Cooling").set(coolingOnlyDefaults);
+const FullFeaturedBase = Base.with("Heating", "Cooling", "AutoMode").set(
+  fullDefaults,
 );
 
 export interface ThermostatRunningState {
@@ -75,6 +108,7 @@ export interface ThermostatServerConfig {
 
   getSystemMode: ValueGetter<SystemMode>;
   getRunningMode: ValueGetter<RunningMode>;
+  getControlSequence: ValueGetter<Thermostat.ControlSequenceOfOperation>;
 
   setSystemMode: ValueSetter<SystemMode>;
   setTargetTemperature: ValueSetter<Temperature>;
@@ -84,77 +118,133 @@ export interface ThermostatServerConfig {
   }>;
 }
 
-export class ThermostatServerBase extends FeaturedBase {
+/**
+ * Pre-super initialization: force-set feature-appropriate attribute values.
+ * Must run BEFORE super.initialize() because Matter.js validates setpoints during super.
+ * Extracted as standalone function so each feature-variant class can call it
+ * from its own initialize() with correct super binding.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: Internal helper working across feature variants
+function thermostatPreInitialize(self: any): void {
+  const currentLocal = self.state.localTemperature;
+
+  logger.debug(
+    `initialize: features - heating=${self.features.heating}, cooling=${self.features.cooling}`,
+  );
+
+  // Force-set local temperature. null is valid per Matter spec (nullable int16).
+  const localValue =
+    typeof currentLocal === "number" && !Number.isNaN(currentLocal)
+      ? currentLocal
+      : currentLocal === null
+        ? null
+        : 2100;
+  self.state.localTemperature = localValue;
+
+  // Force-set heating values (only if Heating feature enabled)
+  // IMPORTANT: Set limits BEFORE setpoints! Matter.js may validate setpoints
+  // against abs limits during property writes. For negative temperatures
+  // (e.g. refrigerators at -18°C), the default absMin of 0 would reject the setpoint.
+  if (self.features.heating) {
+    self.state.absMinHeatSetpointLimit =
+      self.state.absMinHeatSetpointLimit ?? 0;
+    self.state.absMaxHeatSetpointLimit =
+      self.state.absMaxHeatSetpointLimit ?? 5000;
+    self.state.minHeatSetpointLimit = self.state.minHeatSetpointLimit ?? 0;
+    self.state.maxHeatSetpointLimit = self.state.maxHeatSetpointLimit ?? 5000;
+
+    const currentHeating = self.state.occupiedHeatingSetpoint;
+    const heatingValue =
+      typeof currentHeating === "number" && !Number.isNaN(currentHeating)
+        ? currentHeating
+        : 2000;
+    self.state.occupiedHeatingSetpoint = heatingValue;
+  }
+
+  // Force-set cooling values (only if Cooling feature enabled)
+  // Same ordering: limits first, then setpoints.
+  if (self.features.cooling) {
+    self.state.absMinCoolSetpointLimit =
+      self.state.absMinCoolSetpointLimit ?? 0;
+    self.state.absMaxCoolSetpointLimit =
+      self.state.absMaxCoolSetpointLimit ?? 5000;
+    self.state.minCoolSetpointLimit = self.state.minCoolSetpointLimit ?? 0;
+    self.state.maxCoolSetpointLimit = self.state.maxCoolSetpointLimit ?? 5000;
+
+    const currentCooling = self.state.occupiedCoolingSetpoint;
+    const coolingValue =
+      typeof currentCooling === "number" && !Number.isNaN(currentCooling)
+        ? currentCooling
+        : 2400;
+    self.state.occupiedCoolingSetpoint = coolingValue;
+  }
+
+  logger.debug(
+    `initialize: after force-set - local=${self.state.localTemperature}`,
+  );
+
+  // Initialize thermostatRunningState (optional attribute) so controllers
+  // subscribe to it from the start. This is the bitmap that indicates active
+  // heating/cooling.
+  self.state.thermostatRunningState = runningStateAllOff;
+
+  // For full HVAC devices (AutoMode enabled): ensure minSetpointDeadBand is set.
+  // thermostatRunningMode: updated for Auto mode only in update().
+  if (self.features.heating && self.features.cooling) {
+    self.state.minSetpointDeadBand = self.state.minSetpointDeadBand ?? 0;
+  }
+
+  // Set initial controlSequenceOfOperation based on enabled features.
+  // Will be updated from HA entity's actual hvac_modes in update().
+  self.state.controlSequenceOfOperation =
+    self.features.cooling && self.features.heating
+      ? Thermostat.ControlSequenceOfOperation.CoolingAndHeating
+      : self.features.cooling
+        ? Thermostat.ControlSequenceOfOperation.CoolingOnly
+        : Thermostat.ControlSequenceOfOperation.HeatingOnly;
+}
+
+/**
+ * Post-super initialization: load HA entity, run first update, wire up reactors.
+ * Must run AFTER super.initialize() because agent/events aren't ready before.
+ * Extracted as standalone function so each feature-variant class can call it
+ * from its own initialize() with correct super binding.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: Internal helper working across feature variants
+async function thermostatPostInitialize(self: any): Promise<void> {
+  const homeAssistant = await self.agent.load(HomeAssistantEntityBehavior);
+  self.update(homeAssistant.entity);
+
+  self.reactTo(self.events.systemMode$Changed, self.systemModeChanged);
+  // Use $Changing (pre-commit) for setpoint changes to avoid access control issues
+  // The $Changed event fires in post-commit where we lose write permissions
+  if (self.features.cooling) {
+    self.reactTo(
+      self.events.occupiedCoolingSetpoint$Changing,
+      self.coolingSetpointChanging,
+    );
+  }
+  if (self.features.heating) {
+    self.reactTo(
+      self.events.occupiedHeatingSetpoint$Changing,
+      self.heatingSetpointChanging,
+    );
+  }
+  self.reactTo(homeAssistant.onChange, self.update);
+}
+
+export class ThermostatServerBase extends FullFeaturedBase {
   declare state: ThermostatServerBase.State;
 
   // State class only declares the config property type.
   // ALL defaults are set via .set() in the ThermostatServer function below.
   // This ensures Matter.js's internal cluster data store receives the values.
-  static override State = class State extends FeaturedBase.State {
+  static override State = class State extends FullFeaturedBase.State {
     config!: ThermostatServerConfig;
   };
 
   override async initialize() {
-    // CRITICAL: Matter.js's internal #clampSetpointToLimits() runs during super.initialize()
-    // and reads setpoint values from a path that might not see our .set() defaults.
-    // The logs show our this.state has correct values (2200) but Matter.js sees "undefined".
-    //
-    // FIX: UNCONDITIONALLY force-set all values before super.initialize() to ensure
-    // Matter.js's internal validation has valid values to work with.
-    // We use the current values if they're valid numbers, otherwise use sensible defaults.
-
-    const currentHeating = this.state.occupiedHeatingSetpoint;
-    const currentCooling = this.state.occupiedCoolingSetpoint;
-    const currentLocal = this.state.localTemperature;
-
-    logger.debug(
-      `initialize: before defaults - heating=${currentHeating}, cooling=${currentCooling}, local=${currentLocal}`,
-    );
-
-    // ALWAYS set these values unconditionally to ensure Matter.js sees them.
-    // Use current value if valid, otherwise use default.
-    const heatingValue =
-      typeof currentHeating === "number" && !Number.isNaN(currentHeating)
-        ? currentHeating
-        : 2000;
-    const coolingValue =
-      typeof currentCooling === "number" && !Number.isNaN(currentCooling)
-        ? currentCooling
-        : 2400;
-    const localValue =
-      typeof currentLocal === "number" && !Number.isNaN(currentLocal)
-        ? currentLocal
-        : 2100;
-
-    // Force-set ALL thermostat values unconditionally
-    this.state.occupiedHeatingSetpoint = heatingValue;
-    this.state.occupiedCoolingSetpoint = coolingValue;
-    this.state.localTemperature = localValue;
-    this.state.minHeatSetpointLimit = this.state.minHeatSetpointLimit ?? 0;
-    this.state.maxHeatSetpointLimit = this.state.maxHeatSetpointLimit ?? 5000;
-    this.state.minCoolSetpointLimit = this.state.minCoolSetpointLimit ?? 0;
-    this.state.maxCoolSetpointLimit = this.state.maxCoolSetpointLimit ?? 5000;
-    this.state.absMinHeatSetpointLimit =
-      this.state.absMinHeatSetpointLimit ?? 0;
-    this.state.absMaxHeatSetpointLimit =
-      this.state.absMaxHeatSetpointLimit ?? 5000;
-    this.state.absMinCoolSetpointLimit =
-      this.state.absMinCoolSetpointLimit ?? 0;
-    this.state.absMaxCoolSetpointLimit =
-      this.state.absMaxCoolSetpointLimit ?? 5000;
-
-    logger.debug(
-      `initialize: after force-set - heating=${this.state.occupiedHeatingSetpoint}, cooling=${this.state.occupiedCoolingSetpoint}`,
-    );
-
-    // Set controlSequenceOfOperation based on enabled features
-    this.state.controlSequenceOfOperation =
-      this.features.cooling && this.features.heating
-        ? Thermostat.ControlSequenceOfOperation.CoolingAndHeating
-        : this.features.cooling
-          ? Thermostat.ControlSequenceOfOperation.CoolingOnly
-          : Thermostat.ControlSequenceOfOperation.HeatingOnly;
-
+    thermostatPreInitialize(this);
     await super.initialize();
 
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
@@ -195,23 +285,31 @@ export class ThermostatServerBase extends FeaturedBase {
 
     const minSetpointLimit = isAvailable
       ? config.getMinTemperature(entity.state, this.agent)?.celsius(true)
-      : (this.state.minHeatSetpointLimit ?? this.state.minCoolSetpointLimit);
+      : this.features.heating
+        ? this.state.minHeatSetpointLimit
+        : this.state.minCoolSetpointLimit;
     const maxSetpointLimit = isAvailable
       ? config.getMaxTemperature(entity.state, this.agent)?.celsius(true)
-      : (this.state.maxHeatSetpointLimit ?? this.state.maxCoolSetpointLimit);
-    const localTemperature = isAvailable
+      : this.features.heating
+        ? this.state.maxHeatSetpointLimit
+        : this.state.maxCoolSetpointLimit;
+    const currentTemperature = isAvailable
       ? config.getCurrentTemperature(entity.state, this.agent)?.celsius(true)
       : this.state.localTemperature;
-    const targetHeatingTemperature = isAvailable
-      ? (config
-          .getTargetHeatingTemperature(entity.state, this.agent)
-          ?.celsius(true) ?? this.state.occupiedHeatingSetpoint)
-      : this.state.occupiedHeatingSetpoint;
-    const targetCoolingTemperature = isAvailable
-      ? (config
-          .getTargetCoolingTemperature(entity.state, this.agent)
-          ?.celsius(true) ?? this.state.occupiedCoolingSetpoint)
-      : this.state.occupiedCoolingSetpoint;
+    const targetHeatingTemperature = this.features.heating
+      ? isAvailable
+        ? (config
+            .getTargetHeatingTemperature(entity.state, this.agent)
+            ?.celsius(true) ?? this.state.occupiedHeatingSetpoint)
+        : this.state.occupiedHeatingSetpoint
+      : undefined;
+    const targetCoolingTemperature = this.features.cooling
+      ? isAvailable
+        ? (config
+            .getTargetCoolingTemperature(entity.state, this.agent)
+            ?.celsius(true) ?? this.state.occupiedCoolingSetpoint)
+        : this.state.occupiedCoolingSetpoint
+      : undefined;
 
     const systemMode = isAvailable
       ? this.getSystemMode(entity)
@@ -220,15 +318,21 @@ export class ThermostatServerBase extends FeaturedBase {
       ? config.getRunningMode(entity.state, this.agent)
       : Thermostat.ThermostatRunningMode.Off;
 
-    // Temperature limit handling:
-    // - For SINGLE-MODE (heat-only or cool-only): Use HA's actual min/max limits directly
-    // - For DUAL-MODE (heat + cool): Use wide limits (0-50°C) to avoid
-    //   Matter.js deadband constraint issues. HA will validate actual values.
-    //
-    // This ensures Apple Home shows the correct temperature range for single-mode thermostats
-    // while still working correctly for dual-mode thermostats.
+    // localTemperature: null when current_temperature is unavailable.
+    // Valid per Matter spec (nullable int16). Previously we fell back to the
+    // setpoint, but that made Apple Home think the target was already reached
+    // (localTemp == setpoint → shows "Heat" instead of "Heating to...").
+    // Null tells the controller "temperature unknown".
+    const localTemperature =
+      typeof currentTemperature === "number" &&
+      !Number.isNaN(currentTemperature)
+        ? currentTemperature
+        : null;
 
-    // Wide limits used as fallback when HA doesn't provide limits (0-50°C = 0-5000 in 0.01°C units)
+    // Temperature limit handling:
+    // Use HA's actual min/max limits for ALL modes (single and dual).
+    // minSetpointDeadBand: 0 for full HVAC devices (no gap between heat/cool setpoints).
+    // Fall back to wide limits (0-50°C) only when HA doesn't provide limits.
     const WIDE_MIN = 0; // 0°C
     const WIDE_MAX = 5000; // 50°C
 
@@ -237,51 +341,40 @@ export class ThermostatServerBase extends FeaturedBase {
     let maxHeatLimit: number | undefined;
     let maxCoolLimit: number | undefined;
 
-    if (this.features.heating && this.features.cooling) {
-      // DUAL-MODE: Use wide limits
-      // This avoids Matter.js deadband constraints and lets HA do the validation
-      minHeatLimit = WIDE_MIN;
-      maxHeatLimit = WIDE_MAX;
-      minCoolLimit = WIDE_MIN;
-      maxCoolLimit = WIDE_MAX;
-    } else if (this.features.heating && !this.features.cooling) {
-      // HEAT-ONLY: Use HA's actual limits, fallback to wide limits if not provided
+    if (this.features.heating) {
       minHeatLimit = minSetpointLimit ?? WIDE_MIN;
       maxHeatLimit = maxSetpointLimit ?? WIDE_MAX;
-    } else if (this.features.cooling && !this.features.heating) {
-      // COOL-ONLY: Use HA's actual limits, fallback to wide limits if not provided
+    }
+    if (this.features.cooling) {
       minCoolLimit = minSetpointLimit ?? WIDE_MIN;
       maxCoolLimit = maxSetpointLimit ?? WIDE_MAX;
     }
-
-    // For single-mode, use HA limits for clamping; for dual-mode use wide limits
-    const effectiveMinHeatLimit = minHeatLimit;
-    const effectiveMaxHeatLimit = maxHeatLimit;
-    const effectiveMinCoolLimit = minCoolLimit;
-    const effectiveMaxCoolLimit = maxCoolLimit;
 
     // Clamp setpoints to be within the calculated limits to prevent Matter.js validation errors
     // This handles cases where HA reports setpoints outside the valid range
     const clampedHeatingSetpoint = this.clampSetpoint(
       targetHeatingTemperature,
-      effectiveMinHeatLimit,
-      effectiveMaxHeatLimit,
+      minHeatLimit,
+      maxHeatLimit,
       "heat",
     );
     const clampedCoolingSetpoint = this.clampSetpoint(
       targetCoolingTemperature,
-      effectiveMinCoolLimit,
-      effectiveMaxCoolLimit,
+      minCoolLimit,
+      maxCoolLimit,
       "cool",
     );
 
+    logger.debug(
+      `update: limits heat=[${minHeatLimit}, ${maxHeatLimit}], cool=[${minCoolLimit}, ${maxCoolLimit}], systemMode=${systemMode}, runningMode=${runningMode}`,
+    );
+
+    // Property order matters: applyPatchState sets properties sequentially, so if one
+    // property write triggers an error, subsequent properties won't be set.
+    // Limits are set FIRST to ensure they're applied even if mode changes trigger errors.
     applyPatchState(this.state, {
-      localTemperature: localTemperature,
-      systemMode: systemMode,
-      thermostatRunningState: this.getRunningState(systemMode, runningMode),
       ...(this.features.heating
         ? {
-            occupiedHeatingSetpoint: clampedHeatingSetpoint,
             minHeatSetpointLimit: minHeatLimit,
             maxHeatSetpointLimit: maxHeatLimit,
             absMinHeatSetpointLimit: minHeatLimit,
@@ -290,12 +383,35 @@ export class ThermostatServerBase extends FeaturedBase {
         : {}),
       ...(this.features.cooling
         ? {
-            occupiedCoolingSetpoint: clampedCoolingSetpoint,
             minCoolSetpointLimit: minCoolLimit,
             maxCoolSetpointLimit: maxCoolLimit,
             absMinCoolSetpointLimit: minCoolLimit,
             absMaxCoolSetpointLimit: maxCoolLimit,
           }
+        : {}),
+      localTemperature: localTemperature,
+      controlSequenceOfOperation: config.getControlSequence(
+        entity.state,
+        this.agent,
+      ),
+      thermostatRunningState: this.getRunningState(systemMode, runningMode),
+      systemMode: systemMode,
+      // thermostatRunningMode: Only set for Auto mode. Matter.js's reactor handles
+      // Heat/Cool/Off but SKIPS Auto (see #handleSystemModeChange in Matter.js).
+      // Without this, switching Heat→Auto leaves runningMode stale at Heat.
+      // 889010b set for ALL modes (conflicted with reactor), 0678d35 set for NONE
+      // (stale in Auto). da04b2e's Auto-only approach is correct — the issues
+      // reported after it were caused by localTemperature fallback, not runningMode.
+      ...(this.features.heating &&
+      this.features.cooling &&
+      systemMode === Thermostat.SystemMode.Auto
+        ? { thermostatRunningMode: runningMode }
+        : {}),
+      ...(this.features.heating
+        ? { occupiedHeatingSetpoint: clampedHeatingSetpoint }
+        : {}),
+      ...(this.features.cooling
+        ? { occupiedCoolingSetpoint: clampedCoolingSetpoint }
         : {}),
     });
   }
@@ -385,7 +501,9 @@ export class ThermostatServerBase extends FeaturedBase {
         );
       }
 
-      const coolingSetpoint = this.state.occupiedCoolingSetpoint;
+      const coolingSetpoint = this.features.cooling
+        ? this.state.occupiedCoolingSetpoint
+        : value;
       logger.debug(
         `heatingSetpointChanging: calling setTemperature with heat=${next.celsius(true)}, cool=${coolingSetpoint}`,
       );
@@ -447,7 +565,9 @@ export class ThermostatServerBase extends FeaturedBase {
         );
       }
 
-      const heatingSetpoint = this.state.occupiedHeatingSetpoint;
+      const heatingSetpoint = this.features.heating
+        ? this.state.occupiedHeatingSetpoint
+        : value;
       this.setTemperature(
         Temperature.celsius(heatingSetpoint / 100)!,
         next,
@@ -496,11 +616,8 @@ export class ThermostatServerBase extends FeaturedBase {
   }
 
   private getSystemMode(entity: HomeAssistantEntityInformation) {
-    // NOTE: We intentionally allow SystemMode.Auto to be displayed without the AutoMode feature.
-    // The AutoMode feature only adds thermostatRunningMode attribute and its internal reactor.
-    // The systemMode attribute itself (including Auto value) is part of the base Thermostat cluster.
-    // Controllers should be able to display Auto mode without the AutoMode feature enabled.
-    // See: https://github.com/matter-js/matter.js/issues/3105 for why we don't enable AutoMode.
+    // SystemMode.Auto works without the AutoMode feature — Matter.js validates it
+    // only against controlSequenceOfOperation, not feature flags. See file header comment.
     return this.state.config.getSystemMode(entity.state, this.agent);
   }
 
@@ -521,27 +638,25 @@ export class ThermostatServerBase extends FeaturedBase {
     const cool = { ...allOff, cool: true };
     const dry = { ...allOff, heat: true, fan: true };
     const fanOnly = { ...allOff, fan: true };
-    switch (systemMode) {
-      case SystemMode.Heat:
-      case SystemMode.EmergencyHeat:
+
+    // Use runningMode (derived from hvac_action) as the PRIMARY signal for active
+    // heating/cooling. This allows controllers like Apple Home to distinguish
+    // "Heating to 26" (active) from "Heat to 26" (mode selected but idle).
+    // For FanOnly/Dry modes (no RunningMode equivalent), fall back to systemMode.
+    switch (runningMode) {
+      case RunningMode.Heat:
         return heat;
-      case SystemMode.Cool:
-      case SystemMode.Precooling:
+      case RunningMode.Cool:
         return cool;
-      case SystemMode.Dry:
-        return dry;
-      case SystemMode.FanOnly:
-        return fanOnly;
-      case SystemMode.Off:
-      case SystemMode.Sleep:
-        return allOff;
-      case SystemMode.Auto:
-        switch (runningMode) {
-          case RunningMode.Heat:
-            return heat;
-          case RunningMode.Cool:
-            return cool;
-          case RunningMode.Off:
+      case RunningMode.Off:
+        // Not actively heating/cooling. For FanOnly/Dry, still indicate activity
+        // based on systemMode since these modes have no RunningMode equivalent.
+        switch (systemMode) {
+          case SystemMode.FanOnly:
+            return fanOnly;
+          case SystemMode.Dry:
+            return dry;
+          default:
             return allOff;
         }
     }
@@ -557,9 +672,9 @@ export class ThermostatServerBase extends FeaturedBase {
     const effectiveMin = min ?? 0; // 0°C
     const effectiveMax = max ?? 5000; // 50°C
 
-    // If value is undefined, use a reasonable default based on type
+    // If value is undefined or NaN, use a reasonable default based on type
     // Heat defaults to 20°C (2000), Cool defaults to 24°C (2400)
-    if (value == null) {
+    if (value == null || Number.isNaN(value)) {
       const defaultValue = type === "heat" ? 2000 : 2400;
       logger.debug(
         `${type} setpoint is undefined, using default: ${defaultValue}`,
@@ -575,6 +690,75 @@ export class ThermostatServerBase extends FeaturedBase {
 export namespace ThermostatServerBase {
   export type State = InstanceType<typeof ThermostatServerBase.State>;
 }
+
+// Feature-specific thermostat variants that share the same implementation
+// but advertise only the features they actually support.
+// This is critical for controllers like Alexa that use feature flags to
+// determine thermostat capabilities (single vs dual setpoint).
+// See: https://github.com/RiDDiX/home-assistant-matter-hub/issues/136
+// biome-ignore lint/correctness/noUnusedVariables: Used via copyPrototypeMethods and in ThermostatServer factory
+class HeatingOnlyThermostatServerBase extends HeatingOnlyFeaturedBase {
+  declare state: HeatingOnlyThermostatServerBase.State;
+  static override State = class extends HeatingOnlyFeaturedBase.State {
+    config!: ThermostatServerConfig;
+  };
+
+  // Each variant MUST define its own initialize() so that super.initialize()
+  // resolves to the correct parent class (HeatingOnlyFeaturedBase here).
+  // Copying initialize() via prototype manipulation would bind super to
+  // FullFeaturedBase due to JavaScript's [[HomeObject]] semantics.
+  override async initialize() {
+    thermostatPreInitialize(this);
+    await super.initialize();
+    await thermostatPostInitialize(this);
+  }
+}
+namespace HeatingOnlyThermostatServerBase {
+  export type State = InstanceType<
+    typeof HeatingOnlyThermostatServerBase.State
+  >;
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: Used via copyPrototypeMethods and in ThermostatServer factory
+class CoolingOnlyThermostatServerBase extends CoolingOnlyFeaturedBase {
+  declare state: CoolingOnlyThermostatServerBase.State;
+  static override State = class extends CoolingOnlyFeaturedBase.State {
+    config!: ThermostatServerConfig;
+  };
+
+  // Each variant MUST define its own initialize() — see HeatingOnly comment above.
+  override async initialize() {
+    thermostatPreInitialize(this);
+    await super.initialize();
+    await thermostatPostInitialize(this);
+  }
+}
+namespace CoolingOnlyThermostatServerBase {
+  export type State = InstanceType<
+    typeof CoolingOnlyThermostatServerBase.State
+  >;
+}
+
+// Share implementation from ThermostatServerBase to feature-specific variants.
+// IMPORTANT: initialize() is EXCLUDED because JavaScript's [[HomeObject]] semantics
+// bind super to the class where the method was originally defined. Copying initialize()
+// would make super.initialize() always call FullFeaturedBase instead of the variant's
+// actual parent. Each variant defines its own initialize() above.
+// All other methods are safe to copy because they don't use super.
+// biome-ignore lint/suspicious/noExplicitAny: Prototype manipulation requires any
+function copyPrototypeMethods(source: any, target: any) {
+  for (const name of Object.getOwnPropertyNames(source.prototype)) {
+    if (name === "constructor" || name === "initialize") {
+      continue;
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(source.prototype, name);
+    if (descriptor) {
+      Object.defineProperty(target.prototype, name, descriptor);
+    }
+  }
+}
+copyPrototypeMethods(ThermostatServerBase, HeatingOnlyThermostatServerBase);
+copyPrototypeMethods(ThermostatServerBase, CoolingOnlyThermostatServerBase);
 
 export interface ThermostatServerFeatures {
   heating: boolean;
@@ -618,24 +802,53 @@ export interface ThermostatServerInitialState {
 export function ThermostatServer(
   config: ThermostatServerConfig,
   initialState: ThermostatServerInitialState = {},
+  features: ThermostatServerFeatures = { heating: true, cooling: true },
 ) {
-  // Merge provided initial state with defaults
-  // These values are passed DIRECTLY to Matter.js during registration,
-  // ensuring they are available BEFORE any validation runs.
-  const state = {
+  const supportsHeating = features.heating;
+  const supportsCooling = features.cooling;
+
+  if (supportsHeating && supportsCooling) {
+    // Full features (heating + cooling + auto mode)
+    // IMPORTANT: abs limits → regular limits → setpoints to prevent
+    // validation failures for negative temperatures (e.g. refrigerators).
+    return ThermostatServerBase.set({
+      config,
+      absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+      absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+      absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+      maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      localTemperature: initialState.localTemperature ?? 2100,
+      occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
+      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
+      minSetpointDeadBand: 0,
+    });
+  }
+
+  if (supportsCooling) {
+    // Cooling only - no Heating or AutoMode features
+    return CoolingOnlyThermostatServerBase.set({
+      config,
+      absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
+      maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
+      localTemperature: initialState.localTemperature ?? 2100,
+      occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
+    });
+  }
+
+  // Heating only (default) - no Cooling or AutoMode features
+  return HeatingOnlyThermostatServerBase.set({
     config,
-    localTemperature: initialState.localTemperature ?? 2100,
-    occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
-    occupiedCoolingSetpoint: initialState.occupiedCoolingSetpoint ?? 2400,
-    minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
-    maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-    minCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-    maxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
     absMinHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
     absMaxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
-    absMinCoolSetpointLimit: initialState.minCoolSetpointLimit ?? 0,
-    absMaxCoolSetpointLimit: initialState.maxCoolSetpointLimit ?? 5000,
-  };
-
-  return ThermostatServerBase.set(state);
+    minHeatSetpointLimit: initialState.minHeatSetpointLimit ?? 0,
+    maxHeatSetpointLimit: initialState.maxHeatSetpointLimit ?? 5000,
+    localTemperature: initialState.localTemperature ?? 2100,
+    occupiedHeatingSetpoint: initialState.occupiedHeatingSetpoint ?? 2000,
+  });
 }

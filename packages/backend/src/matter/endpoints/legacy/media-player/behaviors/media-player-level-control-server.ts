@@ -6,7 +6,7 @@ import { SpeakerLevelControlServer } from "../../../../behaviors/speaker-level-c
  *
  * Uses SpeakerLevelControlServer which:
  * - Does NOT use the "Lighting" feature
- * - Uses range 0-100 for currentLevel (Google Home expects volume as percentage)
+ * - Uses range 0-254 for currentLevel (Google Home calculates percentage as currentLevel/254)
  *
  * This fixes Issue #79 where Google Home displayed wrong volume percentages
  * because it interpreted currentLevel (0-254) as a percentage value.

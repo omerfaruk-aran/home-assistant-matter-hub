@@ -44,7 +44,7 @@ const usesMatterSemantics = (agent: Agent): boolean => {
  * Adjusts position when READING from HA to report to Matter controllers.
  * By default, inverts percentage (HA 80% open → Matter 20% = 80% closed).
  * With coverUseHomeAssistantPercentage flag, skips inversion for Alexa-friendly display.
- * With coverSwapOpenClose, forces inversion to fix Alexa open/close display.
+ * With coverSwapOpenClose, skips inversion (swaps entire open/close concept).
  */
 const adjustPositionForReading = (position: number, agent: Agent) => {
   const { featureFlags } = agent.env.get(BridgeDataProvider);
@@ -53,17 +53,13 @@ const adjustPositionForReading = (position: number, agent: Agent) => {
   }
   let percentValue = position;
 
-  // coverSwapOpenClose forces inversion for position reading (fixes Alexa display)
-  if (featureFlags?.coverSwapOpenClose === true) {
-    percentValue = 100 - percentValue;
-    return percentValue;
-  }
-
   // Skip inversion if:
-  // 1. User explicitly set coverDoNotInvertPercentage flag, OR
-  // 2. User set coverUseHomeAssistantPercentage for Alexa-friendly display, OR
-  // 3. Integration uses Matter-compatible semantics (like Overkiz/Somfy)
+  // 1. coverSwapOpenClose: swaps entire open/close concept (position + commands + movement), OR
+  // 2. User explicitly set coverDoNotInvertPercentage flag, OR
+  // 3. User set coverUseHomeAssistantPercentage for Alexa-friendly display, OR
+  // 4. Integration uses Matter-compatible semantics
   const skipInversion =
+    featureFlags?.coverSwapOpenClose === true ||
     featureFlags?.coverDoNotInvertPercentage === true ||
     featureFlags?.coverUseHomeAssistantPercentage === true ||
     usesMatterSemantics(agent);
@@ -77,7 +73,7 @@ const adjustPositionForReading = (position: number, agent: Agent) => {
  * Adjusts position when WRITING to HA from Matter controller commands.
  * By default, inverts percentage (Matter 80% closed → HA 20% open).
  * With coverUseHomeAssistantPercentage, also skips inversion so commands match display.
- * With coverSwapOpenClose, forces inversion to fix Alexa open/close commands.
+ * With coverSwapOpenClose, skips inversion (swaps entire open/close concept).
  */
 const adjustPositionForWriting = (position: number, agent: Agent) => {
   const { featureFlags } = agent.env.get(BridgeDataProvider);
@@ -86,18 +82,13 @@ const adjustPositionForWriting = (position: number, agent: Agent) => {
   }
   let percentValue = position;
 
-  // coverSwapOpenClose forces inversion for position commands (fixes Alexa)
-  // Alexa sends position 100% for "close" which needs to become 0% in HA
-  if (featureFlags?.coverSwapOpenClose === true) {
-    percentValue = 100 - percentValue;
-    return percentValue;
-  }
-
   // Skip inversion for writing if:
-  // 1. User explicitly set coverDoNotInvertPercentage flag, OR
-  // 2. User set coverUseHomeAssistantPercentage (so commands match displayed %), OR
-  // 3. Integration uses Matter-compatible semantics (like Overkiz/Somfy)
+  // 1. coverSwapOpenClose: swaps entire open/close concept (position + commands + movement), OR
+  // 2. User explicitly set coverDoNotInvertPercentage flag, OR
+  // 3. User set coverUseHomeAssistantPercentage (so commands match displayed %), OR
+  // 4. Integration uses Matter-compatible semantics
   const skipInversion =
+    featureFlags?.coverSwapOpenClose === true ||
     featureFlags?.coverDoNotInvertPercentage === true ||
     featureFlags?.coverUseHomeAssistantPercentage === true ||
     usesMatterSemantics(agent);
@@ -168,13 +159,21 @@ const config: WindowCoveringConfig = {
     }
     return position == null ? null : adjustPositionForReading(position, agent);
   },
-  getMovementStatus: (entity) => {
+  getMovementStatus: (entity, agent) => {
+    const { featureFlags } = agent.env.get(BridgeDataProvider);
+    const swapped = featureFlags?.coverSwapOpenClose === true;
     const coverState = entity.state as CoverDeviceState;
-    return coverState === CoverDeviceState.opening
-      ? WindowCovering.MovementStatus.Opening
-      : coverState === CoverDeviceState.closing
+    if (coverState === CoverDeviceState.opening) {
+      return swapped
         ? WindowCovering.MovementStatus.Closing
-        : WindowCovering.MovementStatus.Stopped;
+        : WindowCovering.MovementStatus.Opening;
+    }
+    if (coverState === CoverDeviceState.closing) {
+      return swapped
+        ? WindowCovering.MovementStatus.Opening
+        : WindowCovering.MovementStatus.Closing;
+    }
+    return WindowCovering.MovementStatus.Stopped;
   },
 
   stopCover: () => ({ action: "cover.stop_cover" }),

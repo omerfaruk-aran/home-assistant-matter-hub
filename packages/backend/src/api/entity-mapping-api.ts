@@ -38,6 +38,7 @@ export function entityMappingApi(
       humidityEntity: body.humidityEntity,
       batteryEntity: body.batteryEntity,
       roomEntities: body.roomEntities,
+      disableLockPin: body.disableLockPin,
     };
 
     const config = await mappingStorage.setMapping(request);

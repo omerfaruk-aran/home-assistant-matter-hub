@@ -8,6 +8,7 @@ import { getStates } from "home-assistant-js-websocket";
 import { fromPairs, keyBy, keys, uniq, values } from "lodash-es";
 import { Service } from "../../core/ioc/service.js";
 import {
+  getAreaRegistry,
   getDeviceRegistry,
   getLabelRegistry,
   getRegistry,
@@ -22,6 +23,7 @@ export type HomeAssistantDevices = Record<string, HomeAssistantDeviceRegistry>;
 export type HomeAssistantEntities = Record<string, HomeAssistantEntityRegistry>;
 export type HomeAssistantStates = Record<string, HomeAssistantEntityState>;
 export type HomeAssistantLabels = HomeAssistantLabel[];
+export type HomeAssistantAreas = Map<string, string>;
 
 export class HomeAssistantRegistry extends Service {
   private autoRefresh?: NodeJS.Timeout;
@@ -44,6 +46,11 @@ export class HomeAssistantRegistry extends Service {
   private _labels: HomeAssistantLabels = [];
   get labels() {
     return this._labels;
+  }
+
+  private _areas: HomeAssistantAreas = new Map();
+  get areas() {
+    return this._areas;
   }
 
   constructor(
@@ -115,6 +122,15 @@ export class HomeAssistantRegistry extends Service {
     } catch {
       // Label registry might not be available in older HA versions
       this._labels = [];
+    }
+
+    // Fetch area registry for automatic room assignment via FixedLabel cluster
+    try {
+      const areaRegistry = await getAreaRegistry(connection);
+      this._areas = new Map(areaRegistry.map((a) => [a.area_id, a.name]));
+    } catch {
+      // Area registry might not be available in older HA versions
+      this._areas = new Map();
     }
   }
 }

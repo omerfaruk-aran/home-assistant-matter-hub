@@ -16,14 +16,21 @@ function shouldSuppressError(error: unknown): boolean {
   return (
     msg.includes("Endpoint storage inaccessible") ||
     msg.includes("Invalid intervalMs") ||
-    msg.includes("generalDiagnostics")
+    msg.includes("generalDiagnostics") ||
+    msg.includes("Behaviors have errors") ||
+    msg.includes("TransactionDestroyedError") ||
+    msg.includes("DestroyedDependencyError") ||
+    msg.includes("UninitializedDependencyError") ||
+    msg.includes("mutex-closed") ||
+    msg.includes("not a node and is not owned") ||
+    msg.includes("aggregator.")
   );
 }
 
 // Check if an error is isolatable (can isolate the entity causing it)
 function isIsolatableError(error: unknown): boolean {
   const msg = error instanceof Error ? error.message : String(error);
-  return msg.includes("Invalid intervalMs");
+  return msg.includes("Invalid intervalMs") || msg.includes("aggregator.");
 }
 
 // Register early error handlers to catch errors before Matter.js initializes

@@ -97,13 +97,23 @@ export class BridgeService extends Service {
       return priorityA - priorityB;
     });
     for (const bridge of sortedBridges) {
-      await bridge.start();
+      try {
+        await bridge.start();
+      } catch (e) {
+        // Isolate per-bridge failures so one failing bridge doesn't prevent others from starting
+        console.error(`Failed to start bridge ${bridge.id}:`, e);
+      }
     }
   }
 
   async refreshAll() {
     for (const bridge of this.bridges) {
-      await bridge.refreshDevices();
+      try {
+        await bridge.refreshDevices();
+      } catch (e) {
+        // Isolate per-bridge failures so one failing bridge doesn't block others
+        console.error(`Failed to refresh bridge ${bridge.id}:`, e);
+      }
     }
   }
 

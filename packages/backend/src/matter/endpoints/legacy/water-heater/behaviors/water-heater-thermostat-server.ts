@@ -57,6 +57,7 @@ const config: ThermostatServerConfig = {
     }
     return Thermostat.ThermostatRunningMode.Heat;
   },
+  getControlSequence: () => Thermostat.ControlSequenceOfOperation.HeatingOnly,
   setSystemMode: (systemMode) => {
     if (systemMode === Thermostat.SystemMode.Off) {
       return {
@@ -95,11 +96,10 @@ const waterHeaterInitialState = {
   absMaxHeatSetpointLimit: 12000,
 };
 
-// NOTE: Do NOT call .with("Heating") after ThermostatServer()!
-// Matter.js .with() creates a NEW class that loses the initial state values set via .set().
-// The thermostat features are already configured in ThermostatServerBase (Heating + Cooling),
-// and the runtime code handles single-mode thermostats correctly.
+// Water heater uses heating-only features so controllers correctly identify
+// it as a single-setpoint heating device.
 export const WaterHeaterThermostatServer = ThermostatServer(
   config,
   waterHeaterInitialState,
+  { heating: true, cooling: false },
 );

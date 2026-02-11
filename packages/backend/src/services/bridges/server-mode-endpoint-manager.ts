@@ -179,7 +179,11 @@ export class ServerModeEndpointManager extends Service {
 
   async updateStates(states: HomeAssistantStates): Promise<void> {
     if (this.deviceEndpoint) {
-      await this.deviceEndpoint.updateStates(states);
+      try {
+        await this.deviceEndpoint.updateStates(states);
+      } catch (e) {
+        this.log.warn("State update failed for server mode endpoint:", e);
+      }
     }
   }
 

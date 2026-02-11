@@ -27,6 +27,10 @@ import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  checkBridgeIconExists,
+  getBridgeIconUrl,
+} from "../../api/bridge-icons.ts";
 import { Breadcrumbs } from "../../components/breadcrumbs/Breadcrumbs.tsx";
 import {
   getBridgeIcon,
@@ -54,6 +58,12 @@ const SortableBridgeCard = ({ bridge, index }: SortableBridgeCardProps) => {
     isDragging,
   } = useSortable({ id: bridge.id });
 
+  const [hasCustomIcon, setHasCustomIcon] = useState(false);
+
+  useEffect(() => {
+    checkBridgeIconExists(bridge.id).then(setHasCustomIcon);
+  }, [bridge.id]);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -69,15 +79,16 @@ const SortableBridgeCard = ({ bridge, index }: SortableBridgeCardProps) => {
         cursor: "grab",
         "&:active": { cursor: "grabbing" },
         bgcolor: isDragging ? "action.selected" : "background.paper",
+        width: "fit-content",
       }}
     >
       <CardContent
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 2,
-          py: 1.5,
-          "&:last-child": { pb: 1.5 },
+          gap: 1.5,
+          py: 1,
+          "&:last-child": { pb: 1 },
         }}
       >
         <Box
@@ -99,18 +110,34 @@ const SortableBridgeCard = ({ bridge, index }: SortableBridgeCardProps) => {
           sx={{ minWidth: 32, fontWeight: "bold" }}
         />
 
-        <Avatar
-          sx={{
-            bgcolor: getBridgeIconColor(bridge),
-            width: 40,
-            height: 40,
-          }}
-        >
-          {(() => {
-            const Icon = getBridgeIcon(bridge);
-            return <Icon sx={{ fontSize: 24 }} />;
-          })()}
-        </Avatar>
+        {hasCustomIcon ? (
+          <Box
+            component="img"
+            src={getBridgeIconUrl(bridge.id)}
+            alt={bridge.name}
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: "50%",
+              objectFit: "cover",
+              boxShadow: 2,
+            }}
+          />
+        ) : (
+          <Avatar
+            sx={{
+              bgcolor: getBridgeIconColor(bridge),
+              width: 40,
+              height: 40,
+              boxShadow: 2,
+            }}
+          >
+            {(() => {
+              const Icon = getBridgeIcon(bridge);
+              return <Icon sx={{ fontSize: 24 }} />;
+            })()}
+          </Avatar>
+        )}
 
         <Box sx={{ flex: 1 }}>
           <Typography variant="subtitle1" fontWeight={500}>

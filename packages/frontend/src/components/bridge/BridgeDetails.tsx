@@ -33,7 +33,6 @@ import { useState } from "react";
 import { forceSyncBridge } from "../../api/bridges.ts";
 import { FabricList } from "../fabric/FabricList.tsx";
 import { useNotifications } from "../notifications/use-notifications.ts";
-import { DeviceLimitWarning } from "./DeviceLimitWarning.tsx";
 
 export interface BridgeDetailsProps {
   readonly bridge: BridgeDataWithMetadata;
@@ -50,9 +49,6 @@ export const BridgeDetails = ({ bridge }: BridgeDetailsProps) => {
       </Grid>
       <Grid size={{ xs: 12, md: 4 }}>
         <FabricsCard bridge={bridge} />
-      </Grid>
-      <Grid size={{ xs: 12 }}>
-        <DeviceLimitWarning bridge={bridge} />
       </Grid>
       <Grid size={{ xs: 12 }}>
         <FiltersCard bridge={bridge} />

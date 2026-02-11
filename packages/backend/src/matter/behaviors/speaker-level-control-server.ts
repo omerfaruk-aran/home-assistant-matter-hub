@@ -41,6 +41,10 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
     if (this.state.maxLevel == null) {
       this.state.maxLevel = 254;
     }
+    // Force onLevel to null so the base class's handleOnOffChange never
+    // overwrites currentLevel when the device turns on. Volume is managed
+    // entirely through Home Assistant state updates, not on-level restoration.
+    this.state.onLevel = null;
 
     await super.initialize();
     const homeAssistant = await this.agent.load(HomeAssistantEntityBehavior);
@@ -102,6 +106,20 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
       request.transitionTime = 0;
     }
     return super.moveToLevelWithOnOff(request);
+  }
+
+  /**
+   * Override to prevent the base LevelControlServer from resetting
+   * currentLevel to onLevel whenever the OnOff state changes to ON.
+   *
+   * The base class registers a reactor on onOff$Changed that sets
+   * currentLevel = onLevel. This is designed for lights (restore brightness
+   * on power-on) but is wrong for speakers — it overwrites the correct
+   * volume (e.g. 191 for 75%) with a stale onLevel value, causing Google
+   * Home to display the wrong percentage (Issue #79).
+   */
+  override handleOnOffChange(_onOff: boolean) {
+    // No-op: volume is driven by HA state, not by on-level restoration.
   }
 
   override moveToLevelLogic(level: number) {

@@ -413,6 +413,11 @@ Thank you to everyone who helps improve this project by reporting issues!
 | [@ilGaspa](https://github.com/ilGaspa) | 💎 Thank you for your generous support! |
 | [@linux4life798](https://github.com/linux4life798) | 💎 Thank you for your generous support! |
 | [@torandreroland](https://github.com/torandreroland) | 💎 Thank you for your generous support! |
+| [@ralondo](https://github.com/ralondo) | 💎 Thank you for your generous support! |
+| [@bexxter85-ux](https://github.com/bexxter85-ux) | 💎 Thank you for your generous support! |
+| [@dinariox](https://github.com/dinariox) | 💎 Thank you for your generous support! |
+| StefanS | 💎 Thank you for your generous support! |
+| Manny B. | 💎 Thank you for your generous support! |
 | *Anonymous supporters* | 🙏 Thank you to those who prefer not to be named - your support is equally appreciated! |
 
 ### 🌟 Original Author

@@ -65,4 +65,7 @@ export const VacuumRvcOperationalStateServer = RvcOperationalStateServer({
   resume: () => ({
     action: "vacuum.start",
   }),
+  goHome: () => ({
+    action: "vacuum.return_to_base",
+  }),
 });

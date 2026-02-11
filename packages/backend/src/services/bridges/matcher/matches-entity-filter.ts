@@ -33,7 +33,10 @@ export function testMatcher(
     case "domain":
       return entity.entity_id.split(".")[0] === matcher.value;
     case "label":
-      return !!entity?.labels && entity?.labels.includes(matcher.value);
+      return (
+        (!!entity?.labels && entity.labels.includes(matcher.value)) ||
+        (!!device?.labels && device.labels.includes(matcher.value))
+      );
     case "entity_category":
       return entity?.entity_category === matcher.value;
     case "platform":

@@ -63,8 +63,13 @@ class OnOffServerBase extends FeaturedBase {
     notifyLightTurnedOn(homeAssistant.entityId);
     homeAssistant.callAction(action);
     // Auto-reset for momentary actions (scenes, automations) so controllers
-    // don't show a permanently "on" state after activation
+    // don't show a permanently "on" state after activation.
+    // We must explicitly set onOff: true first because we override on() without
+    // calling super.on(). Without this, onOff stays false, the auto-reset is a
+    // no-op (deepEqual skips it), and controllers like Alexa that cache optimistic
+    // state never receive the true→false transition notification.
     if (turnOff === null) {
+      applyPatchState(this.state, { onOff: true });
       setTimeout(this.callback(this.autoReset), 1000);
     }
   }

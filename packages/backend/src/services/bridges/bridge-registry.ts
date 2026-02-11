@@ -97,12 +97,15 @@ export class BridgeRegistry {
    * Returns the entity_id of the battery sensor, or undefined if none found.
    */
   findBatteryEntityForDevice(deviceId: string): string | undefined {
-    const entities = values(this._entities);
+    // Search the FULL HA registry, not the filtered bridge entities.
+    // The battery sensor might not match the bridge filter (e.g., vacuum
+    // server bridges only include vacuum.* entities, not sensor.*).
+    const entities = values(this.registry.entities);
     for (const entity of entities) {
       if (entity.device_id !== deviceId) continue;
       if (!entity.entity_id.startsWith("sensor.")) continue;
 
-      const state = this._states[entity.entity_id];
+      const state = this.registry.states[entity.entity_id];
       if (!state) continue;
 
       const attrs = state.attributes as SensorDeviceAttributes;
@@ -136,10 +139,15 @@ export class BridgeRegistry {
 
   /**
    * Check if auto humidity mapping is enabled for this bridge.
-   * Default: true (enabled by default)
+   * Default: false (disabled by default, user must explicitly enable).
+   * When enabled, humidity sensors on the same device as a temperature sensor
+   * are combined into a single TemperatureHumiditySensor endpoint.
+   * Note: Apple Home does not display humidity on TemperatureSensorDevice
+   * endpoints, so users on Apple Home should keep this disabled.
+   * See: https://github.com/RiDDiX/home-assistant-matter-hub/issues/133
    */
   isAutoHumidityMappingEnabled(): boolean {
-    return this.dataProvider.featureFlags?.autoHumidityMapping !== false;
+    return this.dataProvider.featureFlags?.autoHumidityMapping === true;
   }
 
   /**
@@ -147,12 +155,14 @@ export class BridgeRegistry {
    * Returns the entity_id of the humidity sensor, or undefined if none found.
    */
   findHumidityEntityForDevice(deviceId: string): string | undefined {
-    const entities = values(this._entities);
+    // Search the FULL HA registry, not the filtered bridge entities.
+    // Same reasoning as findBatteryEntityForDevice.
+    const entities = values(this.registry.entities);
     for (const entity of entities) {
       if (entity.device_id !== deviceId) continue;
       if (!entity.entity_id.startsWith("sensor.")) continue;
 
-      const state = this._states[entity.entity_id];
+      const state = this.registry.states[entity.entity_id];
       if (!state) continue;
 
       const attrs = state.attributes as SensorDeviceAttributes;
@@ -182,6 +192,32 @@ export class BridgeRegistry {
     private readonly dataProvider: BridgeDataProvider,
   ) {
     this.refresh();
+  }
+
+  /**
+   * Get the area name for an entity, resolving from HA area registry.
+   * Priority: entity area_id > device area_id > undefined
+   */
+  getAreaName(entityId: string): string | undefined {
+    const entity = this._entities[entityId];
+    if (!entity) return undefined;
+
+    // Entity-level area takes priority
+    const entityAreaId = entity.area_id;
+    if (entityAreaId) {
+      const name = this.registry.areas.get(entityAreaId);
+      if (name) return name;
+    }
+
+    // Fallback to device-level area
+    const device = this._devices[entity.device_id];
+    const deviceAreaId = device?.area_id as string | undefined;
+    if (deviceAreaId) {
+      const name = this.registry.areas.get(deviceAreaId);
+      if (name) return name;
+    }
+
+    return undefined;
   }
 
   refresh() {

@@ -108,7 +108,11 @@ export class BridgeEndpointManager extends Service {
     const existingEndpoints: EntityEndpoint[] = [];
     for (const endpoint of endpoints) {
       if (!this.entityIds.includes(endpoint.entityId)) {
-        await endpoint.delete();
+        try {
+          await endpoint.delete();
+        } catch (e) {
+          this.log.warn(`Failed to delete endpoint ${endpoint.entityId}:`, e);
+        }
       } else {
         existingEndpoints.push(endpoint);
       }
@@ -171,10 +175,15 @@ export class BridgeEndpointManager extends Service {
   async updateStates(states: HomeAssistantStates) {
     const endpoints = this.root.parts.map((p) => p as EntityEndpoint);
     // Process state updates in parallel for faster response times
-    // This significantly reduces latency for Alexa/Google Home
-    await Promise.all(
+    // Use allSettled so one failing endpoint doesn't block all others
+    const results = await Promise.allSettled(
       endpoints.map((endpoint) => endpoint.updateStates(states)),
     );
+    for (const result of results) {
+      if (result.status === "rejected") {
+        this.log.warn("State update failed for endpoint:", result.reason);
+      }
+    }
   }
 
   private extractErrorReason(error: unknown): string {

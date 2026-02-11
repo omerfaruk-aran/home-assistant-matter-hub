@@ -12,7 +12,6 @@ import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
-import { VacuumOnOffServer } from "./behaviors/vacuum-on-off-server.js";
 import { VacuumPowerSourceServer } from "./behaviors/vacuum-power-source-server.js";
 import {
   createVacuumRvcCleanModeServer,
@@ -52,9 +51,13 @@ export function VacuumDevice(
     createVacuumRvcRunModeServer(attributes),
   ).set({ homeAssistantEntity });
 
-  if (testBit(supportedFeatures, VacuumDeviceFeature.START)) {
-    device = device.with(VacuumOnOffServer);
-  }
+  // NOTE: OnOff is intentionally NOT included.
+  // It is not part of the RoboticVacuumCleaner device type spec and
+  // non-standard clusters can confuse Apple Home's UI rendering.
+  // When vacuum is idle, OnOff.onOff=false may cause Apple Home to show
+  // "Updating" instead of using RvcOperationalState for the actual status.
+  // Start/stop is handled via RvcRunMode.changeToMode(Cleaning/Idle).
+
   // Add PowerSource if BATTERY feature is set OR if battery attribute exists
   // OR if a battery entity is mapped (for Roomba, Deebot, etc.)
   // Some vacuums use 'battery_level', others use 'battery' (e.g. Dreame)

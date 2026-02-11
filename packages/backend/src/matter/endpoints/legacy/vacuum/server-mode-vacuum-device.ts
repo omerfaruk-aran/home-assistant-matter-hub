@@ -7,7 +7,6 @@ import { RoboticVacuumCleanerDevice } from "@matter/main/devices";
 import { testBit } from "../../../../utils/test-bit.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
-import { VacuumOnOffServer } from "./behaviors/vacuum-on-off-server.js";
 import { VacuumPowerSourceServer } from "./behaviors/vacuum-power-source-server.js";
 import {
   createVacuumRvcCleanModeServer,
@@ -23,8 +22,14 @@ import { parseVacuumRooms } from "./utils/parse-vacuum-rooms.js";
  *
  * This is different from the normal VacuumDevice:
  * - NO BridgedDeviceBasicInformationServer (BasicInformationServer)
+ * - NO OnOff cluster (not part of RoboticVacuumCleaner device type spec)
  * - The device appears as a standalone Matter device, not bridged
  * - Required for Apple Home Siri voice commands and Alexa discovery
+ *
+ * Only clusters from the Matter RoboticVacuumCleaner device type (0x74) are included:
+ * Required: Identify, RvcRunMode, RvcOperationalState
+ * Optional: RvcCleanMode, ServiceArea
+ * Additional: PowerSource (for battery info, commonly used)
  *
  * The BasicInformation comes from the ServerNode itself, not the endpoint.
  */
@@ -57,9 +62,10 @@ export function ServerModeVacuumDevice(
     createVacuumRvcRunModeServer(attributes),
   ).set({ homeAssistantEntity });
 
-  if (testBit(supportedFeatures, VacuumDeviceFeature.START)) {
-    device = device.with(VacuumOnOffServer);
-  }
+  // NOTE: OnOff is intentionally NOT included in server mode.
+  // It is not part of the RoboticVacuumCleaner device type spec and
+  // non-standard clusters can confuse Apple Home's UI rendering.
+  // Start/stop is handled via RvcRunMode.changeToMode(Cleaning/Idle).
 
   // Add PowerSource if BATTERY feature is set OR if battery attribute exists
   const batteryValue = attributes.battery_level ?? attributes.battery;

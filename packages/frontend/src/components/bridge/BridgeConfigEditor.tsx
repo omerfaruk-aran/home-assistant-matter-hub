@@ -106,6 +106,13 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
         </strong>
       </Alert>
 
+      <Alert severity="info" variant="outlined">
+        <strong>Community tip:</strong> Users have reported that bridges with a
+        large number of devices can become unstable depending on the controller.
+        If you experience connectivity issues, consider splitting your devices
+        across multiple bridges.
+      </Alert>
+
       <Stack spacing={2}>
         <Box display="flex" justifyContent={"flex-end"}>
           <Button

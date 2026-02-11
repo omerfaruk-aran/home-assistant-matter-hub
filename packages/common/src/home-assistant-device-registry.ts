@@ -19,4 +19,5 @@ export interface HomeAssistantDeviceRegistry {
   suggested_area?: unknown;
   sw_version?: string;
   via_device?: unknown;
+  labels?: string[];
 }

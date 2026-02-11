@@ -184,6 +184,19 @@ export function matterApi(
     res.status(200).json(haRegistry.labels);
   });
 
+  router.get("/areas", async (_, res) => {
+    if (!haRegistry) {
+      res.status(503).json({ error: "Home Assistant registry not available" });
+      return;
+    }
+    const areas: Array<{ area_id: string; name: string }> = [];
+    for (const [area_id, name] of haRegistry.areas) {
+      areas.push({ area_id, name });
+    }
+    areas.sort((a, b) => a.name.localeCompare(b.name));
+    res.status(200).json(areas);
+  });
+
   router.post("/filter-preview", async (req, res) => {
     if (!haRegistry) {
       res.status(503).json({ error: "Home Assistant registry not available" });

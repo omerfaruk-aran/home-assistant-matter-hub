@@ -3,6 +3,7 @@ import {
   type UpdateBridgeRequest,
 } from "@home-assistant-matter-hub/common";
 import type { Logger } from "@matter/general";
+import { SessionManager } from "@matter/main/protocol";
 import type { LoggerService } from "../../core/app/logger.js";
 import type { ServerModeServerNode } from "../../matter/endpoints/server-mode-server-node.js";
 import type {
@@ -13,6 +14,11 @@ import type { ServerModeEndpointManager } from "./server-mode-endpoint-manager.j
 
 // Auto Force Sync interval in milliseconds (60 seconds)
 const AUTO_FORCE_SYNC_INTERVAL_MS = 60_000;
+
+// Number of consecutive force sync cycles with 0 subscriptions before
+// closing a dead session to force the controller to reconnect.
+// With 60s intervals, 3 checks = ~3 minutes grace period.
+const DEAD_SESSION_THRESHOLD = 3;
 
 /**
  * ServerModeBridge exposes a single device as a standalone Matter device.
@@ -28,6 +34,10 @@ export class ServerModeBridge {
   };
 
   private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
+
+  // Tracks sessions with 0 active subscriptions across consecutive force sync cycles.
+  // Key: session ID (number), Value: consecutive checks with 0 subscriptions.
+  private deadSessionCounts = new Map<number, number>();
 
   get id(): string {
     return this.dataProvider.id;
@@ -200,6 +210,10 @@ export class ServerModeBridge {
           },
         });
         this.log.info("Force sync: Completed for 1 device");
+
+        // Check subscription health (same as Bridge - see comments there)
+        await this.checkSubscriptionHealth();
+
         return 1;
       }
     } catch (e) {
@@ -207,5 +221,68 @@ export class ServerModeBridge {
     }
 
     return 0;
+  }
+
+  private async checkSubscriptionHealth(): Promise<void> {
+    try {
+      const sessionManager = this.server.env.get(SessionManager);
+      const seenSessionIds = new Set<number>();
+
+      for (const session of sessionManager.sessions) {
+        const sessionId = session.id;
+        seenSessionIds.add(sessionId);
+
+        const subscriptionCount = session.subscriptions.size;
+
+        if (subscriptionCount === 0) {
+          const count = (this.deadSessionCounts.get(sessionId) ?? 0) + 1;
+          this.deadSessionCounts.set(sessionId, count);
+
+          if (count === 1) {
+            this.log.info(
+              `Subscription health: Session ${sessionId} (peer ${session.peerNodeId}) has no active subscriptions (${count}/${DEAD_SESSION_THRESHOLD})`,
+            );
+          }
+
+          if (count >= DEAD_SESSION_THRESHOLD) {
+            this.log.warn(
+              `Subscription health: Session ${sessionId} (peer ${session.peerNodeId}) has had no subscriptions for ${count} consecutive checks. ` +
+                `Force-closing session to allow controller reconnection.`,
+            );
+            try {
+              // Use initiateForceClose instead of initiateClose.
+              // initiateClose attempts a graceful close that waits for a peer response -
+              // when the peer is unreachable (e.g. Alexa went offline), the session stays
+              // as a zombie. initiateForceClose marks the peer as lost and immediately
+              // removes the session, forcing the controller to do a full CASE re-establishment.
+              await session.initiateForceClose();
+            } catch (e) {
+              this.log.debug(
+                `Subscription health: Failed to force-close session ${sessionId}:`,
+                e,
+              );
+            }
+            this.deadSessionCounts.delete(sessionId);
+          }
+        } else {
+          // Session has active subscriptions - reset counter if tracked
+          if (this.deadSessionCounts.has(sessionId)) {
+            this.log.info(
+              `Subscription health: Session ${sessionId} recovered with ${subscriptionCount} subscription(s)`,
+            );
+            this.deadSessionCounts.delete(sessionId);
+          }
+        }
+      }
+
+      // Clean up tracking for sessions that no longer exist
+      for (const sessionId of this.deadSessionCounts.keys()) {
+        if (!seenSessionIds.has(sessionId)) {
+          this.deadSessionCounts.delete(sessionId);
+        }
+      }
+    } catch (e) {
+      this.log.debug("Subscription health check failed:", e);
+    }
   }
 }
