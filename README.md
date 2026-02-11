@@ -80,9 +80,32 @@ of port forwarding etc.
 <summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
 > [!NOTE]
-> Alpha and Stable are currently synchronized. New alpha features will appear here.
+> These features are available in the Alpha channel and will be included in the next stable release once testing is complete.
 
-Currently all features are in stable. Check back for upcoming features!
+| Feature | Description |
+|---------|-------------|
+| **🏷️ Automatic Room Assignment** | Entities are automatically assigned to rooms in Matter controllers (Google Home, Apple Home) based on HA area assignments using the FixedLabel cluster ([#77](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/77)) |
+| **🏷️ Device-Level Label Filter** | Label filter now also matches device-level labels, not just entity labels |
+| **🌡️ Thermostat Overhaul** | Major thermostat improvements: negative temperature support, proper Auto mode, hvac_action-based running state, Alexa-compatible feature variants, NaN guards, per-property error handling ([#52](https://github.com/RiDDiX/home-assistant-matter-hub/issues/52), [#136](https://github.com/RiDDiX/home-assistant-matter-hub/issues/136), [#137](https://github.com/RiDDiX/home-assistant-matter-hub/issues/137), [#143](https://github.com/RiDDiX/home-assistant-matter-hub/issues/143), [#146](https://github.com/RiDDiX/home-assistant-matter-hub/issues/146)) |
+| **🌡️ localTemperature null** | Set localTemperature to null when HA reports current_temperature unavailable — fixes Apple Home display ([#146](https://github.com/RiDDiX/home-assistant-matter-hub/issues/146)) |
+| **🚿 Water Heater Limits** | Pass min/max limits at endpoint level to prevent 50°C cap regression ([#145](https://github.com/RiDDiX/home-assistant-matter-hub/issues/145)) |
+| **🤖 Vacuum Fixes** | Remove OnOff from bridged vacuum to fix Apple Home "Updating" status, GoHome command, OperationCompletion event, state deduplication & debouncing ([#103](https://github.com/RiDDiX/home-assistant-matter-hub/issues/103)) |
+| **🚪 Cover Fix** | Fix coverSwapOpenClose not affecting position display ([#148](https://github.com/RiDDiX/home-assistant-matter-hub/issues/148)) |
+| **🌬️ Fan Oscillation Fix** | Move rockSupport/windSupport to .set() defaults so controllers properly enable oscillation and wind modes ([#108](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/108)) |
+| **🔌 Dead Session Recovery** | Detect and force-close dead sessions to recover from Alexa subscription loss ([#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105)) |
+| **🎬 Scene/Automation Reset** | Ensure onOff true→false transition for momentary scene/automation reset so controllers receive state change ([#124](https://github.com/RiDDiX/home-assistant-matter-hub/issues/124)) |
+| **🌡️ TVOC Sensor** | Add TVOC sensor as entity mapping option ([#134](https://github.com/RiDDiX/home-assistant-matter-hub/issues/134)) |
+| **💧 Humidity Auto-Mapping Fix** | Don't skip humidity entities auto-assigned to temperature sensors ([#133](https://github.com/RiDDiX/home-assistant-matter-hub/issues/133)) |
+| **🔋 Battery Search Fix** | Search full HA registry for battery/humidity entities, not just filtered bridge entities ([#112](https://github.com/RiDDiX/home-assistant-matter-hub/issues/112)) |
+| **🔊 Speaker Volume Fix** | Prevent base LevelControlServer from overwriting volume ([#79](https://github.com/RiDDiX/home-assistant-matter-hub/issues/79)) |
+| **💡 Alexa Brightness** | Make Alexa brightness-reset workaround always active, no longer behind feature flag ([#142](https://github.com/RiDDiX/home-assistant-matter-hub/issues/142)) |
+| **🧠 Memory Limit** | Limit Node.js heap to 512MB to prevent OOM kills on low-resource devices ([#141](https://github.com/RiDDiX/home-assistant-matter-hub/issues/141)) |
+| **🛡️ Crash Resilience** | Improved crash resilience across bridge lifecycle, per-property error handling in applyPatchState |
+| **🗺️ Network Map** | New Network Map page with React Flow visualization in the frontend UI |
+| **📱 Mobile UI** | Responsive mobile navigation with hamburger menu drawer, wrapped action buttons ([#144](https://github.com/RiDDiX/home-assistant-matter-hub/issues/144)) |
+| **📋 Page Size Selector** | Configurable page size selector on All Devices page |
+| **📖 Labels & Areas Page** | New Labels & Areas reference page in the frontend UI |
+| **🐛 Behavior Error Logging** | Enhanced diagnostic logging for "Behaviors have errors" — extracts per-behavior error details |
 
 </details>
 
