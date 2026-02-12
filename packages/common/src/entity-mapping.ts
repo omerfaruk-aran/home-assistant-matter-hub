@@ -61,6 +61,12 @@ export interface EntityMappingConfig {
    */
   readonly humidityEntity?: string;
   /**
+   * Optional: Entity ID of a pressure sensor to combine with a temperature sensor.
+   * Creates a combined Temperature+Pressure sensor in Matter instead of separate devices.
+   * Example: "sensor.h_t_bad_pressure"
+   */
+  readonly pressureEntity?: string;
+  /**
    * Optional: Entity ID of a battery sensor to include with any sensor.
    * Adds PowerSource cluster to show battery level in Matter controllers.
    * Example: "sensor.h_t_bad_battery"
@@ -91,6 +97,7 @@ export interface EntityMappingRequest {
   readonly filterLifeEntity?: string;
   readonly cleaningModeEntity?: string;
   readonly humidityEntity?: string;
+  readonly pressureEntity?: string;
   readonly batteryEntity?: string;
   readonly roomEntities?: string[];
   readonly disableLockPin?: boolean;

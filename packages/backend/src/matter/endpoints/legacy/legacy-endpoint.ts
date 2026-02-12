@@ -55,10 +55,19 @@ export class LegacyEndpoint extends EntityEndpoint {
       );
       return;
     }
+    if (
+      registry.isAutoPressureMappingEnabled() &&
+      registry.isPressureEntityUsed(entityId)
+    ) {
+      logger.debug(
+        `Skipping ${entityId} - already auto-assigned as pressure to a temperature sensor`,
+      );
+      return;
+    }
 
     // Auto-assign related entities if not manually set and device has them
-    // Order matters: Humidity first, then Battery - so battery only goes to the
-    // combined TemperatureHumiditySensor, not to both Temperature AND Humidity
+    // Order matters: Humidity first, then Pressure, then Battery - so battery only goes to the
+    // combined sensor, not to both Temperature AND Humidity/Pressure separately
     let effectiveMapping = mapping;
     if (entity.device_id) {
       // 1. Auto-assign humidity entity to temperature sensors FIRST
@@ -87,7 +96,32 @@ export class LegacyEndpoint extends EntityEndpoint {
         }
       }
 
-      // 2. Auto-assign battery entity AFTER humidity
+      // 2. Auto-assign pressure entity to temperature sensors
+      if (registry.isAutoPressureMappingEnabled()) {
+        const attrs = state.attributes as SensorDeviceAttributes;
+        if (
+          !mapping?.pressureEntity &&
+          entityId.startsWith("sensor.") &&
+          attrs.device_class === SensorDeviceClass.temperature
+        ) {
+          const pressureEntityId = registry.findPressureEntityForDevice(
+            entity.device_id,
+          );
+          if (pressureEntityId && pressureEntityId !== entityId) {
+            effectiveMapping = {
+              ...effectiveMapping,
+              entityId: effectiveMapping?.entityId ?? entityId,
+              pressureEntity: pressureEntityId,
+            };
+            registry.markPressureEntityUsed(pressureEntityId);
+            logger.debug(
+              `Auto-assigned pressure ${pressureEntityId} to ${entityId}`,
+            );
+          }
+        }
+      }
+
+      // 3. Auto-assign battery entity AFTER humidity and pressure
       // Only applies when autoBatteryMapping feature flag is enabled (default: false)
       // This ensures battery goes to the combined T+H sensor, not separately
       if (registry.isAutoBatteryMappingEnabled() && !mapping?.batteryEntity) {

@@ -29,6 +29,13 @@ interface AllBridgeFeatureFlags {
    */
   readonly autoHumidityMapping: boolean;
   /**
+   * Auto Pressure Mapping: Automatically combine pressure sensors with temperature sensors
+   * from the same Home Assistant device. When enabled, pressure sensors will be merged into
+   * temperature sensors to create combined sensor devices.
+   * Default: true (enabled)
+   */
+  readonly autoPressureMapping: boolean;
+  /**
    * Auto Force Sync: Periodically push all device states to connected controllers.
    * This is a workaround for Google Home and Alexa which sometimes lose subscriptions
    * and show devices as offline/unresponsive after a few hours.

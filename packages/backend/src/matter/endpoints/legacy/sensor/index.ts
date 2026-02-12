@@ -14,9 +14,15 @@ import { Pm10SensorType } from "./devices/pm10-sensor.js";
 import { Pm25SensorType } from "./devices/pm25-sensor.js";
 import { PressureSensorType } from "./devices/pressure-sensor.js";
 import {
+  TemperatureHumidityPressureSensorType,
+  TemperatureHumidityPressureSensorWithBatteryType,
   TemperatureHumiditySensorType,
   TemperatureHumiditySensorWithBatteryType,
 } from "./devices/temperature-humidity-sensor.js";
+import {
+  TemperaturePressureSensorType,
+  TemperaturePressureSensorWithBatteryType,
+} from "./devices/temperature-pressure-sensor.js";
 import {
   TemperatureSensorType,
   TemperatureSensorWithBatteryType,
@@ -33,8 +39,19 @@ export function SensorDevice(
 
   if (deviceClass === SensorDeviceClass.temperature) {
     const hasHumidity = !!mapping?.humidityEntity;
+    const hasPressure = !!mapping?.pressureEntity;
     const hasBattery = !!mapping?.batteryEntity;
 
+    if (hasHumidity && hasPressure && hasBattery) {
+      return TemperatureHumidityPressureSensorWithBatteryType.set({
+        homeAssistantEntity,
+      });
+    }
+    if (hasHumidity && hasPressure) {
+      return TemperatureHumidityPressureSensorType.set({
+        homeAssistantEntity,
+      });
+    }
     if (hasHumidity && hasBattery) {
       return TemperatureHumiditySensorWithBatteryType.set({
         homeAssistantEntity,
@@ -42,6 +59,14 @@ export function SensorDevice(
     }
     if (hasHumidity) {
       return TemperatureHumiditySensorType.set({ homeAssistantEntity });
+    }
+    if (hasPressure && hasBattery) {
+      return TemperaturePressureSensorWithBatteryType.set({
+        homeAssistantEntity,
+      });
+    }
+    if (hasPressure) {
+      return TemperaturePressureSensorType.set({ homeAssistantEntity });
     }
     if (hasBattery) {
       return TemperatureSensorWithBatteryType.set({ homeAssistantEntity });

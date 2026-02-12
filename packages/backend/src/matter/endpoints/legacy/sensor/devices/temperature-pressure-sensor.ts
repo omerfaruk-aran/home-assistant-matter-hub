@@ -5,10 +5,6 @@ import { HomeAssistantConfig } from "../../../../../services/home-assistant/home
 import { Temperature } from "../../../../../utils/converters/temperature.js";
 import { BasicInformationServer } from "../../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../../behaviors/home-assistant-entity-behavior.js";
-import {
-  type HumidityMeasurementConfig,
-  HumidityMeasurementServer,
-} from "../../../../behaviors/humidity-measurement-server.js";
 import { IdentifyServer } from "../../../../behaviors/identify-server.js";
 import { PowerSourceServer } from "../../../../behaviors/power-source-server.js";
 import {
@@ -34,22 +30,6 @@ const temperatureConfig: TemperatureMeasurementConfig = {
       temperature,
       attributes.unit_of_measurement ?? fallbackUnit,
     );
-  },
-};
-
-const humidityConfig: HumidityMeasurementConfig = {
-  getValue(_entity, agent) {
-    const homeAssistant = agent.get(HomeAssistantEntityBehavior);
-    const humidityEntity = homeAssistant.state.mapping?.humidityEntity;
-
-    if (humidityEntity) {
-      const stateProvider = agent.env.get(EntityStateProvider);
-      const humidity = stateProvider.getNumericState(humidityEntity);
-      if (humidity != null) {
-        return humidity;
-      }
-    }
-    return null;
   },
 };
 
@@ -93,41 +73,20 @@ const batteryConfig = {
   },
 };
 
-export const TemperatureHumiditySensorType = TemperatureSensorDevice.with(
+export const TemperaturePressureSensorType = TemperatureSensorDevice.with(
   BasicInformationServer,
   IdentifyServer,
   HomeAssistantEntityBehavior,
   TemperatureMeasurementServer(temperatureConfig),
-  HumidityMeasurementServer(humidityConfig),
+  PressureMeasurementServer(pressureConfig),
 );
 
-export const TemperatureHumiditySensorWithBatteryType =
+export const TemperaturePressureSensorWithBatteryType =
   TemperatureSensorDevice.with(
     BasicInformationServer,
     IdentifyServer,
     HomeAssistantEntityBehavior,
     TemperatureMeasurementServer(temperatureConfig),
-    HumidityMeasurementServer(humidityConfig),
-    PowerSourceServer(batteryConfig),
-  );
-
-export const TemperatureHumidityPressureSensorType =
-  TemperatureSensorDevice.with(
-    BasicInformationServer,
-    IdentifyServer,
-    HomeAssistantEntityBehavior,
-    TemperatureMeasurementServer(temperatureConfig),
-    HumidityMeasurementServer(humidityConfig),
-    PressureMeasurementServer(pressureConfig),
-  );
-
-export const TemperatureHumidityPressureSensorWithBatteryType =
-  TemperatureSensorDevice.with(
-    BasicInformationServer,
-    IdentifyServer,
-    HomeAssistantEntityBehavior,
-    TemperatureMeasurementServer(temperatureConfig),
-    HumidityMeasurementServer(humidityConfig),
     PressureMeasurementServer(pressureConfig),
     PowerSourceServer(batteryConfig),
   );

@@ -126,6 +126,15 @@ const featureFlagSchema: JSONSchema7 = {
       default: true,
     },
 
+    autoPressureMapping: {
+      title: "Auto Pressure Mapping",
+      description:
+        "Automatically combine pressure sensors with temperature sensors from the same Home Assistant device. " +
+        "When enabled, pressure sensors will be merged into temperature sensors to create combined sensor devices.",
+      type: "boolean",
+      default: true,
+    },
+
     autoForceSync: {
       title: "Auto Force Sync (Google Home & Alexa workaround)",
       description:

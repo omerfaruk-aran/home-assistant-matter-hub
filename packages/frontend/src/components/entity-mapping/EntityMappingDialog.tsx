@@ -57,6 +57,7 @@ export function EntityMappingDialog({
   const [filterLifeEntity, setFilterLifeEntity] = useState("");
   const [cleaningModeEntity, setCleaningModeEntity] = useState("");
   const [humidityEntity, setHumidityEntity] = useState("");
+  const [pressureEntity, setPressureEntity] = useState("");
   const [batteryEntity, setBatteryEntity] = useState("");
   const [roomEntities, setRoomEntities] = useState<string[]>([]);
   const [disableLockPin, setDisableLockPin] = useState(false);
@@ -74,6 +75,7 @@ export function EntityMappingDialog({
       setFilterLifeEntity(currentMapping?.filterLifeEntity || "");
       setCleaningModeEntity(currentMapping?.cleaningModeEntity || "");
       setHumidityEntity(currentMapping?.humidityEntity || "");
+      setPressureEntity(currentMapping?.pressureEntity || "");
       setBatteryEntity(currentMapping?.batteryEntity || "");
       setRoomEntities(currentMapping?.roomEntities || []);
       setDisableLockPin(currentMapping?.disableLockPin || false);
@@ -119,6 +121,7 @@ export function EntityMappingDialog({
       filterLifeEntity: filterLifeEntity.trim() || undefined,
       cleaningModeEntity: cleaningModeEntity.trim() || undefined,
       humidityEntity: humidityEntity.trim() || undefined,
+      pressureEntity: pressureEntity.trim() || undefined,
       batteryEntity: batteryEntity.trim() || undefined,
       roomEntities: roomEntities.length > 0 ? roomEntities : undefined,
       disableLockPin: disableLockPin || undefined,
@@ -131,6 +134,7 @@ export function EntityMappingDialog({
     filterLifeEntity,
     cleaningModeEntity,
     humidityEntity,
+    pressureEntity,
     batteryEntity,
     roomEntities,
     disableLockPin,
@@ -336,6 +340,15 @@ export function EntityMappingDialog({
               value={humidityEntity}
               onChange={(e) => setHumidityEntity(e.target.value)}
               helperText="Combine with a humidity sensor to create a single Temperature+Humidity device"
+            />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Pressure Sensor (optional)"
+              placeholder="sensor.h_t_bad_pressure"
+              value={pressureEntity}
+              onChange={(e) => setPressureEntity(e.target.value)}
+              helperText="Combine with a pressure sensor to create a single Temperature+Pressure device"
             />
             <TextField
               fullWidth
