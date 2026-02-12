@@ -56,7 +56,7 @@ of port forwarding etc.
 
 | Feature | Description |
 |---------|-------------|
-| **🏷️ Automatic Room Assignment** | Entities are automatically assigned to rooms in Matter controllers (Google Home, Apple Home) based on HA area assignments using the FixedLabel cluster ([#77](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/77)) |
+| **🏷️ Automatic Room Assignment** | Entities are automatically assigned to rooms in Google Home and Alexa based on HA area assignments using the FixedLabel cluster. Apple Home does not support automatic room assignment — rooms must be assigned manually during pairing. ([#77](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/77)) |
 | **🏷️ Device-Level Label Filter** | Label filter now also matches device-level labels, not just entity labels |
 | **🌡️ Thermostat Overhaul** | Major thermostat improvements: negative temperature support, proper Auto mode, hvac_action-based running state, Alexa-compatible feature variants, localTemperature setpoint fallback, NaN guards, per-property error handling ([#52](https://github.com/RiDDiX/home-assistant-matter-hub/issues/52), [#136](https://github.com/RiDDiX/home-assistant-matter-hub/issues/136), [#137](https://github.com/RiDDiX/home-assistant-matter-hub/issues/137), [#143](https://github.com/RiDDiX/home-assistant-matter-hub/issues/143), [#146](https://github.com/RiDDiX/home-assistant-matter-hub/issues/146)) |
 | **🔒 Lock Unlatch/Unbolt** | Locks with HA OPEN support now expose the Matter Unbolting feature — Apple Home shows an Unlatch button ([#153](https://github.com/RiDDiX/home-assistant-matter-hub/issues/153)) |

@@ -152,6 +152,16 @@ Binary sensors with device_class `running`, `plug`, `power`, `battery_charging`,
 
 If you're on an older version, update to get the correct mapping. See [#154](https://github.com/RiDDiX/home-assistant-matter-hub/issues/154).
 
+## My devices are not assigned to the correct rooms
+
+HAMH automatically sends your Home Assistant area names to Matter controllers using the FixedLabel cluster. **Google Home** and **Amazon Alexa** read this label and assign devices to matching rooms automatically. **Apple Home** does not support automatic room assignment — you need to assign rooms manually during pairing.
+
+If rooms are not assigned correctly in Google Home or Alexa:
+
+1. Make sure your entities or devices have an **Area** assigned in Home Assistant
+2. Reload the affected bridge (or wait 30 seconds for auto-reload)
+3. The room name is limited to 16 characters — longer names will be truncated
+
 ## How do I control Media Player playback?
 
 Media players now support Play, Pause, Stop, Next Track, and Previous Track controls through Matter. However, not all controllers support these features yet. Volume control is also available.

@@ -84,7 +84,9 @@ export function createLegacyEndpointType(
 
 /**
  * Add FixedLabel cluster with room name to an endpoint type.
- * Google Home uses { label: "room", value: "<name>" } for automatic room assignment.
+ * Google Home and Alexa use { label: "room", value: "<name>" } for automatic
+ * room assignment. Apple Home does not support this and requires manual
+ * room assignment during pairing.
  *
  * Uses MutableEndpoint.with() to properly extend behaviors instead of manual
  * object spreading, which can lose MutableEndpoint metadata and cause

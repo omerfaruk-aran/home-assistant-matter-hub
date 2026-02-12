@@ -57,7 +57,7 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 
 | Feature | Description |
 |---------|-------------|
-| **�️ Automatic Room Assignment** | Entities auto-assigned to rooms in Matter controllers based on HA areas ([#77](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/77)) |
+| **🏷️ Automatic Room Assignment** | Entities auto-assigned to rooms in Google Home and Alexa based on HA areas. Apple Home requires manual room assignment. ([#77](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/77)) |
 | **�️ Thermostat Overhaul** | Feature variants (heat-only, cool-only, full HVAC), negative temp support, hvac_action-based running state, NaN guards ([#146](https://github.com/RiDDiX/home-assistant-matter-hub/issues/146)) |
 | **🔒 Lock Unlatch/Unbolt** | Apple Home Unlatch button for locks with HA OPEN support ([#153](https://github.com/RiDDiX/home-assistant-matter-hub/issues/153)) |
 | **🌡️ Auto Pressure Mapping** | Pressure sensors auto-combined with temperature sensors (e.g. Aqara WSDCGQ11LM) |
