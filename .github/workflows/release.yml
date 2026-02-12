@@ -44,10 +44,16 @@ jobs:
         run: pnpm run lint
       - name: Test
         run: pnpm run test
+
+      - name: Prepare Manual Version
+        if: github.event.inputs.version != ''
+        run: pnpm run release:version ${{ github.event.inputs.version }}
+
       - name: Build
         run: pnpm run build
         env:
           BASE_URL: /home-assistant-matter-hub
+          APP_VERSION: ${{ github.event.inputs.version || '' }}
 
       - name: Release
         env:
