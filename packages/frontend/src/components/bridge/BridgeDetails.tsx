@@ -2,6 +2,7 @@ import type { BridgeDataWithMetadata } from "@home-assistant-matter-hub/common";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DevicesIcon from "@mui/icons-material/Devices";
+import EditIcon from "@mui/icons-material/Edit";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import InfoIcon from "@mui/icons-material/Info";
@@ -30,7 +31,9 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { QRCodeSVG } from "qrcode.react";
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { forceSyncBridge } from "../../api/bridges.ts";
+import { navigation } from "../../routes.tsx";
 import { FabricList } from "../fabric/FabricList.tsx";
 import { useNotifications } from "../notifications/use-notifications.ts";
 
@@ -314,12 +317,9 @@ const FabricsCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
 };
 
 const FiltersCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
+  const navigate = useNavigate();
   const hasFilters =
     bridge.filter.include.length > 0 || bridge.filter.exclude.length > 0;
-
-  if (!hasFilters) {
-    return null;
-  }
 
   return (
     <Card>
@@ -328,39 +328,55 @@ const FiltersCard = ({ bridge }: { bridge: BridgeDataWithMetadata }) => {
           <Avatar sx={{ bgcolor: "warning.main" }}>
             <FilterListIcon />
           </Avatar>
-          <Typography variant="h6">Entity Filters</Typography>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Entity Filters
+          </Typography>
+          <Tooltip title={hasFilters ? "Edit Filters" : "Add Filters"}>
+            <IconButton
+              size="small"
+              onClick={() => navigate(navigation.editBridge(bridge.id))}
+            >
+              {hasFilters ? <EditIcon /> : <AddIcon />}
+            </IconButton>
+          </Tooltip>
         </Box>
 
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          {bridge.filter.include.map((filter) => (
-            <Chip
-              key={`include-${filter.type}-${filter.value}`}
-              size="small"
-              icon={<AddIcon />}
-              label={
-                <span>
-                  <strong>{filter.type}</strong>: {filter.value}
-                </span>
-              }
-              color="success"
-              variant="outlined"
-            />
-          ))}
-          {bridge.filter.exclude.map((filter) => (
-            <Chip
-              key={`exclude-${filter.type}-${filter.value}`}
-              size="small"
-              icon={<RemoveIcon />}
-              label={
-                <span>
-                  <strong>{filter.type}</strong>: {filter.value}
-                </span>
-              }
-              color="error"
-              variant="outlined"
-            />
-          ))}
-        </Stack>
+        {hasFilters ? (
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            {bridge.filter.include.map((filter) => (
+              <Chip
+                key={`include-${filter.type}-${filter.value}`}
+                size="small"
+                icon={<AddIcon />}
+                label={
+                  <span>
+                    <strong>{filter.type}</strong>: {filter.value}
+                  </span>
+                }
+                color="success"
+                variant="outlined"
+              />
+            ))}
+            {bridge.filter.exclude.map((filter) => (
+              <Chip
+                key={`exclude-${filter.type}-${filter.value}`}
+                size="small"
+                icon={<RemoveIcon />}
+                label={
+                  <span>
+                    <strong>{filter.type}</strong>: {filter.value}
+                  </span>
+                }
+                color="error"
+                variant="outlined"
+              />
+            ))}
+          </Stack>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            No filters configured. All supported entities will be exposed.
+          </Typography>
+        )}
       </CardContent>
     </Card>
   );
