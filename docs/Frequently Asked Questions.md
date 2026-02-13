@@ -154,13 +154,9 @@ If you're on an older version, update to get the correct mapping. See [#154](htt
 
 ## My devices are not assigned to the correct rooms
 
-HAMH automatically sends your Home Assistant area names to Matter controllers using the FixedLabel cluster. **Google Home** reads this label and assigns devices to matching rooms automatically. **Apple Home** and **Alexa** do not support automatic room assignment — you need to assign rooms manually during pairing.
+HAMH sends your Home Assistant area names to Matter controllers using the FixedLabel cluster (`label: "room", value: "<area name>"`). However, **no major controller** (Google Home, Apple Home, Alexa) currently reads this label for automatic room assignment. You need to assign rooms manually in each controller app during or after pairing.
 
-If rooms are not assigned correctly in Google Home:
-
-1. Make sure your entities or devices have an **Area** assigned in Home Assistant
-2. Reload the affected bridge (or wait 30 seconds for auto-reload)
-3. The room name is limited to 16 characters — longer names will be truncated
+The FixedLabel data is kept in the bridge for future controller support. The room name is limited to 16 characters per the Matter spec — longer HA area names are truncated automatically.
 
 ## How do I control Media Player playback?
 
