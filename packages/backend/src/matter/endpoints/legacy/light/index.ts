@@ -3,6 +3,8 @@ import {
   LightDeviceColorMode,
 } from "@home-assistant-matter-hub/common";
 import type { EndpointType } from "@matter/main";
+import { HaElectricalEnergyMeasurementServer } from "../../../behaviors/electrical-energy-measurement-server.js";
+import { HaElectricalPowerMeasurementServer } from "../../../behaviors/electrical-power-measurement-server.js";
 import type { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import {
   DimmableLightType,
@@ -71,5 +73,17 @@ export function LightDevice(
         : hasBattery
           ? OnOffLightWithBatteryType
           : OnOffLightType;
-  return deviceType.set({ homeAssistantEntity });
+  const hasPowerEntity = !!homeAssistantEntity.mapping?.powerEntity;
+  const hasEnergyEntity = !!homeAssistantEntity.mapping?.energyEntity;
+
+  // biome-ignore lint/suspicious/noExplicitAny: Union type doesn't support .with() directly
+  let device: any = deviceType;
+  if (hasPowerEntity) {
+    device = device.with(HaElectricalPowerMeasurementServer);
+  }
+  if (hasEnergyEntity) {
+    device = device.with(HaElectricalEnergyMeasurementServer);
+  }
+
+  return device.set({ homeAssistantEntity });
 }
