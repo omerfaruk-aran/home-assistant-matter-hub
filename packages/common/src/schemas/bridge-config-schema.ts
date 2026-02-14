@@ -8,7 +8,9 @@ const homeAssistantMatcherSchema: JSONSchema7 = {
     type: {
       title: "Type",
       type: "string",
-      enum: Object.values(HomeAssistantMatcherType),
+      enum: Object.values(HomeAssistantMatcherType).filter(
+        (t) => t !== HomeAssistantMatcherType.Label,
+      ),
     },
     value: {
       title: "Value",

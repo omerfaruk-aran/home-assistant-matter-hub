@@ -42,12 +42,14 @@ export function testMatcher(
   switch (matcher.type) {
     case "domain":
       return entity.entity_id.split(".")[0] === matcher.value;
-    case "label": {
+    case "label":
+    case "entity_label": {
       const slug = resolveLabelValue(matcher.value, labels);
-      return (
-        (!!entity?.labels && entity.labels.includes(slug)) ||
-        (!!device?.labels && device.labels.includes(slug))
-      );
+      return !!entity?.labels && entity.labels.includes(slug);
+    }
+    case "device_label": {
+      const slug = resolveLabelValue(matcher.value, labels);
+      return !!device?.labels && device.labels.includes(slug);
     }
     case "entity_category":
       return entity?.entity_category === matcher.value;

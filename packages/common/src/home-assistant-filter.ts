@@ -3,7 +3,10 @@ export enum HomeAssistantMatcherType {
   Regex = "regex",
   Domain = "domain",
   Platform = "platform",
+  /** @deprecated Use EntityLabel or DeviceLabel instead */
   Label = "label",
+  EntityLabel = "entity_label",
+  DeviceLabel = "device_label",
   Area = "area",
   EntityCategory = "entity_category",
   DeviceName = "device_name",
