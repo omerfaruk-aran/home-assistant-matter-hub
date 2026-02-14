@@ -63,7 +63,9 @@ A include- or exclude-item is an object having a `type` and a `value` property.
 | `regex` | Regular expression matching entity IDs. Full regex support. | `^light\.(kitchen\|bedroom)_.*` |
 | `domain` | Match entities by their domain (the part before the dot). | `light`, `switch`, `sensor` |
 | `platform` | Match entities by their integration/platform. | `hue`, `zwave`, `mqtt` |
-| `label` | Match entities or devices by label. Accepts the display name (e.g. `Voice Control`) or the slug (e.g. `voice_control`). Also matches if the parent device carries the label. | `Voice Control` |
+| `entity_label` | Match entities by their label. Accepts the display name (e.g. `Voice Control`) or the slug (e.g. `voice_control`). Only checks entity-level labels. | `Voice Control` |
+| `device_label` | Match entities by their parent device's label. Accepts the display name or slug. Only checks device-level labels. | `smart_home` |
+| `label` | **(Deprecated)** Legacy filter — same behavior as `entity_label`. Use `entity_label` or `device_label` instead for clarity. | `voice_control` |
 | `area` | Match entities by their area slug. | `living_room` |
 | `entity_category` | Match entities by their category. | `config`, `diagnostic` |
 | `device_name` | Match entities by their device name (case-insensitive, supports wildcards). | `Living Room*` |
@@ -110,9 +112,15 @@ are then combined.
 All entities which match one of the include-rules will be included, but all entities which match one of the exclude
 rules will be excluded.
 
-Labels can be applied at the entity level or at the device level. When a label is applied to a device, all entities belonging to that device will match the label filter.
+Labels can be applied at the entity level or at the device level:
+- Use `entity_label` to match labels assigned directly to entities
+- Use `device_label` to match labels assigned to the parent device (all entities of that device will match)
+- The old `label` type still works but only matches entity labels — use the new types for explicit control
 
 You can use either the **display name** (e.g. `My Smart Lights`) or the **slug** (e.g. `my_smart_lights`) as the filter value. The display name is automatically resolved to the correct slug.
+
+> [!TIP]
+> Use the **Filter Reference** page in the web UI to browse all available filter values (domains, platforms, entity categories, device classes, device names, product names, labels, and areas) with click-to-copy functionality.
 
 > [!WARNING]
 > When performing changes on entities, like adding or removing a label, you need to refresh the matter-hub application

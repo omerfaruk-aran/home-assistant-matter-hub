@@ -3,7 +3,7 @@
 This guide covers features available in the Alpha version of Home-Assistant-Matter-Hub.
 
 > [!NOTE]
-> **Alpha and Stable are currently in sync (v2.0.17).** All previously alpha-only features have been promoted to the stable release. New experimental features will appear here before being promoted.
+> **Alpha and Stable are currently in sync (v2.0.19).** All previously alpha-only features have been promoted to the stable release. New experimental features will appear here before being promoted.
 
 > [!WARNING]
 > Alpha versions are for testing only and may contain bugs. Use at your own risk!
@@ -32,12 +32,26 @@ docker run -d \
 
 ---
 
-## Features Now in Stable (v2.0.17)
+## Features Now in Stable (v2.0.19)
 
 The following features have graduated from Alpha to Stable:
 
+**New in v2.0.19:**
+- **EntityLabel & DeviceLabel Filters** - Split `label` into `entity_label` and `device_label` for precise filtering (#164)
+- **Filter Reference Page** - Comprehensive page listing all filter values with search and click-to-copy
+- **Diagnostics Dashboard** - Entity health indicators, battery levels, auto-mapping info on bridge details
+- **Power & Energy Measurement** - Switches and lights support ElectricalPowerMeasurement/ElectricalEnergyMeasurement clusters
+- **Event Domain Support** - `event.*` entities mapped to Matter GenericSwitch (doorbells, buttons)
+- **device_class Filter** - New filter type for matching by HA device_class attribute
+- **Label Display Name Resolution** - Filter values accept display names, automatically resolved to slugs
+- **Vacuum Ecovacs/Deebot Fix** - Fix send_command crash (#165)
+- **Bridge Starting Status** - WebSocket broadcast for real-time startup progress (#160)
+- **Session Recovery Improvements** - Reduced MRP traffic, orphan detection, resumption record clearing (#105)
+- **Server Mode Auto-Battery** - Auto-battery-mapping for server mode vacuum bridges (#112)
+- **Edit Filters on Bridge Details** - Quick filter editing from the bridge details page
+
+**Previously promoted (v2.0.17/v2.0.18):**
 - **Automatic Room Assignment** - Entities auto-assigned to rooms based on HA areas using FixedLabel cluster
-- **Device-Level Label Filter** - Label filter matches device-level labels, not just entity labels
 - **Thermostat Overhaul** - Feature variants (heat-only, cool-only, full HVAC), negative temps, hvac_action-based running state
 - **Lock Unlatch/Unbolt** - Apple Home Unlatch button for locks with HA OPEN support
 - **Auto Pressure Mapping** - Pressure sensors combined with temperature sensors automatically
@@ -52,7 +66,6 @@ The following features have graduated from Alpha to Stable:
 - **Network Map** - React Flow visualization in frontend
 - **Mobile UI** - Responsive navigation with hamburger menu
 - **Page Size Selector** - Configurable page size on All Devices page
-- **Labels & Areas Page** - Reference page in frontend
 - **Behavior Error Logging** - Enhanced diagnostic logging for "Behaviors have errors"
 - **TVOC Sensor** - Manual entity mapping option for VOC sensors
 - **Humidity Auto-Mapping Fix** - Standalone humidity endpoints preserved

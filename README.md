@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.17 | Production-ready, recommended for most users |
+| **Stable** | `main` | v2.0.19 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -52,12 +52,30 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.0.17)</strong> - Click to expand</summary>
+<summary><strong>📦 Stable Features (v2.0.19)</strong> - Click to expand</summary>
+
+**New in v2.0.19** (merged from alpha):
 
 | Feature | Description |
 |---------|-------------|
-| **🏷️ Room Label (FixedLabel)** | HA area names are sent to controllers via the Matter FixedLabel cluster. No major controller (Google Home, Apple Home, Alexa) currently reads this for automatic room assignment — rooms must be assigned manually. The label is kept for future controller support. ([#77](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/77)) |
-| **🏷️ Device-Level Label Filter** | Label filter now also matches device-level labels, not just entity labels |
+| **🏷️ EntityLabel & DeviceLabel Filters** | The `label` filter has been split into `entity_label` (matches entity labels only) and `device_label` (matches device labels only) for more precise filtering. The old `label` type still works for backward compatibility. ([#164](https://github.com/RiDDiX/home-assistant-matter-hub/issues/164)) |
+| **🔍 Filter Reference Page** | The Labels & Areas page has been expanded into a comprehensive Filter Reference page listing all available filter values: domains, platforms, entity categories, device classes, device names, product names — with search and click-to-copy |
+| **📊 Diagnostics Dashboard** | New diagnostics card on bridge details showing entity health indicators, battery levels, auto-mapping info, and failed entity details |
+| **⚡ Power & Energy Measurement** | Switches and lights now support ElectricalPowerMeasurement and ElectricalEnergyMeasurement clusters with auto-mapping from HA power/energy sensor entities (`powerEntity`, `energyEntity`) |
+| **🔔 Event Domain Support** | HA `event.*` entities (doorbells, button events) are now mapped to Matter GenericSwitch devices |
+| **🔍 device_class Filter** | New filter type `device_class` to match entities by their HA device_class attribute (e.g. `temperature`, `motion`, `door`) |
+| **🏷️ Label Display Name Resolution** | Filter values now accept label display names (e.g. `My Smart Lights`) in addition to slugs — automatically resolved |
+| **🤖 Vacuum Ecovacs/Deebot Fix** | Fix vacuum.send_command crash for Ecovacs/Deebot vacuums — `app_segment_clean` is Roborock-only ([#165](https://github.com/RiDDiX/home-assistant-matter-hub/issues/165)) |
+| **📡 Bridge Starting Status** | Bridge 'starting' status is now broadcast via WebSocket so the frontend shows real-time startup progress ([#160](https://github.com/RiDDiX/home-assistant-matter-hub/issues/160)) |
+| **🔌 Session Recovery Improvements** | Reduced MRP traffic, orphaned session detection, automatic resumption record clearing for better Alexa reconnection ([#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105)) |
+| **🔋 Server Mode Auto-Battery** | Auto-battery-mapping now works for server mode vacuum bridges ([#112](https://github.com/RiDDiX/home-assistant-matter-hub/issues/112)) |
+| **✏️ Edit Filters on Bridge Details** | New edit/add filters button directly on the bridge details page for quick filter changes |
+
+**Previously in v2.0.17/v2.0.18:**
+
+| Feature | Description |
+|---------|-------------|
+| **🏷️ Room Label (FixedLabel)** | HA area names are sent to controllers via the Matter FixedLabel cluster. No major controller currently reads this — rooms must be assigned manually. The label is kept for future controller support. ([#77](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/77)) |
 | **🌡️ Thermostat Overhaul** | Major thermostat improvements: negative temperature support, proper Auto mode, hvac_action-based running state, Alexa-compatible feature variants, localTemperature setpoint fallback, NaN guards, per-property error handling ([#52](https://github.com/RiDDiX/home-assistant-matter-hub/issues/52), [#136](https://github.com/RiDDiX/home-assistant-matter-hub/issues/136), [#137](https://github.com/RiDDiX/home-assistant-matter-hub/issues/137), [#143](https://github.com/RiDDiX/home-assistant-matter-hub/issues/143), [#146](https://github.com/RiDDiX/home-assistant-matter-hub/issues/146)) |
 | **🔒 Lock Unlatch/Unbolt** | Locks with HA OPEN support now expose the Matter Unbolting feature — Apple Home shows an Unlatch button ([#153](https://github.com/RiDDiX/home-assistant-matter-hub/issues/153)) |
 | **🔒 Lock User Feature** | DoorLock now includes User feature for Apple Home commissioning compatibility |
@@ -79,7 +97,6 @@ of port forwarding etc.
 | **🗺️ Network Map** | New Network Map page with React Flow visualization in the frontend UI |
 | **📱 Mobile UI** | Responsive mobile navigation with hamburger menu drawer, wrapped action buttons ([#144](https://github.com/RiDDiX/home-assistant-matter-hub/issues/144)) |
 | **📋 Page Size Selector** | Configurable page size selector on All Devices page |
-| **📖 Labels & Areas Page** | New Labels & Areas reference page in the frontend UI |
 | **🐛 Behavior Error Logging** | Enhanced diagnostic logging for "Behaviors have errors" — extracts per-behavior error details |
 
 </details>
@@ -114,6 +131,9 @@ of port forwarding etc.
 <details>
 <summary><strong>📜 Previous Stable Versions</strong> - Click to expand</summary>
 
+### v2.0.17 / v2.0.18
+Room Label (FixedLabel), thermostat overhaul, lock unlatch/unbolt, binary sensor fix, auto pressure mapping, vacuum fixes, dead session recovery, network map, mobile UI, Labels & Areas page, crash resilience, memory limit
+
 ### v2.0.16
 Force Sync, Lock PIN, Cover/Blinds improvements, Roborock Rooms, Auto Entity Grouping, Water Heater, Vacuum Server Mode, OOM fix
 
@@ -140,18 +160,19 @@ Matter Bridge, Multi-Fabric support, Health Monitoring, Bridge Wizard, AirQualit
 
 | Home Assistant Domain | Matter Device Type | Feature Flags |
 |-----------------------|-------------------|---------------|
-| `light` | On/Off, Dimmable, Color Temp, Extended Color | |
-| `switch`, `input_boolean` | On/Off Plug-in Unit | |
+| `light` | On/Off, Dimmable, Color Temp, Extended Color | `powerEntity`, `energyEntity` |
+| `switch`, `input_boolean` | On/Off Plug-in Unit | `powerEntity`, `energyEntity` |
 | `lock` | Door Lock | PIN Credentials, Unlatch/Unbolt |
 | `cover` | Window Covering | `coverSwapOpenClose` |
 | `climate` | Thermostat | Battery via `batteryEntity` |
 | `fan` | Fan, Air Purifier | Oscillation, Wind Modes |
 | `binary_sensor` | Contact, OnOff, Occupancy, Smoke/CO, Water Leak | |
 | `sensor` | Temperature, Humidity, Pressure, Flow, Light, AirQuality | `batteryEntity`, `humidityEntity`, `pressureEntity` |
+| `event` | Generic Switch (Doorbell, Button Events) | |
 | `button`, `input_button` | Generic Switch | |
 | `media_player` | Speaker, Basic Video Player (TV) | |
 | `valve` | Water Valve, Pump | |
-| `vacuum` | Robot Vacuum Cleaner | `serverMode`, `roomEntities`, `batteryEntity` |
+| `vacuum` | Robot Vacuum Cleaner | `serverMode`, `roomEntities`, `batteryEntity`, `cleaningModeEntity` |
 | `humidifier` | Humidifier/Dehumidifier | |
 | `water_heater` | Thermostat (Heating) | |
 | `automation`, `script`, `scene` | On/Off Switch | |
@@ -424,6 +445,9 @@ Thank you to everyone who helps improve this project by reporting issues!
 | [@dinariox](https://github.com/dinariox) | 💎 Thank you for your generous support! |
 | StefanS | 💎 Thank you for your generous support! |
 | Manny B. | 💎 Thank you for your generous support! |
+| [@JRCondat](https://github.com/JRCondat) | 💎 Thank you for your generous support! |
+| Bonjon | 💎 Thank you for your generous support! |
+| TobiR | 💎 Thank you for your generous support! |
 | *Anonymous supporters* | 🙏 Thank you to those who prefer not to be named - your support is equally appreciated! |
 
 ### 🌟 Original Author

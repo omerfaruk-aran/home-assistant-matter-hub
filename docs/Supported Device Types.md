@@ -20,6 +20,7 @@ This document provides comprehensive information about all device types supporte
 | `valve` | Water Valve | | | |
 | `vacuum` | Robotic Vacuum | | | |
 | `water_heater` | Thermostat (Heating) | | | |
+| `event` | Generic Switch | | | |
 | `humidifier` | On/Off Plug-in Unit | | | |
 
 **Legend:** | Full Support | | Partial/Limited | | Not Supported
@@ -52,6 +53,11 @@ Home Assistant lights are mapped to the appropriate Matter light type based on s
 - `color_temp` (mireds) → Matter Color Temperature (Kelvin)
 - `rgb_color` / `hs_color` / `xy_color` → Matter Hue/Saturation or XY
 
+**Power & Energy Measurement (new in v2.0.19):**
+- Lights can optionally report electrical power and energy consumption via Matter clusters
+- Auto-mapped from HA power/energy sensor entities on the same device
+- Manual mapping via Entity Mapping: `powerEntity`, `energyEntity`
+
 **Controller Notes:**
 - All major controllers support all light types
 - Color temperature range may differ between HA and Matter specifications
@@ -66,6 +72,11 @@ Mapped to **OnOffPlugInUnit** - a simple on/off controllable outlet.
 - Turn on
 - Turn off
 - Toggle
+
+**Power & Energy Measurement (new in v2.0.19):**
+- Switches can optionally report electrical power and energy consumption via Matter clusters
+- Auto-mapped from HA power/energy sensor entities on the same device
+- Manual mapping via Entity Mapping: `powerEntity`, `energyEntity`
 
 **Use Cases:**
 - Smart plugs
@@ -286,6 +297,21 @@ Mapped to **Speaker** device with volume and playback control.
 - Media player support in Matter is limited
 - Not all controllers support all features
 - Best support in Apple Home
+
+---
+
+### Events (`event`)
+
+Mapped to **GenericSwitch** device (new in v2.0.19).
+
+**Supported Use Cases:**
+- Doorbells
+- Button events
+- Remote control button presses
+
+**Behavior:**
+- Events from HA `event.*` entities are forwarded as Matter GenericSwitch position changes
+- Controllers can react to button press events
 
 ---
 
