@@ -221,6 +221,7 @@ export function matterApi(
 
     for (const entity of entities) {
       const device = entity.device_id ? devices[entity.device_id] : undefined;
+      const state = states[entity.entity_id];
 
       const included =
         filter.include.length === 0 ||
@@ -229,22 +230,14 @@ export function matterApi(
           device,
           entity,
           filter.includeMode,
-          undefined,
+          state,
           labels,
         );
       const excluded =
         filter.exclude.length > 0 &&
-        testMatchers(
-          filter.exclude,
-          device,
-          entity,
-          undefined,
-          undefined,
-          labels,
-        );
+        testMatchers(filter.exclude, device, entity, undefined, state, labels);
 
       if (included && !excluded) {
-        const state = states[entity.entity_id];
         matchingEntities.push({
           entity_id: entity.entity_id,
           friendly_name: state?.attributes?.friendly_name as string | undefined,
