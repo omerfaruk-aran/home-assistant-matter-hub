@@ -422,6 +422,7 @@ export class BridgeRegistry {
     device: HomeAssistantDeviceRegistry,
     entityState?: HomeAssistantEntityState,
   ) {
+    const labels = this.registry.labels;
     if (
       filter.include.length > 0 &&
       !testMatchers(
@@ -430,13 +431,14 @@ export class BridgeRegistry {
         entity,
         filter.includeMode,
         entityState,
+        labels,
       )
     ) {
       return false;
     }
     if (
       filter.exclude.length > 0 &&
-      testMatchers(filter.exclude, device, entity, "any", entityState)
+      testMatchers(filter.exclude, device, entity, "any", entityState, labels)
     ) {
       return false;
     }

@@ -130,6 +130,66 @@ describe("matchEntityFilter.testMatcher", () => {
       ),
     ).toBeFalsy();
   });
+  it("should match label case-insensitively (slugify fallback)", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.Label,
+          value: "Test_Label",
+        },
+        undefined,
+        registry,
+      ),
+    ).toBeTruthy();
+  });
+  it("should resolve label display name via labels registry", () => {
+    const labels = [
+      { label_id: "test_label", name: "Test Label" },
+      { label_id: "other", name: "Other" },
+    ];
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.Label,
+          value: "Test Label",
+        },
+        undefined,
+        registry,
+        undefined,
+        labels,
+      ),
+    ).toBeTruthy();
+  });
+  it("should resolve label display name for device labels", () => {
+    const entityWithoutLabel = { ...registry, labels: [] };
+    const deviceWithLabel = { ...deviceRegistry, labels: ["matter"] };
+    const labels = [{ label_id: "matter", name: "Matter" }];
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.Label,
+          value: "Matter",
+        },
+        deviceWithLabel,
+        entityWithoutLabel,
+        undefined,
+        labels,
+      ),
+    ).toBeTruthy();
+  });
+  it("should slugify label value with special characters", () => {
+    const entityWithLabel = { ...registry, labels: ["my_smart_lights"] };
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.Label,
+          value: "My Smart Lights",
+        },
+        undefined,
+        entityWithLabel,
+      ),
+    ).toBeTruthy();
+  });
 
   it("should match the platform", () => {
     expect(

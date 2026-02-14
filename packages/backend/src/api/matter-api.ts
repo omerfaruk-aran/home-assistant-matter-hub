@@ -211,6 +211,7 @@ export function matterApi(
     const entities = Object.values(haRegistry.entities);
     const devices = haRegistry.devices;
     const states = haRegistry.states;
+    const labels = haRegistry.labels;
 
     const matchingEntities: Array<{
       entity_id: string;
@@ -223,10 +224,24 @@ export function matterApi(
 
       const included =
         filter.include.length === 0 ||
-        testMatchers(filter.include, device, entity, filter.includeMode);
+        testMatchers(
+          filter.include,
+          device,
+          entity,
+          filter.includeMode,
+          undefined,
+          labels,
+        );
       const excluded =
         filter.exclude.length > 0 &&
-        testMatchers(filter.exclude, device, entity);
+        testMatchers(
+          filter.exclude,
+          device,
+          entity,
+          undefined,
+          undefined,
+          labels,
+        );
 
       if (included && !excluded) {
         const state = states[entity.entity_id];

@@ -5,6 +5,7 @@ import type {
   HomeAssistantFilterMode,
   HomeAssistantMatcher,
 } from "@home-assistant-matter-hub/common";
+import type { HomeAssistantLabel } from "../../home-assistant/api/get-registry.js";
 
 /**
  * Test if an entity matches any or all of the matchers based on mode.
@@ -19,14 +20,15 @@ export function testMatchers(
   entity: HomeAssistantEntityRegistry,
   mode: HomeAssistantFilterMode = "any",
   entityState?: HomeAssistantEntityState,
+  labels?: HomeAssistantLabel[],
 ) {
   if (mode === "all") {
     return matchers.every((matcher) =>
-      testMatcher(matcher, device, entity, entityState),
+      testMatcher(matcher, device, entity, entityState, labels),
     );
   }
   return matchers.some((matcher) =>
-    testMatcher(matcher, device, entity, entityState),
+    testMatcher(matcher, device, entity, entityState, labels),
   );
 }
 
@@ -35,15 +37,18 @@ export function testMatcher(
   device: HomeAssistantDeviceRegistry | undefined,
   entity: HomeAssistantEntityRegistry,
   entityState?: HomeAssistantEntityState,
+  labels?: HomeAssistantLabel[],
 ): boolean {
   switch (matcher.type) {
     case "domain":
       return entity.entity_id.split(".")[0] === matcher.value;
-    case "label":
+    case "label": {
+      const slug = resolveLabelValue(matcher.value, labels);
       return (
-        (!!entity?.labels && entity.labels.includes(matcher.value)) ||
-        (!!device?.labels && device.labels.includes(matcher.value))
+        (!!entity?.labels && entity.labels.includes(slug)) ||
+        (!!device?.labels && device.labels.includes(slug))
       );
+    }
     case "entity_category":
       return entity?.entity_category === matcher.value;
     case "platform":
@@ -121,4 +126,22 @@ function testProductName(
     return patternToRegex(lowerPattern).test(lowerProductName);
   }
   return lowerProductName.includes(lowerPattern);
+}
+
+function resolveLabelValue(
+  value: string,
+  labels?: HomeAssistantLabel[],
+): string {
+  if (labels) {
+    const match = labels.find(
+      (l) => l.name.toLowerCase() === value.toLowerCase(),
+    );
+    if (match) return match.label_id;
+  }
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 }
