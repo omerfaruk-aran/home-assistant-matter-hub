@@ -1,8 +1,11 @@
+import fs from "node:fs";
+import path from "node:path";
 import {
   BridgeStatus,
   type UpdateBridgeRequest,
 } from "@home-assistant-matter-hub/common";
 import type { Environment, Logger } from "@matter/general";
+import { StorageService } from "@matter/main";
 import { SessionManager } from "@matter/main/protocol";
 import type { LoggerService } from "../../core/app/logger.js";
 import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
@@ -172,6 +175,11 @@ export class Bridge {
         this.log.warn("Error stopping bridge server:", e);
       }
     }
+    // Delete stale session/subscription persistence files after shutdown.
+    // Like Matterbridge, this ensures every restart begins with a completely
+    // clean slate — controllers must perform a fresh CASE handshake and
+    // create new subscriptions instead of trying to resume stale ones.
+    this.cleanupSessionStorage();
     this.setStatus({ code, reason });
   }
 
@@ -264,7 +272,12 @@ export class Bridge {
 
         if (currentEntity?.state) {
           const entityId = currentEntity.entity_id;
-          const stateJson = JSON.stringify(currentEntity.state);
+          // Compare only meaningful fields — ignore volatile HA metadata
+          // (last_changed, last_updated, context) to avoid unnecessary MRP traffic.
+          const stateJson = JSON.stringify({
+            s: currentEntity.state.state,
+            a: currentEntity.state.attributes,
+          });
           const lastJson = this.lastSyncedStates.get(entityId);
 
           if (stateJson !== lastJson) {
@@ -504,6 +517,35 @@ export class Bridge {
       }
     } catch (e) {
       this.log.debug("Failed to clear resumption records:", e);
+    }
+  }
+
+  /**
+   * Delete stale session and subscription persistence files from disk.
+   * Like Matterbridge, this ensures controllers always perform a fresh CASE
+   * handshake and create new subscriptions after a bridge restart instead of
+   * trying to resume potentially stale sessions.
+   */
+  private cleanupSessionStorage(): void {
+    try {
+      const storageLocation =
+        this.server.env.get(StorageService).location ?? "";
+      const storageDir = path.join(storageLocation, this.server.id);
+      const filesToDelete = [
+        "sessions.resumptionRecords",
+        "root.subscriptions.subscriptions",
+      ];
+      for (const file of filesToDelete) {
+        const filePath = path.join(storageDir, file);
+        try {
+          fs.unlinkSync(filePath);
+          this.log.debug(`Cleaned up session storage: ${file}`);
+        } catch {
+          // File doesn't exist or already deleted — ignore
+        }
+      }
+    } catch (e) {
+      this.log.debug("Failed to clean up session storage:", e);
     }
   }
 

@@ -224,7 +224,16 @@ export class LegacyEndpoint extends EntityEndpoint {
 
   async updateStates(states: HomeAssistantStates) {
     const state = states[this.entityId] ?? {};
-    if (JSON.stringify(state) === JSON.stringify(this.lastState ?? {})) {
+    // Compare only meaningful fields — ignore volatile HA metadata
+    // (last_changed, last_updated, context) that changes on every event
+    // even when the actual device state/attributes are identical.
+    // Skipping these prevents unnecessary Matter subscription reports
+    // and reduces MRP traffic that can cause session loss.
+    if (
+      state.state === this.lastState?.state &&
+      JSON.stringify(state.attributes) ===
+        JSON.stringify(this.lastState?.attributes)
+    ) {
       return;
     }
 
