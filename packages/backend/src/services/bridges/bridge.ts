@@ -176,9 +176,9 @@ export class Bridge {
       }
     }
     // Delete stale session/subscription persistence files after shutdown.
-    // Like Matterbridge, this ensures every restart begins with a completely
-    // clean slate — controllers must perform a fresh CASE handshake and
-    // create new subscriptions instead of trying to resume stale ones.
+    // This ensures every restart begins with a completely clean slate —
+    // controllers must perform a fresh CASE handshake and create new
+    // subscriptions instead of trying to resume stale ones.
     this.cleanupSessionStorage();
     this.setStatus({ code, reason });
   }
@@ -522,9 +522,9 @@ export class Bridge {
 
   /**
    * Delete stale session and subscription persistence files from disk.
-   * Like Matterbridge, this ensures controllers always perform a fresh CASE
-   * handshake and create new subscriptions after a bridge restart instead of
-   * trying to resume potentially stale sessions.
+   * This ensures controllers always perform a fresh CASE handshake and
+   * create new subscriptions after a bridge restart instead of trying
+   * to resume potentially stale sessions.
    */
   private cleanupSessionStorage(): void {
     try {

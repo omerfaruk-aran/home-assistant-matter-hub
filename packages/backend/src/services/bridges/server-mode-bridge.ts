@@ -15,11 +15,13 @@ import type {
 } from "./bridge-data-provider.js";
 import type { ServerModeEndpointManager } from "./server-mode-endpoint-manager.js";
 
-// Auto Force Sync interval in milliseconds (5 minutes).
-// A longer interval reduces MRP traffic and gives controllers more time
-// to recover from brief network interruptions before a report triggers
-// an MRP retransmission failure → session loss.
-const AUTO_FORCE_SYNC_INTERVAL_MS = 300_000;
+// Auto Force Sync interval in milliseconds (90 seconds).
+// Must be shorter than the subscription maxInterval (~185s) to ensure
+// subscription reports are sent before the controller times out.
+// When the vacuum is idle, no cluster attributes change, so matter.js
+// only sends empty keepalive reports which Apple Home may ignore.
+// This interval triggers a forced keepalive with real attribute data.
+const AUTO_FORCE_SYNC_INTERVAL_MS = 90_000;
 
 // Subscription health check interval in milliseconds (60 seconds).
 // Runs independently of force sync (no MRP traffic — only reads session state)
@@ -166,9 +168,9 @@ export class ServerModeBridge {
       }
     }
     // Delete stale session/subscription persistence files after shutdown.
-    // Like Matterbridge, this ensures every restart begins with a completely
-    // clean slate — controllers must perform a fresh CASE handshake and
-    // create new subscriptions instead of trying to resume stale ones.
+    // This ensures every restart begins with a completely clean slate —
+    // controllers must perform a fresh CASE handshake and create new
+    // subscriptions instead of trying to resume stale ones.
     this.cleanupSessionStorage();
     this.setStatus({ code, reason });
   }
@@ -288,7 +290,11 @@ export class ServerModeBridge {
           this.log.info("Force sync: Pushed 1 changed device");
           pushed = true;
         } else {
-          this.log.debug("Force sync: No changes detected");
+          // No state changes — send a keepalive to prevent Apple Home "Updating".
+          // matter.js sends empty keepalive reports automatically, but Apple Home
+          // may ignore them. Force-writing cluster attributes generates a real
+          // subscription report with actual data.
+          await this.sendSubscriptionKeepalive();
         }
 
         return pushed ? 1 : 0;
@@ -298,6 +304,30 @@ export class ServerModeBridge {
     }
 
     return 0;
+  }
+
+  /**
+   * Send a subscription keepalive by force-writing current cluster attributes.
+   * When the vacuum is idle/docked, no attributes change and matter.js only
+   * sends empty keepalive reports. Apple Home may ignore these, showing
+   * "Updating" instead of the actual device state. Force-writing generates
+   * a real subscription report with actual attribute data.
+   */
+  private async sendSubscriptionKeepalive(): Promise<void> {
+    const device = this.endpointManager.device;
+    if (!device) return;
+
+    try {
+      const { EntityEndpoint } = await import(
+        "../../matter/endpoints/entity-endpoint.js"
+      );
+      if (device instanceof EntityEndpoint) {
+        await device.forceKeepalive();
+        this.log.debug("Subscription keepalive sent");
+      }
+    } catch (e) {
+      this.log.debug("Subscription keepalive failed:", e);
+    }
   }
 
   private async checkSubscriptionHealth(): Promise<void> {
@@ -502,9 +532,9 @@ export class ServerModeBridge {
 
   /**
    * Delete stale session and subscription persistence files from disk.
-   * Like Matterbridge, this ensures controllers always perform a fresh CASE
-   * handshake and create new subscriptions after a bridge restart instead of
-   * trying to resume potentially stale sessions.
+   * This ensures controllers always perform a fresh CASE handshake and
+   * create new subscriptions after a bridge restart instead of trying
+   * to resume potentially stale sessions.
    */
   private cleanupSessionStorage(): void {
     try {

@@ -8,9 +8,11 @@ import {
   TransactionDestroyedError,
 } from "@matter/general";
 import type { EndpointType } from "@matter/main";
+import { RvcOperationalStateServer } from "@matter/main/behaviors/rvc-operational-state";
 import debounce from "debounce";
 import type { BridgeRegistry } from "../../services/bridges/bridge-registry.js";
 import type { HomeAssistantStates } from "../../services/home-assistant/home-assistant-registry.js";
+import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "../behaviors/home-assistant-entity-behavior.js";
 import { EntityEndpoint } from "./entity-endpoint.js";
 import { ServerModeVacuumDevice } from "./legacy/vacuum/server-mode-vacuum-device.js";
@@ -98,6 +100,43 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
   override async delete() {
     this.flushUpdate.clear();
     await super.delete();
+  }
+
+  /**
+   * Force a subscription keepalive by re-writing current cluster attributes.
+   * When the vacuum is idle/docked, no cluster attributes change, so matter.js
+   * only sends empty keepalive reports. Apple Home may ignore these, causing
+   * the device to show "Updating". By force-writing the current operationalState,
+   * we generate an actual subscription report with real data.
+   */
+  override async forceKeepalive(): Promise<void> {
+    try {
+      await this.construction.ready;
+    } catch {
+      return;
+    }
+
+    try {
+      if (this.behaviors.has(RvcOperationalStateServer)) {
+        const state = this.stateOf(RvcOperationalStateServer);
+        applyPatchState(
+          state,
+          {
+            operationalState: state.operationalState,
+            operationalError: state.operationalError,
+          },
+          { force: true },
+        );
+      }
+    } catch (error) {
+      if (
+        error instanceof TransactionDestroyedError ||
+        error instanceof DestroyedDependencyError
+      ) {
+        return;
+      }
+      logger.debug("Force keepalive failed:", error);
+    }
   }
 
   async updateStates(states: HomeAssistantStates): Promise<void> {
