@@ -18,15 +18,30 @@ import type { BridgeEndpointManager } from "./bridge-endpoint-manager.js";
 // an MRP retransmission failure → session loss.
 const AUTO_FORCE_SYNC_INTERVAL_MS = 300_000;
 
-// Number of consecutive force sync cycles with 0 subscriptions before
-// closing a dead session to force the controller to reconnect.
-// With 300s intervals, 3 checks = ~15 minutes grace period.
-const DEAD_SESSION_THRESHOLD = 3;
+// Subscription health check interval in milliseconds (60 seconds).
+// Runs independently of force sync (no MRP traffic — only reads session state)
+// so dead sessions and orphaned bridges are detected quickly.
+const SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS = 60_000;
 
-// Number of consecutive checks with 0 sessions (for a commissioned bridge)
+// Number of consecutive health checks with 0 subscriptions before
+// closing a dead session to force the controller to reconnect.
+// With 60s intervals, 2 checks = ~2 minutes grace period.
+const DEAD_SESSION_THRESHOLD = 2;
+
+// Number of consecutive health checks with 0 sessions (for a commissioned bridge)
 // before clearing resumption records to force full CASE re-establishment.
-// With 300s intervals, 5 checks = ~25 minutes grace period.
-const ORPHAN_SESSION_THRESHOLD = 5;
+// With 60s intervals, 3 checks = ~3 minutes grace period.
+const ORPHAN_SESSION_THRESHOLD = 3;
+
+// Number of consecutive orphan recovery cycles (clear resumption records)
+// that fail to restore connectivity before attempting a bridge restart.
+// With ORPHAN_SESSION_THRESHOLD=3 and 60s intervals, 3 cycles = ~9 minutes
+// of persistent orphan state before the bridge is restarted.
+const BRIDGE_RESTART_ORPHAN_CYCLES = 3;
+
+// Minimum interval between automatic bridge restarts (30 minutes).
+// Prevents restart loops if the controller never reconnects.
+const MIN_BRIDGE_RESTART_INTERVAL_MS = 1_800_000;
 
 export class Bridge {
   private readonly log: Logger;
@@ -43,12 +58,13 @@ export class Bridge {
   public onStatusChange?: () => void;
 
   private autoForceSyncTimer: ReturnType<typeof setInterval> | null = null;
+  private subscriptionHealthTimer: ReturnType<typeof setInterval> | null = null;
 
-  // Tracks sessions with 0 active subscriptions across consecutive force sync cycles.
+  // Tracks sessions with 0 active subscriptions across consecutive health checks.
   // Key: session ID (number), Value: consecutive checks with 0 subscriptions.
   private deadSessionCounts = new Map<number, number>();
 
-  // Tracks consecutive checks where a commissioned bridge has 0 active sessions.
+  // Tracks consecutive health checks where a commissioned bridge has 0 active sessions.
   // When matter.js detects peer loss (MRP retransmission failure), it removes the
   // session entirely — our per-session health check never sees it. This counter
   // detects that orphaned state.
@@ -56,6 +72,13 @@ export class Bridge {
 
   // Whether the bridge has ever had an active session (meaning it was paired and connected).
   private hadActiveSession = false;
+
+  // Number of times resumption records have been cleared without recovery.
+  // Used to escalate to bridge restart after repeated failures.
+  private orphanRecoveryCycles = 0;
+
+  // Timestamp of the last automatic bridge restart (prevents restart loops).
+  private lastBridgeRestartTime = 0;
 
   // Tracks the last synced state JSON per entity to avoid pushing unchanged states.
   // Key: entity_id, Value: JSON.stringify of entity.state
@@ -153,18 +176,24 @@ export class Bridge {
   }
 
   private startAutoForceSyncIfEnabled() {
-    // Stop any existing timer first
+    // Stop any existing timers first
     this.stopAutoForceSync();
 
     if (this.dataProvider.featureFlags?.autoForceSync) {
       this.log.info(
-        `Auto Force Sync enabled - syncing every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s`,
+        `Auto Force Sync enabled - syncing every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s, ` +
+          `health checks every ${SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS / 1000}s`,
       );
       this.autoForceSyncTimer = setInterval(() => {
         this.forceSync().catch((e) => {
           this.log.warn("Auto force sync failed:", e);
         });
       }, AUTO_FORCE_SYNC_INTERVAL_MS);
+      this.subscriptionHealthTimer = setInterval(() => {
+        this.checkSubscriptionHealth().catch((e) => {
+          this.log.debug("Subscription health check failed:", e);
+        });
+      }, SUBSCRIPTION_HEALTH_CHECK_INTERVAL_MS);
     }
   }
 
@@ -172,6 +201,10 @@ export class Bridge {
     if (this.autoForceSyncTimer) {
       clearInterval(this.autoForceSyncTimer);
       this.autoForceSyncTimer = null;
+    }
+    if (this.subscriptionHealthTimer) {
+      clearInterval(this.subscriptionHealthTimer);
+      this.subscriptionHealthTimer = null;
     }
   }
 
@@ -263,9 +296,6 @@ export class Bridge {
       );
     }
 
-    // Check subscription health and recover dead sessions.
-    await this.checkSubscriptionHealth();
-
     return syncedCount;
   }
 
@@ -296,7 +326,7 @@ export class Bridge {
           if (count >= DEAD_SESSION_THRESHOLD) {
             this.log.warn(
               `Subscription health: Session ${sessionId} (peer ${session.peerNodeId}) has had no subscriptions for ${count} consecutive checks. ` +
-                `Force-closing session to allow controller reconnection.`,
+                `Force-closing session and clearing resumption records.`,
             );
             try {
               await session.initiateForceClose();
@@ -306,6 +336,9 @@ export class Bridge {
                 e,
               );
             }
+            // Clear resumption records immediately so the controller does a
+            // full CASE handshake on its next connection attempt.
+            await this.clearResumptionRecords(sessionManager);
             this.deadSessionCounts.delete(sessionId);
           }
         } else {
@@ -319,10 +352,14 @@ export class Bridge {
         }
       }
 
-      // Track whether we ever had active sessions
-      if (sessions.length > 0) {
+      // Track whether we ever had active sessions.
+      // Reset all recovery counters when a healthy session is present.
+      if (sessions.length > 0 && totalSubscriptions > 0) {
         this.hadActiveSession = true;
         this.noSessionCount = 0;
+        this.orphanRecoveryCycles = 0;
+      } else if (sessions.length > 0) {
+        this.hadActiveSession = true;
       }
 
       // Detect orphaned bridge: was previously connected but now has 0 sessions.
@@ -340,17 +377,27 @@ export class Bridge {
         }
 
         if (this.noSessionCount >= ORPHAN_SESSION_THRESHOLD) {
+          this.orphanRecoveryCycles++;
           this.log.warn(
             `Subscription health: Bridge has been orphaned for ${this.noSessionCount} consecutive checks (~${this.noSessionCount} minutes). ` +
-              `Clearing session resumption records to force full CASE re-establishment on next controller reconnection.`,
+              `Clearing session resumption records (recovery cycle ${this.orphanRecoveryCycles}/${BRIDGE_RESTART_ORPHAN_CYCLES}).`,
           );
           await this.clearResumptionRecords(sessionManager);
-          // Reset counter but keep hadActiveSession=true so we keep monitoring
           this.noSessionCount = 0;
+
+          // Escalate: restart bridge after repeated failed recovery cycles.
+          // This tears down all connection state, stops and restarts mDNS
+          // advertisements (fresh burst), and forces a completely clean slate
+          // for the controller to reconnect.
+          if (this.orphanRecoveryCycles >= BRIDGE_RESTART_ORPHAN_CYCLES) {
+            this.orphanRecoveryCycles = 0;
+            await this.restartBridge();
+            return; // Timers restarted by start(), bail out of this check
+          }
         }
       }
 
-      // Log diagnostic summary periodically (every 5 minutes = every 5th check)
+      // Log diagnostic summary when orphaned or no subscriptions
       if (this.noSessionCount > 0 || totalSubscriptions === 0) {
         this.log.debug(
           `Subscription health: sessions=${sessions.length}, subscriptions=${totalSubscriptions}, orphanChecks=${this.noSessionCount}/${ORPHAN_SESSION_THRESHOLD}`,
@@ -365,6 +412,40 @@ export class Bridge {
       }
     } catch (e) {
       this.log.debug("Subscription health check failed:", e);
+    }
+  }
+
+  /**
+   * Restart the bridge to force a completely fresh connection state.
+   * This is the nuclear option after repeated failed recovery attempts.
+   * The restart tears down all sessions, stops mDNS, then re-starts
+   * everything — triggering a fresh mDNS announcement burst that gives
+   * controllers (especially Alexa) the best chance of reconnecting.
+   */
+  private async restartBridge(): Promise<void> {
+    const now = Date.now();
+    if (now - this.lastBridgeRestartTime < MIN_BRIDGE_RESTART_INTERVAL_MS) {
+      this.log.warn(
+        `Subscription health: Bridge restart skipped — last restart was less than ${MIN_BRIDGE_RESTART_INTERVAL_MS / 60_000} minutes ago. Will continue monitoring.`,
+      );
+      return;
+    }
+
+    this.lastBridgeRestartTime = now;
+    this.log.warn(
+      "Subscription health: Performing bridge restart to force controller reconnection...",
+    );
+
+    try {
+      await this.stop(
+        BridgeStatus.Stopped,
+        "Auto-restart for session recovery",
+      );
+      // Small delay to let network state settle before re-announcing
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await this.start();
+    } catch (e) {
+      this.log.error("Subscription health: Bridge restart failed:", e);
     }
   }
 
