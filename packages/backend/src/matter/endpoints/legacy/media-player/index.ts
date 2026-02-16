@@ -1,5 +1,6 @@
 import {
   type MediaPlayerDeviceAttributes,
+  MediaPlayerDeviceClass,
   MediaPlayerDeviceFeature,
 } from "@home-assistant-matter-hub/common";
 import { SpeakerDevice } from "@matter/main/devices";
@@ -7,6 +8,7 @@ import { testBit } from "../../../../utils/test-bit.js";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
 import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-entity-behavior.js";
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
+import { VideoPlayerDevice } from "./basic-video-player.js";
 import { MediaPlayerLevelControlServer } from "./behaviors/media-player-level-control-server.js";
 import { MediaPlayerMediaInputServer } from "./behaviors/media-player-media-input-server.js";
 import { MediaPlayerMediaPlaybackServer } from "./behaviors/media-player-media-playback-server.js";
@@ -25,6 +27,12 @@ export function MediaPlayerDevice(
   const attributes = homeAssistantEntity.entity.state
     .attributes as MediaPlayerDeviceAttributes;
   const supportedFeatures = attributes.supported_features ?? 0;
+
+  // Auto-detect TVs by device_class and use VideoPlayerDevice (#162)
+  // TVs have better on/off support via BasicVideoPlayerDevice
+  if (attributes.device_class === MediaPlayerDeviceClass.Tv) {
+    return VideoPlayerDevice(homeAssistantEntity);
+  }
 
   let device = SpeakerEndpointType;
   const supportsPower =
