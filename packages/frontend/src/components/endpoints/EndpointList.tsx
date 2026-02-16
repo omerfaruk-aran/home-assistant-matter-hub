@@ -6,7 +6,9 @@ import DevicesIcon from "@mui/icons-material/Devices";
 import GridViewIcon from "@mui/icons-material/GridView";
 import ListIcon from "@mui/icons-material/List";
 import SortIcon from "@mui/icons-material/Sort";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import Alert from "@mui/material/Alert";
+import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
@@ -58,6 +60,7 @@ export const EndpointList = (props: EndpointListProps) => {
   const [viewMode, setViewMode] = useState<"cards" | "tree">("cards");
   const [searchTerm, setSearchTerm] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [showOnlyUnavailable, setShowOnlyUnavailable] = useState(false);
 
   // Entity Mapping state
   const [mappingDialogOpen, setMappingDialogOpen] = useState(false);
@@ -112,10 +115,28 @@ export const EndpointList = (props: EndpointListProps) => {
     [props.bridgeId, selectedEntityId, props.onMappingSaved],
   );
 
+  const getEntityAvailability = useCallback((ep: EndpointData) => {
+    const state = ep.state as {
+      homeAssistantEntity?: {
+        entity?: { state?: { state?: string } };
+      };
+    };
+    const haState = state.homeAssistantEntity?.entity?.state?.state;
+    return haState === "unavailable" || haState === "unknown";
+  }, []);
+
+  const unavailableCount = useMemo(() => {
+    return collectLeafEndpoints(props.endpoint).filter(getEntityAvailability)
+      .length;
+  }, [props.endpoint, getEntityAvailability]);
+
   const endpoints = useMemo(() => {
     const leafEndpoints = collectLeafEndpoints(props.endpoint);
 
     const filtered = leafEndpoints.filter((ep) => {
+      if (showOnlyUnavailable && !getEntityAvailability(ep)) {
+        return false;
+      }
       const name = getEndpointName(ep.state) ?? ep.id.local;
       const type = ep.type.name;
       const search = searchTerm.toLowerCase();
@@ -140,7 +161,13 @@ export const EndpointList = (props: EndpointListProps) => {
           return 0;
       }
     });
-  }, [props.endpoint, searchTerm, sortBy]);
+  }, [
+    props.endpoint,
+    searchTerm,
+    sortBy,
+    showOnlyUnavailable,
+    getEntityAvailability,
+  ]);
 
   const handleCardClick = (endpoint: EndpointData) => {
     setSelectedItem(endpoint);
@@ -181,6 +208,26 @@ export const EndpointList = (props: EndpointListProps) => {
             onChange={(e) => setSearchTerm(e.target.value)}
             sx={{ flexGrow: 1, maxWidth: 300 }}
           />
+
+          {unavailableCount > 0 && (
+            <Tooltip
+              title={
+                showOnlyUnavailable
+                  ? "Show all entities"
+                  : `Show ${unavailableCount} unavailable`
+              }
+            >
+              <IconButton
+                size="small"
+                color={showOnlyUnavailable ? "warning" : "default"}
+                onClick={() => setShowOnlyUnavailable((v) => !v)}
+              >
+                <Badge badgeContent={unavailableCount} color="warning" max={99}>
+                  <WarningAmberIcon />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+          )}
 
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel id="sort-label">
