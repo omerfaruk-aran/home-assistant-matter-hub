@@ -57,7 +57,11 @@ export class LevelControlServerBase extends FeaturedBase {
     this.reactTo(homeAssistant.onChange, this.update);
   }
 
-  private update({ state }: HomeAssistantEntityInformation) {
+  private update(entity: HomeAssistantEntityInformation) {
+    if (!entity.state) {
+      return;
+    }
+    const { state } = entity;
     const config = this.state.config;
 
     const minLevel = 1;

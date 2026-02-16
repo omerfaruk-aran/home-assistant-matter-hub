@@ -13,7 +13,7 @@ interface LogBuffer {
   maxSize: number;
 }
 
-const logBuffer: LogBuffer = {
+export const logBuffer: LogBuffer = {
   entries: [],
   maxSize: 1000,
 };

@@ -1,6 +1,7 @@
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
+import BugReportIcon from "@mui/icons-material/BugReport";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DevicesIcon from "@mui/icons-material/Devices";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -10,6 +11,7 @@ import SortIcon from "@mui/icons-material/Sort";
 import WarningIcon from "@mui/icons-material/Warning";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
@@ -121,6 +123,29 @@ export function HealthDashboard() {
     return () => clearInterval(interval);
   }, [fetchHealth]);
 
+  const handleDiagnosticExport = useCallback(async () => {
+    try {
+      const res = await fetch("api/diagnostic/export");
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const disposition = res.headers.get("Content-Disposition");
+        const filename =
+          disposition?.match(/filename="(.+)"/)?.[1] ??
+          `hamh-diagnostic-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      setError("Failed to export diagnostic data");
+    }
+  }, []);
+
   const handleRestart = async (bridgeId: string) => {
     try {
       await fetch(`api/matter/bridges/${bridgeId}/actions/restart`, {
@@ -180,11 +205,21 @@ export function HealthDashboard() {
             size="small"
           />
         </Box>
-        <Tooltip title="Refresh">
-          <IconButton onClick={fetchHealth}>
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
+        <Box display="flex" alignItems="center" gap={1}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<BugReportIcon />}
+            onClick={handleDiagnosticExport}
+          >
+            Export Diagnostic
+          </Button>
+          <Tooltip title="Refresh">
+            <IconButton onClick={fetchHealth}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       <Grid container spacing={2}>

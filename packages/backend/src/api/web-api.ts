@@ -15,6 +15,7 @@ import { accessLogger } from "./access-log.js";
 import { backupApi } from "./backup-api.js";
 import { bridgeExportApi } from "./bridge-export-api.js";
 import { bridgeIconApi } from "./bridge-icon-api.js";
+import { diagnosticApi } from "./diagnostic-api.js";
 import { entityMappingApi } from "./entity-mapping-api.js";
 import { healthApi } from "./health-api.js";
 import { homeAssistantApi } from "./home-assistant-api.js";
@@ -104,6 +105,16 @@ export class WebApi extends Service {
       .use("/home-assistant", homeAssistantApi(this.haRegistry, this.haClient))
       .use("/logs", logsApi(this.logger))
       .use("/system", systemApi(this.props.version))
+      .use(
+        "/diagnostic",
+        diagnosticApi(
+          this.bridgeService,
+          this.haClient,
+          this.haRegistry,
+          this.props.version,
+          this.startTime,
+        ),
+      )
       .use(
         "/metrics",
         metricsApi(
