@@ -93,7 +93,190 @@ The following features have graduated from Alpha to Stable:
 
 ## Current Alpha Features
 
-Alpha and Stable are currently in sync (v2.0.20). New experimental features will be added here before being promoted to stable.
+### Auto Composed Devices (Master Toggle)
+
+**Feature Flag:** `autoComposedDevices` (default: `false`)
+
+A master toggle that automatically combines related Home Assistant entities from the same physical device into single Matter endpoints. When enabled, it activates all auto-mapping sub-features at once: battery, humidity, pressure, power, and energy mapping.
+
+This eliminates the need to enable individual auto-mapping flags separately and provides a cleaner device experience in Matter controllers. For example, a Shelly Plug with power monitoring appears as one Matter device with `OnOff` + `ElectricalPowerMeasurement` + `ElectricalEnergyMeasurement` clusters instead of three separate endpoints.
+
+#### How It Works
+
+The feature operates in two phases during bridge initialization:
+
+**Phase 1 — Entity Discovery** (`BridgeRegistry.preCalculateAutoAssignments`)
+
+Before any Matter endpoints are created, the bridge registry scans the **full Home Assistant entity and device registry** (not just filtered bridge entities) to find related sensor entities that belong to the same HA device (`device_id`). It searches for:
+
+| Sensor Type | HA Domain | device_class | Target Entity Domains |
+|---|---|---|---|
+| Battery | `sensor.*` | `battery` | All domains |
+| Humidity | `sensor.*` | `humidity` | `sensor.temperature` |
+| Pressure | `sensor.*` | `atmospheric_pressure` | `sensor.temperature` |
+| Power | `sensor.*` | `power` | `switch`, `light` |
+| Energy | `sensor.*` | `energy` | `switch`, `light` |
+
+**Phase 2 — Endpoint Construction** (`LegacyEndpoint.create`)
+
+When each Matter endpoint is created, the auto-mapping logic runs in a strict order:
+
+1. **Skip check** — If this entity was already consumed as a sub-entity (e.g., a humidity sensor already merged into a temperature endpoint), it is skipped entirely. No duplicate Matter endpoint is created.
+
+2. **Auto-assign in order** (only if `device_id` is present and no manual mapping exists):
+   - **Humidity → Temperature sensor** — Adds `RelativeHumidityMeasurement` cluster
+   - **Pressure → Temperature sensor** — Adds `PressureMeasurement` cluster
+   - **Battery → Any entity** — Adds `PowerSource` cluster (done last so battery goes to the combined T+H sensor, not separately)
+   - **Power → Switch/Light** — Adds `ElectricalPowerMeasurement` cluster
+   - **Energy → Switch/Light** — Adds `ElectricalEnergyMeasurement` cluster
+
+3. **Endpoint type resolution** — `createLegacyEndpointType()` receives the effective mapping (original + auto-assigned entities) and constructs the appropriate `EndpointType` with all required behaviors/clusters.
+
+#### Implementation Details
+
+**Flag Wiring** (`BridgeRegistry`)
+
+Each sub-feature check (`isAutoBatteryMappingEnabled()`, `isAutoHumidityMappingEnabled()`, `isAutoPressureMappingEnabled()`) was extended to also check the master flag:
+
+```typescript
+isAutoBatteryMappingEnabled(): boolean {
+  return (
+    this.dataProvider.featureFlags?.autoBatteryMapping === true ||
+    this.dataProvider.featureFlags?.autoComposedDevices === true
+  );
+}
+```
+
+Power and energy auto-mapping runs unconditionally for `switch`/`light` domains (no feature flag gate) because it only applies to domains where it's always beneficial.
+
+**Entity Resolution** (`BridgeRegistry.findBatteryEntityForDevice`, etc.)
+
+All `find*EntityForDevice()` methods search the **full HA registry** (`this.registry.entities`), not the filtered bridge entity list. This is critical because:
+- A bridge filter might include `switch.shelly_plug` but exclude `sensor.shelly_plug_power`
+- The power sensor must still be found and auto-assigned even though it's filtered out
+- The auto-assigned entity is then consumed (marked as used) and won't create its own endpoint
+
+**Duplicate Prevention**
+
+Each auto-assigned entity is tracked in a Set (`_usedBatteryEntities`, `_usedHumidityEntities`, etc.). Before creating any endpoint, `LegacyEndpoint.create()` checks if the entity was already consumed. If so, it's skipped:
+
+```typescript
+if (
+  registry.isAutoBatteryMappingEnabled() &&
+  registry.isBatteryEntityUsed(entityId)
+) {
+  return; // Skip — already merged into another endpoint
+}
+```
+
+**Matter Cluster Mapping**
+
+The auto-assigned entities are passed as `effectiveMapping` fields to `createLegacyEndpointType()`, which adds the corresponding Matter server behaviors:
+
+| Mapping Field | Matter Cluster | Server Behavior |
+|---|---|---|
+| `batteryEntity` | PowerSource (0x002F) | `PowerSourceServer` |
+| `humidityEntity` | RelativeHumidityMeasurement (0x0405) | `HumidityMeasurementServer` |
+| `pressureEntity` | PressureMeasurement (0x0403) | `PressureMeasurementServer` |
+| `powerEntity` | ElectricalPowerMeasurement (0x0090) | `ElectricalPowerMeasurementServer` |
+| `energyEntity` | ElectricalEnergyMeasurement (0x0091) | `ElectricalEnergyMeasurementServer` |
+
+Each server behavior independently subscribes to its source entity's state changes and updates its Matter attributes accordingly.
+
+#### Example: Shelly Plug S with Power Monitoring
+
+**Home Assistant entities** (same `device_id`):
+- `switch.shelly_plug_s` — state: on/off
+- `sensor.shelly_plug_s_power` — device_class: power, state: 42.5 (W)
+- `sensor.shelly_plug_s_energy` — device_class: energy, state: 123.4 (kWh)
+
+**Without autoComposedDevices** (3 separate Matter endpoints):
+- Endpoint 1: `OnOffPlugInUnitDevice` (switch) — `OnOff` cluster
+- Endpoint 2: Skipped (no Matter device type for power sensors)
+- Endpoint 3: Skipped (no Matter device type for energy sensors)
+
+**With autoComposedDevices** (1 composed Matter endpoint):
+- Endpoint 1: `OnOffPlugInUnitDevice` (switch) — `OnOff` + `ElectricalPowerMeasurement` + `ElectricalEnergyMeasurement` clusters
+
+#### Example: Aqara Temperature/Humidity/Pressure Sensor
+
+**Home Assistant entities** (same `device_id`):
+- `sensor.aqara_temperature` — device_class: temperature
+- `sensor.aqara_humidity` — device_class: humidity
+- `sensor.aqara_pressure` — device_class: atmospheric_pressure
+- `sensor.aqara_battery` — device_class: battery
+
+**Without autoComposedDevices** (4 separate Matter endpoints):
+- Endpoint 1: `TemperatureSensorDevice` — `TemperatureMeasurement`
+- Endpoint 2: `HumiditySensorDevice` — `RelativeHumidityMeasurement`
+- Endpoint 3: Skipped (no standalone pressure device type)
+- Endpoint 4: Skipped (battery sensor alone)
+
+**With autoComposedDevices** (1 composed Matter endpoint):
+- Endpoint 1: `TemperatureSensorDevice` — `TemperatureMeasurement` + `RelativeHumidityMeasurement` + `PressureMeasurement` + `PowerSource` clusters
+
+#### Configuration
+
+Enable via bridge configuration JSON or the UI:
+
+```json
+{
+  "featureFlags": {
+    "autoComposedDevices": true
+  }
+}
+```
+
+Or enable individual sub-features selectively:
+
+```json
+{
+  "featureFlags": {
+    "autoBatteryMapping": true,
+    "autoHumidityMapping": true,
+    "autoPressureMapping": true
+  }
+}
+```
+
+> **Note:** `autoComposedDevices` is a pure OR with each sub-flag. It never overrides an explicitly disabled sub-flag — it only adds. If `autoComposedDevices: true`, all sub-features are treated as enabled regardless of their individual values.
+
+#### Relevant Source Files
+
+| File | Purpose |
+|---|---|
+| `packages/common/src/bridge-data.ts` | `AllBridgeFeatureFlags` type definition |
+| `packages/common/src/schemas/bridge-config-schema.ts` | JSON schema for UI form generation |
+| `packages/backend/src/services/bridges/bridge-registry.ts` | Entity discovery, flag checks, `find*EntityForDevice()` |
+| `packages/backend/src/matter/endpoints/legacy/legacy-endpoint.ts` | Auto-assign logic, skip-if-used checks |
+| `packages/backend/src/matter/endpoints/legacy/create-legacy-endpoint-type.ts` | Endpoint type construction with composed clusters |
+
+### Live Diagnostics (WebSocket Event Streaming)
+
+Real-time diagnostic event streaming integrated into the Health Dashboard. Emits events for bridge lifecycle changes (start/stop) with more event types planned. Events are streamed via WebSocket to subscribed clients.
+
+**How to use:**
+- Navigate to the **Health Dashboard** (`/health`)
+- The **Live Diagnostics** card shows real-time events with color-coded event types
+- Click the filter icon to show/hide specific event types
+- Event type chips show counts and act as toggle filters
+
+**Event types:** `bridge_started`, `bridge_stopped`, `state_update`, `command_received`, `entity_error`, `session_opened`, `session_closed`, `subscription_changed`
+
+**WebSocket protocol:**
+```json
+// Subscribe
+{ "type": "subscribe_diagnostics" }
+
+// Receive initial snapshot
+{ "type": "diagnostic_snapshot", "data": { "bridges": [...], "recentEvents": [...], "system": {...} } }
+
+// Receive live events
+{ "type": "diagnostic_event", "data": { "id": "diag_1", "timestamp": 1740000000000, "type": "bridge_started", "message": "Bridge started", "bridgeId": "...", "bridgeName": "..." } }
+
+// Unsubscribe
+{ "type": "unsubscribe_diagnostics" }
+```
 
 ---
 

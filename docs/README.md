@@ -77,7 +77,13 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 <details>
 <summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-Alpha and Stable are currently in sync. No additional alpha-only features at this time.
+| Feature | Description |
+|---------|-------------|
+| **🔗 Auto Composed Devices** | Master toggle (`autoComposedDevices`) that combines related HA entities from the same device into single Matter endpoints. Enables battery, humidity, pressure, power, and energy auto-mapping at once. See [Alpha Features Guide](./Guides/Alpha%20Features.md) for full technical details. |
+| **📊 Live Diagnostics** | Real-time event streaming in the Health Dashboard. Bridge lifecycle events, color-coded event types with filtering. WebSocket-based with subscribe/unsubscribe protocol. |
+| **🔧 DoorLock Fix** | Corrected `supportedOperatingModes` inverted bitmap semantics per Matter spec |
+| **⚡ Energy Event** | `ElectricalEnergyMeasurement` now emits `cumulativeEnergyMeasured` event per matter.js reference |
+| **🤖 Automation Fix** | `turnOff` now sends `automation.turn_off` (disable) instead of no-op |
 
 </details>
 
