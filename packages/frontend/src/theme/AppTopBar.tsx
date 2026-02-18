@@ -9,7 +9,6 @@ import LockIcon from "@mui/icons-material/Lock";
 import MenuIcon from "@mui/icons-material/Menu";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-import TimelineIcon from "@mui/icons-material/Timeline";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
@@ -81,11 +80,6 @@ export const AppTopBar = () => {
       label: "Health Dashboard",
       icon: <MonitorHeartIcon />,
       to: navigation.health,
-    },
-    {
-      label: "Live Diagnostics",
-      icon: <TimelineIcon />,
-      to: navigation.diagnostics,
     },
   ];
 

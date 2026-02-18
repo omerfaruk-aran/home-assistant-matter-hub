@@ -3,7 +3,6 @@ import { AppPage } from "./pages/AppPage.tsx";
 import { BridgeDetailsPage } from "./pages/bridge-details/BridgeDetailsPage.tsx";
 import { BridgesPage } from "./pages/bridges/BridgesPage.tsx";
 import { DevicesPage } from "./pages/devices/DevicesPage.tsx";
-import { DiagnosticsPage } from "./pages/diagnostics/DiagnosticsPage.tsx";
 import { CreateBridgePage } from "./pages/edit-bridge/CreateBridgePage.tsx";
 import { EditBridgePage } from "./pages/edit-bridge/EditBridgePage.tsx";
 import { HealthPage } from "./pages/health/HealthPage.tsx";
@@ -21,7 +20,6 @@ export const navigation = {
   devices: "/devices",
   networkMap: "/network-map",
   health: "/health",
-  diagnostics: "/diagnostics",
   labels: "/labels",
   lockCredentials: "/lock-credentials",
   startup: "/startup",
@@ -53,7 +51,6 @@ export const routes: RouteObject[] = [
       { path: navigation.labels, element: <LabelsPage /> },
       { path: navigation.lockCredentials, element: <LockCredentialsPage /> },
       { path: navigation.startup, element: <StartupPage /> },
-      { path: navigation.diagnostics, element: <DiagnosticsPage /> },
     ],
   },
 ];
