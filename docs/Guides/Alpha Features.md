@@ -93,6 +93,43 @@ The following features have graduated from Alpha to Stable:
 
 ## Current Alpha Features
 
+### Dashboard Landing Page
+
+The application now opens with a dashboard overview instead of the bridges list. The dashboard provides a compact summary of your system at a glance:
+
+- **Stat Cards** — Bridge count (with status breakdown), total device count (with failed count), fabric connections, and Home Assistant connection status
+- **Version & Uptime** — Current HAMH version and system uptime
+- **Bridge Mini-Cards** — Each bridge shown with its name, device count, fabric count, and status chip. Click any bridge to navigate to its detail page.
+- **Quick Navigation** — Stat cards and chips link to the relevant pages (Bridges, Devices, Network Map)
+
+The dashboard fetches data from `/api/health/detailed` and refreshes every 15 seconds.
+
+### Entity Autocomplete
+
+All entity ID input fields in the Entity Mapping dialog now use an autocomplete component with search-as-you-type suggestions. This replaces the previous plain text fields where users had to type entity IDs from memory.
+
+**How it works:**
+- Start typing an entity ID or friendly name — matching entities from your Home Assistant registry are suggested
+- Results are fetched from `/api/home-assistant/entities` with optional domain filtering
+- Each suggestion shows the entity ID and its friendly name
+- You can still type a custom entity ID manually if needed (freeSolo mode)
+- Domain-specific fields (e.g., humidity, battery, power sensors) automatically filter suggestions to the `sensor` domain
+
+**Affected fields:** Entity ID, Humidity Sensor, Pressure Sensor, Battery Sensor, Filter Life Sensor, Cleaning Mode Entity, Power Sensor, Energy Sensor.
+
+### Light Transition Time
+
+Matter controllers can send transition times with light commands (brightness changes, color temperature changes, hue/saturation changes). These transition times are now forwarded to Home Assistant as the `transition` parameter in `light.turn_on` service calls.
+
+**Supported commands:**
+- `moveToLevel` / `moveToLevelWithOnOff` — brightness transitions
+- `moveToColorTemperature` — color temperature transitions
+- `moveToHueAndSaturation` — color transitions
+
+**Unit conversion:** Matter uses tenths of a second (e.g., `transitionTime: 10` = 1 second). Home Assistant uses seconds as a float. The conversion is `transition = transitionTime / 10`.
+
+**Backward compatible:** Transition times of 0 or null are not forwarded, preserving current behavior (instant changes). Only non-zero transition times are included in the HA service call.
+
 ### Auto Composed Devices (Master Toggle)
 
 **Feature Flag:** `autoComposedDevices` (default: `false`)
@@ -268,6 +305,10 @@ Or enable individual sub-features selectively:
 
 > **Note:** `autoComposedDevices` is a pure OR with each sub-flag. It never overrides an explicitly disabled sub-flag — it only adds. If `autoComposedDevices: true`, all sub-features are treated as enabled regardless of their individual values.
 
+#### Force Sync for Composed Devices
+
+When `autoForceSync` is enabled, the periodic force sync now recursively traverses all sub-endpoints of composed devices. Previously, only direct children of the aggregator were synced, which meant sub-endpoints of `ComposedSensorEndpoint` (temperature, humidity, pressure sensors) were missed during force sync cycles. This fix ensures that all sensor readings within composed devices stay in sync with controllers.
+
 #### Relevant Source Files
 
 | File | Purpose |
@@ -278,6 +319,7 @@ Or enable individual sub-features selectively:
 | `packages/backend/src/matter/endpoints/legacy/legacy-endpoint.ts` | Auto-assign logic, skip-if-used checks |
 | `packages/backend/src/matter/endpoints/legacy/create-legacy-endpoint-type.ts` | Endpoint type construction (flat mapping fallback) |
 | `packages/backend/src/matter/endpoints/composed/composed-sensor-endpoint.ts` | Composed device factory (BridgedNodeEndpoint + sub-endpoints) |
+| `packages/backend/src/services/bridges/bridge.ts` | Force sync logic with recursive sub-endpoint traversal |
 
 ### Live Diagnostics (WebSocket Event Streaming)
 

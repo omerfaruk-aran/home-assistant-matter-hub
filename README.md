@@ -116,6 +116,10 @@ of port forwarding etc.
 
 | Feature | Description |
 |---------|-------------|
+| **🏠 Dashboard Landing Page** | New dashboard as the application's start page showing bridge count, device count, fabric connections, HA connection status, version, and uptime at a glance |
+| **🔍 Entity Autocomplete** | Entity ID fields in the Entity Mapping dialog now provide search-as-you-type suggestions from your Home Assistant entity registry, replacing manual text input |
+| **⏱️ Light Transition Time** | Matter transition times from controller commands (brightness, color temperature, hue/saturation) are now forwarded to Home Assistant `light.turn_on` service calls as the `transition` parameter |
+| **🔄 Force Sync Composed Fix** | `autoForceSync` now correctly traverses sub-endpoints of composed devices (e.g., Temperature/Humidity/Pressure sensors created by `autoComposedDevices`) |
 | **🧊 Water Freeze Detector** | `binary_sensor` with device class `cold` now maps to Matter WaterFreezeDetector (0x0041) instead of ContactSensor |
 | **🔧 Device Type Overrides** | SmokeCO Alarm, Water Leak Detector, and Water Freeze Detector can now be selected as manual device type overrides via Entity Mapping |
 
