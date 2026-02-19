@@ -241,6 +241,87 @@ async function thermostatPostInitialize(self: any): Promise<void> {
     );
   }
   self.reactTo(homeAssistant.onChange, self.update);
+
+  // Install write interceptors for auto-resume (#176).
+  // The $Changing events only fire on actual value changes. When a controller
+  // writes the same temperature while device is off, we still need to auto-resume.
+  // We intercept writes at the state level to handle this case.
+  installSetpointWriteInterceptor(self, "occupiedHeatingSetpoint", "heating");
+  installSetpointWriteInterceptor(self, "occupiedCoolingSetpoint", "cooling");
+}
+
+/**
+ * Installs a write interceptor on a setpoint attribute.
+ * This runs on EVERY write, even if the value is unchanged, enabling auto-resume.
+ */
+function installSetpointWriteInterceptor(
+  // biome-ignore lint/suspicious/noExplicitAny: Internal helper
+  self: any,
+  attributeName: string,
+  mode: "heating" | "cooling",
+): void {
+  const logger = Logger.get("ThermostatServer");
+  const state = self.state;
+  const originalDescriptor = Object.getOwnPropertyDescriptor(
+    state,
+    attributeName,
+  );
+  if (!originalDescriptor) {
+    logger.warn(
+      `Cannot install interceptor on ${attributeName}: no descriptor found`,
+    );
+    return;
+  }
+
+  const originalSetter = originalDescriptor.set;
+  if (!originalSetter) {
+    return; // Read-only attribute
+  }
+
+  Object.defineProperty(state, attributeName, {
+    get: originalDescriptor.get,
+    set: (value: number) => {
+      const currentMode = self.state.systemMode;
+      const isOff = currentMode === Thermostat.SystemMode.Off;
+      const supportsRange = self.state.config.supportsTemperatureRange(
+        self.agent.get(HomeAssistantEntityBehavior).entity.state,
+        self.agent,
+      );
+
+      // Auto-resume: if device is off and single-temp mode, turn it on
+      if (isOff && !supportsRange) {
+        if (mode === "heating" && self.features.heating) {
+          logger.info(
+            `${attributeName} write while off: auto-switching to Heat mode`,
+          );
+          const modeAction = self.state.config.setSystemMode(
+            Thermostat.SystemMode.Heat,
+            self.agent,
+          );
+          self.agent.get(HomeAssistantEntityBehavior).callAction(modeAction);
+        } else if (
+          mode === "cooling" &&
+          !self.features.heating &&
+          self.features.cooling
+        ) {
+          // Cooling-only device
+          logger.info(
+            `${attributeName} write while off: auto-switching to Cool mode`,
+          );
+          const modeAction = self.state.config.setSystemMode(
+            Thermostat.SystemMode.Cool,
+            self.agent,
+          );
+          self.agent.get(HomeAssistantEntityBehavior).callAction(modeAction);
+        }
+      }
+
+      // Call original setter
+      originalSetter.call(state, value);
+    },
+    enumerable: originalDescriptor.enumerable,
+    configurable: originalDescriptor.configurable,
+  });
 }
 
 export class ThermostatServerBase extends FullFeaturedBase {
