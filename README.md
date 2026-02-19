@@ -116,7 +116,8 @@ of port forwarding etc.
 
 | Feature | Description |
 |---------|-------------|
-| **🏠 Dashboard Landing Page** | New dashboard as the application's start page showing bridge count, device count, fabric connections, HA connection status, version, and uptime at a glance |
+| **🏠 Dashboard Landing Page** | New dashboard as the application's start page showing bridge count, device count, fabric connections, HA connection status, version, uptime, quick navigation to all pages, and Bridge Wizard / Create Bridge buttons |
+| **🧙 Bridge Wizard Feature Flags** | The Bridge Wizard now includes a dedicated step for configuring feature flags: Auto Compose Devices, Auto Force Sync, Invert Cover Direction, and Include Hidden Entities |
 | **🔍 Entity Autocomplete** | Entity ID fields in the Entity Mapping dialog now provide search-as-you-type suggestions from your Home Assistant entity registry, replacing manual text input |
 | **⏱️ Light Transition Time** | Matter transition times from controller commands (brightness, color temperature, hue/saturation) are now forwarded to Home Assistant `light.turn_on` service calls as the `transition` parameter |
 | **🔄 Force Sync Composed Fix** | `autoForceSync` now correctly traverses sub-endpoints of composed devices (e.g., Temperature/Humidity/Pressure sensors created by `autoComposedDevices`) |

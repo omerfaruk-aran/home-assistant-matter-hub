@@ -105,6 +105,17 @@ The application now opens with a dashboard overview instead of the bridges list.
 
 The dashboard fetches data from `/api/health/detailed` and refreshes every 15 seconds.
 
+### Bridge Wizard Feature Flags
+
+The Bridge Wizard now has a 5-step flow: **Template → Bridge Info → Entity Filter → Feature Flags → Review & Create**. The new Feature Flags step lets you enable common flags directly during bridge creation:
+
+- **Auto Compose Devices** (`autoComposedDevices`) — Combine related entities from the same HA device into single Matter endpoints
+- **Auto Force Sync** (`autoForceSync`) — Periodically push state to controllers (recommended for Google Home / Alexa)
+- **Invert Cover Direction** (`coverSwapOpenClose`) — Swap open/close direction for covers
+- **Include Hidden Entities** (`includeHiddenEntities`) — Also expose hidden HA entities
+
+When a template is selected, its flags are pre-filled but can be adjusted in this step. All other flags remain available in the full bridge editor after creation.
+
 ### Entity Autocomplete
 
 All entity ID input fields in the Entity Mapping dialog now use an autocomplete component with search-as-you-type suggestions. This replaces the previous plain text fields where users had to type entity IDs from memory.
