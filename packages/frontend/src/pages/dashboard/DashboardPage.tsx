@@ -111,9 +111,11 @@ function StatCard({
   );
 
   return (
-    <Card variant="outlined">
+    <Card variant="outlined" sx={{ height: "100%" }}>
       {onClick ? (
-        <CardActionArea onClick={onClick}>{content}</CardActionArea>
+        <CardActionArea onClick={onClick} sx={{ height: "100%" }}>
+          {content}
+        </CardActionArea>
       ) : (
         content
       )}
