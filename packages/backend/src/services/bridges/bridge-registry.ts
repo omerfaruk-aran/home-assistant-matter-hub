@@ -6,7 +6,6 @@ import type {
   SensorDeviceAttributes,
 } from "@home-assistant-matter-hub/common";
 import { SensorDeviceClass } from "@home-assistant-matter-hub/common";
-import { Logger } from "@matter/general";
 import { keys, pickBy, values } from "lodash-es";
 import type {
   HomeAssistantDevices,
@@ -33,6 +32,8 @@ export class BridgeRegistry {
 
   // Track battery entities that have been auto-assigned to other devices
   private _usedBatteryEntities: Set<string> = new Set();
+  // Cache for battery entity lookups (deviceId -> entityId or null)
+  private _batteryEntityCache: Map<string, string | null> = new Map();
   // Track humidity entities that have been auto-assigned to temperature sensors
   private _usedHumidityEntities: Set<string> = new Set();
   // Track pressure entities that have been auto-assigned to temperature sensors
@@ -58,42 +59,35 @@ export class BridgeRegistry {
    * Returns the entity_id of the battery sensor, or undefined if none found.
    */
   findBatteryEntityForDevice(deviceId: string): string | undefined {
+    // Check cache first
+    if (this._batteryEntityCache.has(deviceId)) {
+      const cached = this._batteryEntityCache.get(deviceId);
+      return cached === null ? undefined : cached;
+    }
+
     // Search the FULL HA registry, not the filtered bridge entities.
     // The battery sensor might not match the bridge filter (e.g., vacuum
     // server bridges only include vacuum.* entities, not sensor.*).
-    const log = Logger.get("BridgeRegistry");
     const entities = values(this.registry.entities);
     const sameDevice = entities.filter((e) => e.device_id === deviceId);
-    log.debug(
-      `findBatteryEntityForDevice: deviceId=${deviceId}, ` +
-        `totalEntities=${entities.length}, sameDevice=${sameDevice.length}, ` +
-        `sameDeviceIds=[${sameDevice.map((e) => e.entity_id).join(", ")}]`,
-    );
+
     for (const entity of sameDevice) {
       if (!entity.entity_id.startsWith("sensor.")) continue;
 
       const state = this.registry.states[entity.entity_id];
       if (!state) {
-        log.debug(
-          `findBatteryEntityForDevice: ${entity.entity_id} has no state`,
-        );
         continue;
       }
 
       const attrs = state.attributes as SensorDeviceAttributes;
-      log.debug(
-        `findBatteryEntityForDevice: ${entity.entity_id} device_class=${attrs.device_class}`,
-      );
       if (attrs.device_class === SensorDeviceClass.battery) {
-        log.info(
-          `findBatteryEntityForDevice: Found battery ${entity.entity_id} for device ${deviceId}`,
-        );
+        // Cache the result
+        this._batteryEntityCache.set(deviceId, entity.entity_id);
         return entity.entity_id;
       }
     }
-    log.debug(
-      `findBatteryEntityForDevice: No battery sensor found for device ${deviceId}`,
-    );
+    // Cache the negative result
+    this._batteryEntityCache.set(deviceId, null);
     return undefined;
   }
 
@@ -333,6 +327,8 @@ export class BridgeRegistry {
     this._usedPressureEntities.clear();
     this._usedPowerEntities.clear();
     this._usedEnergyEntities.clear();
+    // Clear battery lookup cache
+    this._batteryEntityCache.clear();
 
     this._entities = pickBy(this.registry.entities, (entity) => {
       const device = this.registry.devices[entity.device_id];
