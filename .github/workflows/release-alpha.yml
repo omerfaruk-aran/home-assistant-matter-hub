@@ -90,7 +90,7 @@ jobs:
           
           if [ -n "$LATEST_ALPHA" ]; then
             echo "Generating changelog from $LATEST_ALPHA to HEAD"
-            COMMITS=$(git log --pretty=format:"- %s (%h)" "$LATEST_ALPHA"..HEAD^ 2>/dev/null || git log --pretty=format:"- %s (%h)" -10)
+            COMMITS=$(git log --pretty=format:"- %s (%h)" "$LATEST_ALPHA"..HEAD 2>/dev/null || git log --pretty=format:"- %s (%h)" -10)
           else
             COMMITS=$(git log --pretty=format:"- %s (%h)" -10)
           fi
