@@ -3,7 +3,7 @@
 This guide covers features available in the Alpha version of Home-Assistant-Matter-Hub.
 
 > [!NOTE]
-> **Alpha is ahead of Stable (v2.1.0-alpha.266 vs v2.0.21).** Alpha contains new features being tested before promotion to stable. See "Current Alpha Features" section below for what's new in alpha.
+> **Alpha is currently in sync with Stable (v2.1.0).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 > [!WARNING]
 > Alpha versions are for testing only and may contain bugs. Use at your own risk!
@@ -32,11 +32,32 @@ docker run -d \
 
 ---
 
-## Features Now in Stable (v2.0.20)
+## Features Now in Stable (v2.1.0)
 
 The following features have graduated from Alpha to Stable:
 
-**New in v2.0.20:**
+**New in v2.1.0:**
+- **Dashboard Landing Page** - System overview with bridge/device counts, fabric connections, HA status, uptime
+- **Composed Devices** (`autoComposedDevices`) - Real Matter Composed Devices for temperature sensors with humidity/pressure (#179)
+- **Bridge Wizard Feature Flags** - 5-step wizard with Auto Composed, Force Sync, Cover Inversion, Hidden Entities
+- **Entity Autocomplete** - Search-as-you-type suggestions for entity ID fields
+- **Light Transition Time** - Controller transition times forwarded to HA `light.turn_on` calls
+- **Live Diagnostics** - Real-time WebSocket event streaming on Health Dashboard
+- **Water Freeze Detector** - `binary_sensor.cold` maps to Matter WaterFreezeDetector
+- **Vacuum Suction Level** - `suctionLevelEntity` mapping adds Quiet/Max intensity toggles in Apple Home (#110)
+- **Vacuum Cluster Fixes** - Always include PowerSource, ServiceArea, RvcCleanMode (#183)
+- **Thermostat Auto-Resume** - "Set to 20°C" works when off and already at 20°C (#176)
+- **Thermostat Voice Confirmation** - Fixed Google Home skipping "turned off" confirmation (#176)
+- **Vacuum Docked State** - Correctly shows "Docked" when idle and charging (#165)
+- **Memory Leak Fix** - Proper endpoint disposal prevents OOM (#180)
+- **Device Type Overrides** - SmokeCO, Water Leak, Water Freeze selectable as overrides
+- **Battery Log Spam Fix** - Caching + reduced log level for missing battery sensors
+- **Measurement Cluster Fixes** - Fixed minMeasuredValue for humidity, flow, electrical clusters
+- **Lighting Feature Fix** - Removed Lighting from OnOff for non-light devices (#182)
+- **Filter Tooltips** - Descriptive tooltips on filter type dropdown
+- **Dashboard UX** - Alphabetical bridge sorting, navigation guide, mobile responsiveness
+
+**Previously in v2.0.20–v2.0.23:**
 - **Bridge Templates / Presets** - 10 predefined bridge templates with auto-configured filters and feature flags
 - **Enhanced Bridge Wizard** - 4-step flow: Template → Bridge Info → Entity Filter → Review & Create
 - **Live Filter Preview** - Auto-refresh on filter changes with domain hints and contextual warnings
@@ -91,7 +112,9 @@ The following features have graduated from Alpha to Stable:
 
 ---
 
-## Current Alpha Features
+## Feature Details (now in Stable v2.1.0)
+
+The following sections provide detailed usage instructions for features that have been promoted to stable.
 
 ### Dashboard Landing Page
 
@@ -383,13 +406,13 @@ Real-time diagnostic event streaming integrated into the Health Dashboard. Emits
 
 **Issue:** When a thermostat was off and you asked a voice assistant to "set temperature to 20°C", it only worked if the new temperature was different from the current setpoint. If already at 20°C, nothing happened.
 
-**Fix:** The thermostat now intercepts **all** setpoint writes via overridden class setters, not just value changes. When a write occurs while `systemMode` is `Off`, the device automatically resumes to Heat/Cool mode.
+**Fix:** When the device is off, stored setpoints are nudged by +1 centidegree (0.01°C, imperceptible) so that any controller write of the "round" value triggers a `$Changing` event, which auto-resumes to Heat/Cool mode. The nudge is skipped during the Off transition itself to avoid interfering with Google Home's voice confirmation.
 
 **Works with:** Google Home, Alexa, Apple Home
 
 **Technical details:**
-- Overrides `occupiedHeatingSetpoint` and `occupiedCoolingSetpoint` setters in `ThermostatServerBase`
-- Tracks last setpoint values to distinguish initialization from user writes
+- `update()` nudges setpoints when device was already off (`wasOffOnPreviousUpdate` flag)
+- `heatingSetpointChanging` / `coolingSetpointChanging` detect `systemMode == Off` and auto-resume
 - Only auto-resumes for single-temp mode (not range/auto mode)
 - Uses `setSystemMode` config action to turn on the device
 

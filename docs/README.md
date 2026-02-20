@@ -53,50 +53,38 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 ## What's New
 
 <details>
-<summary><strong>📦 Stable (v2.0.17) - Current</strong></summary>
+<summary><strong>📦 Stable (v2.1.0) - Current</strong></summary>
 
 | Feature | Description |
 |---------|-------------|
-| **🏷️ Room Label (FixedLabel)** | HA area names sent to controllers via Matter FixedLabel cluster. No major controller currently reads this for automatic room assignment — rooms must be assigned manually. ([#77](https://github.com/RiDDiX/home-assistant-matter-hub/discussions/77)) |
-| **�️ Thermostat Overhaul** | Feature variants (heat-only, cool-only, full HVAC), negative temp support, hvac_action-based running state, NaN guards ([#146](https://github.com/RiDDiX/home-assistant-matter-hub/issues/146)) |
-| **🔒 Lock Unlatch/Unbolt** | Apple Home Unlatch button for locks with HA OPEN support ([#153](https://github.com/RiDDiX/home-assistant-matter-hub/issues/153)) |
-| **🌡️ Auto Pressure Mapping** | Pressure sensors auto-combined with temperature sensors (e.g. Aqara WSDCGQ11LM) |
-| **� Binary Sensor Fix** | running/plug/power now map to OnOffSensor instead of ContactSensor ([#154](https://github.com/RiDDiX/home-assistant-matter-hub/issues/154)) |
-| **🤖 Vacuum Fixes** | Apple Home "Updating" fix, GoHome command, OperationCompletion event ([#103](https://github.com/RiDDiX/home-assistant-matter-hub/issues/103)) |
-| **🔌 Dead Session Recovery** | Auto force-close dead Alexa sessions ([#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105)) |
-| **� Water Heater Limits** | Correct min/max from HA entity ([#145](https://github.com/RiDDiX/home-assistant-matter-hub/issues/145)) |
-| **� Cover Fix** | coverSwapOpenClose position display fix ([#148](https://github.com/RiDDiX/home-assistant-matter-hub/issues/148)) |
-| **�️ Fan Oscillation Fix** | Proper rockSupport/windSupport defaults |
-| **� Mobile UI** | Responsive navigation with hamburger menu ([#144](https://github.com/RiDDiX/home-assistant-matter-hub/issues/144)) |
-| **🗺️ Network Map** | React Flow visualization of bridge topology |
-| **🧠 Memory Limit** | 512MB heap limit for low-resource devices ([#141](https://github.com/RiDDiX/home-assistant-matter-hub/issues/141)) |
-| **�️ Crash Resilience** | Per-property error handling, behavior error logging |
+| **� Dashboard** | New landing page with bridge overview, quick navigation, and Bridge Wizard access |
+| **🧪 Composed Devices** | `autoComposedDevices` creates real Matter Composed Devices for temperature sensors with humidity/pressure ([#179](https://github.com/RiDDiX/home-assistant-matter-hub/issues/179)) |
+| **🧙 Wizard Feature Flags** | 5-step wizard with Auto Composed, Force Sync, Cover Inversion, Hidden Entities |
+| **🔍 Entity Autocomplete** | Search-as-you-type entity suggestions in Entity Mapping dialogs |
+| **⏱️ Light Transitions** | Matter transition times forwarded to HA `light.turn_on` service |
+| **🩺 Live Diagnostics** | Real-time WebSocket event streaming on Health Dashboard |
+| **🧊 Water Freeze Detector** | `binary_sensor.cold` maps to Matter WaterFreezeDetector |
+| **🤖 Vacuum Suction Level** | `suctionLevelEntity` adds Quiet/Max intensity toggles in Apple Home ([#110](https://github.com/RiDDiX/home-assistant-matter-hub/issues/110)) |
+| **🌡️ Thermostat Auto-Resume** | "Set to 20°C" works when off and already at 20°C ([#176](https://github.com/RiDDiX/home-assistant-matter-hub/issues/176)) |
+| **🤖 Vacuum Docked State** | Correctly shows "Docked" when idle and charging ([#165](https://github.com/RiDDiX/home-assistant-matter-hub/issues/165)) |
+| **💾 Memory Fixes** | Endpoint disposal fixes to prevent OOM issues ([#180](https://github.com/RiDDiX/home-assistant-matter-hub/issues/180)) |
+| **📏 Measurement Fixes** | Fixed minMeasuredValue for humidity, flow, electrical clusters |
+| **� Lighting Feature Fix** | Removed Lighting from OnOff for non-light devices ([#182](https://github.com/RiDDiX/home-assistant-matter-hub/issues/182)) |
 
 </details>
 
 <details>
 <summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-| Feature | Description |
-|---------|-------------|
-| **🔗 Auto Composed Devices** | Master toggle (`autoComposedDevices`) that creates real Matter Composed Devices for temperature sensors with related humidity/pressure/battery entities. Uses `BridgedNodeEndpoint` with separate sub-endpoints per sensor type so Apple Home and Alexa properly display each reading. Also enables power/energy auto-mapping for switches. See [Alpha Features Guide](./Guides/Alpha%20Features.md). |
-| **📊 Live Diagnostics** | Real-time event streaming in the Health Dashboard. Bridge lifecycle events, color-coded event types with filtering. WebSocket-based with subscribe/unsubscribe protocol. |
-| **🔧 DoorLock Fix** | Corrected `supportedOperatingModes` inverted bitmap semantics per Matter spec |
-| **⚡ Energy Event** | `ElectricalEnergyMeasurement` now emits `cumulativeEnergyMeasured` event per matter.js reference |
-| **🤖 Automation Fix** | `turnOff` now sends `automation.turn_off` (disable) instead of no-op |
-| **🏠 Dashboard** | New landing page with bridge overview, quick navigation, and Bridge Wizard access |
-| **🔍 Entity Autocomplete** | Search-as-you-type entity suggestions in Entity Mapping dialogs |
-| **⏱️ Light Transitions** | Matter transition times forwarded to HA `light.turn_on` service |
-| **🌡️ Thermostat Auto-Resume** | Auto-resume works even when setting same temperature while off (#176) |
-| **🤖 Vacuum Docked State** | Vacuums correctly show "Docked" instead of "Paused" when charging (#165) |
-| **📱 Dashboard UI** | Responsive cards, sorted bridges, icon legend, mobile-optimized |
-| **💾 Memory Fixes** | Endpoint disposal fixes to prevent OOM issues |
-| **🔋 Reduced Logging** | Battery sensor mapping no longer spams logs |
+Alpha is currently in sync with Stable (v2.1.0). All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 </details>
 
 <details>
-<summary><strong>📜 Previous Versions</strong></summary>
+<summary><strong>� Previous Versions</strong></summary>
+
+### v2.0.17–v2.0.23
+Thermostat overhaul, Lock Unlatch, Vacuum Server Mode, Bridge Templates, Live Filter Preview, Entity Diagnostics, Multi-Bridge Bulk Operations, Power & Energy Measurement, Event domain, Network Map, Mobile UI
 
 ### v2.0.16
 Force Sync, Lock PIN, Cover/Blinds improvements, Roborock Rooms, Auto Entity Grouping, Water Heater, Vacuum Server Mode, OOM fix

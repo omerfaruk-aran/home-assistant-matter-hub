@@ -284,7 +284,7 @@ Mapped based on `device_class` attribute.
 | Other / unset | OnOffSensor | On/Off |
 
 > [!NOTE]
-> **WaterFreezeDetector** (device class `cold`) is supported since v2.1.0-alpha. Shows freeze detection status in controllers.
+> **WaterFreezeDetector** (device class `cold`) is supported since v2.1.0. Shows freeze detection status in controllers.
 
 ---
 
@@ -400,6 +400,7 @@ Mapped to **RoboticVacuumCleaner**.
 | `roomEntities` | Array of button entity IDs for room selection (Roborock) |
 | `batteryEntity` | External battery sensor entity (Roomba, Deebot) |
 | `cleaningModeEntity` | Select entity for cleaning mode (Dreame, Ecovacs, etc.) |
+| `suctionLevelEntity` | Select entity for suction level — adds Quiet/Max intensity toggles to Apple Home's extra features panel |
 
 **Feature Flags (Bridge Settings):**
 | Flag | Description |
@@ -411,7 +412,7 @@ Mapped to **RoboticVacuumCleaner**.
 - **Server Mode recommended** - For full voice command support (Siri, Alexa)
 - **Server Mode = one device per bridge** - The vacuum must be the only device
 - **Apple Home** requires iOS/tvOS/AudioOS 18.4+ on all Home hubs
-- **Google Home** does not support RVC device types yet
+- **Google Home** has limited RVC support — basic start/stop works, room selection and cleaning modes may vary
 
 See [Robot Vacuum Guide](./Devices/Robot%20Vacuum.md) for detailed setup instructions.
 

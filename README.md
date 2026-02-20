@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.21 | Production-ready, recommended for most users |
+| **Stable** | `main` | v2.1.0 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -52,59 +52,55 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.0.21)</strong> - Click to expand</summary>
+<summary><strong>📦 Stable Features (v2.1.0)</strong> - Click to expand</summary>
 
-**Hotfixes in v2.0.21:**
-
-| Fix | Description |
-|-----|-------------|
-| **🗺️ Network Map Vendor IDs** | Corrected vendor ID mappings — Google Home, Apple Home, and Amazon Alexa now display correctly in Network Map and Health Dashboard ([#178](https://github.com/RiDDiX/home-assistant-matter-hub/issues/178)) |
-| **🌡️ Thermostat Mode Stability** | Reverted auto-resume logic that caused mode cycling (Heat→Auto) on some AC units ([#176](https://github.com/RiDDiX/home-assistant-matter-hub/issues/176)) |
-
-**New in v2.0.20** (merged from alpha):
+**New in v2.1.0** (merged from alpha):
 
 | Feature | Description |
 |---------|-------------|
-| **📋 Bridge Templates / Presets** | 10 predefined bridge templates (All Lights, All Switches, All Sensors, Climate & Covers, Security & Locks, Robot Vacuum Server Mode, Media Players, Google Home Optimized, Alexa-Optimized Covers, Automations & Scripts) — available in both the Create Bridge page and the Bridge Wizard |
-| **🔍 Live Filter Preview** | Filter preview now auto-refreshes on every filter change (debounced 800ms), shows domain → Matter device type mapping hints per entity, and displays contextual warnings (vacuum server mode reminder, large entity count, unsupported domains) |
-| **🩺 Dedicated Diagnostics Per Entity** | New Entity Diagnostics panel in the endpoint detail view showing HA entity ID, current state, key HA attributes (device_class, supported_features, color_modes, etc.), custom name/device type overrides, and all entity mappings (battery, humidity, pressure, power, energy, filter life, rooms) |
-| **🧙 Enhanced Bridge Wizard** | Wizard now has a 4-step flow: Template → Bridge Info → Entity Filter → Review & Create. Selecting a template pre-fills name, icon, filters, and feature flags. "Skip Template" button for custom bridges |
-| **⚡ Multi-Bridge Bulk Operations** | New "Start All", "Stop All", "Restart All" buttons on the Bridges page (shown when 2+ bridges exist). New backend API endpoints for bulk actions and bridge cloning (`POST /bridges/:id/clone`) |
-| **🏥 Entity Health Indicators** | Unavailable/unknown entities are now visually marked in the endpoint list with filter toggle |
-| **� Session/Subscription Info** | Health dashboard now shows active session and subscription connectivity details per bridge |
-| **💾 Diagnostic Export** | New API and UI button to export full diagnostic data as JSON for troubleshooting |
-| **�️ Thermostat AutoMode Fix** | AutoMode (dual setpoint) is now only exposed for devices that support `heat_cool` in HA. Devices with only `auto` mode (single setpoint) no longer cause mode flipping in Apple Home |
-| **🤖 Roborock Room Names** | Room names now show friendly names instead of entity IDs ([#106](https://github.com/RiDDiX/home-assistant-matter-hub/issues/106)) |
-| **🤖 Ecovacs Cleaning Modes** | Auto-detect cleaning mode support (vacuum/mop/both) for Ecovacs/Deebot vacuums ([#165](https://github.com/RiDDiX/home-assistant-matter-hub/issues/165)) |
-| **🤖 Ecovacs Room Cleaning** | Native Deebot room cleaning support via spot_area ([#165](https://github.com/RiDDiX/home-assistant-matter-hub/issues/165)) |
-| **� Cover Fix** | Restore coverSwapOpenClose force inversion (regression fix) ([#117](https://github.com/RiDDiX/home-assistant-matter-hub/issues/117)) |
-| **📺 Media Player TV Detection** | Auto-detect TV device_class for media_player on/off support ([#162](https://github.com/RiDDiX/home-assistant-matter-hub/issues/162)) |
-| **🔌 Subscription Stability** | Disable subscription persistence, fix health check sabotaging reconnection, subscription keepalive for all devices — prevents Offline/Updating status ([#103](https://github.com/RiDDiX/home-assistant-matter-hub/issues/103)) |
-| **� Orphan Detection** | Detect and handle commissioned bridges without active sessions ([#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105)) |
-| **🌡️ Pressure Unit Conversion** | Fix unit conversion for auto-mapped pressure entities ([#166](https://github.com/RiDDiX/home-assistant-matter-hub/issues/166)) |
-| **� Graceful Entity Unavailability** | Entities in unavailable/unknown state are handled gracefully instead of crashing |
+| **🏠 Dashboard Landing Page** | New dashboard as the start page showing bridge count, device count, fabric connections, HA connection status, version, uptime, and quick navigation to all pages |
+| **🧪 Composed Devices** | `autoComposedDevices` flag creates real Matter Composed Devices for temperature sensors with auto-mapped humidity/pressure — required for Google Home and Alexa to display humidity/pressure readings ([#179](https://github.com/RiDDiX/home-assistant-matter-hub/issues/179)) |
+| **🧙 Bridge Wizard Feature Flags** | 5-step wizard with dedicated Feature Flags step: Auto Composed Devices, Auto Force Sync, Invert Cover Direction, Include Hidden Entities |
+| **🔍 Entity Autocomplete** | Entity ID fields now provide search-as-you-type suggestions from your Home Assistant entity registry |
+| **⏱️ Light Transition Time** | Matter transition times from controller commands are now forwarded to Home Assistant `light.turn_on` calls |
+| **� Live Diagnostics** | Real-time diagnostic event streaming via WebSocket on the Health Dashboard |
+| **🧊 Water Freeze Detector** | `binary_sensor` with device class `cold` now maps to Matter WaterFreezeDetector |
+| **🤖 Vacuum Suction Level** | New `suctionLevelEntity` mapping option adds Quiet/Max intensity toggles to Apple Home's extra features panel for all cleaning modes ([#110](https://github.com/RiDDiX/home-assistant-matter-hub/issues/110)) |
+| **🤖 Vacuum Cluster Fixes** | Always include PowerSource, ServiceArea, and RvcCleanMode on vacuum endpoints ([#183](https://github.com/RiDDiX/home-assistant-matter-hub/issues/183)) |
+| **🌡️ Thermostat Auto-Resume** | "Set to 20°C" now works even when the device is off and already at 20°C — Google Home, Alexa, Apple Home ([#176](https://github.com/RiDDiX/home-assistant-matter-hub/issues/176)) |
+| **🌡️ Thermostat Voice Confirmation** | Fixed Google Home not saying "X was turned off" for thermostat off commands ([#176](https://github.com/RiDDiX/home-assistant-matter-hub/issues/176)) |
+| **🤖 Vacuum Docked State** | Vacuums now correctly show "Docked" instead of "Paused" when idle and charging ([#165](https://github.com/RiDDiX/home-assistant-matter-hub/issues/165)) |
+| **� Memory Leak Fix** | Fixed endpoint disposal to prevent OOM issues on long-running bridges ([#180](https://github.com/RiDDiX/home-assistant-matter-hub/issues/180)) |
+| **🔧 Device Type Overrides** | SmokeCO Alarm, Water Leak Detector, and Water Freeze Detector can now be selected as manual device type overrides |
+| **🔋 Battery Log Spam Fix** | Reduced log noise from battery sensor auto-mapping with caching |
+| **📏 Measurement Cluster Fixes** | Fixed minMeasuredValue for humidity, flow, and electrical measurement clusters to allow 0 readings |
+| **🔌 Lighting Feature Fix** | Removed Lighting feature from OnOff for non-light devices to match Matter spec ([#182](https://github.com/RiDDiX/home-assistant-matter-hub/issues/182)) |
+| **🔍 Filter Tooltips** | Filter type dropdown now shows descriptive tooltips for each option |
+| **📊 Dashboard UX** | Alphabetically sorted bridges, navigation guide, mobile responsiveness |
 
-**Previously in v2.0.19:**
+**Previously in v2.0.20–v2.0.23:**
 
 | Feature | Description |
 |---------|-------------|
-| **🏷️ EntityLabel & DeviceLabel Filters** | Split `label` into `entity_label` and `device_label` for precise filtering ([#164](https://github.com/RiDDiX/home-assistant-matter-hub/issues/164)) |
-| **🔍 Filter Reference Page** | Comprehensive page listing all filter values with search and click-to-copy |
+| **📋 Bridge Templates / Presets** | 10 predefined bridge templates available in Create Bridge and Bridge Wizard |
+| **🔍 Live Filter Preview** | Auto-refresh on filter changes with domain hints and contextual warnings |
+| **🩺 Entity Diagnostics** | Per-entity diagnostics panel showing HA state, attributes, and all mappings |
+| **⚡ Multi-Bridge Bulk Operations** | Start All, Stop All, Restart All, and bridge cloning |
+| **🏥 Entity Health Indicators** | Unavailable/unknown entities visually marked with filter toggle |
+| **🔌 Session/Subscription Info** | Health dashboard shows connectivity details per bridge |
+| **� Diagnostic Export** | Export full diagnostic data as JSON for troubleshooting |
+| **�️ Network Map Vendor IDs** | Corrected vendor ID mappings for Google Home, Apple Home, and Alexa ([#178](https://github.com/RiDDiX/home-assistant-matter-hub/issues/178)) |
+
+**Previously in v2.0.17–v2.0.19:**
+
+| Feature | Description |
+|---------|-------------|
+| **🏷️ EntityLabel & DeviceLabel Filters** | Precise filtering by entity or device labels ([#164](https://github.com/RiDDiX/home-assistant-matter-hub/issues/164)) |
 | **⚡ Power & Energy Measurement** | Switches/lights support ElectricalPowerMeasurement/ElectricalEnergyMeasurement clusters |
-| **� Event Domain Support** | `event.*` entities mapped to Matter GenericSwitch (doorbells, buttons) |
-| **🔍 device_class Filter** | New filter type for matching by HA device_class attribute |
-| **🔌 Session Recovery Improvements** | Reduced MRP traffic, orphan detection, resumption record clearing ([#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105)) |
-| **🔋 Server Mode Auto-Battery** | Auto-battery-mapping for server mode vacuum bridges ([#112](https://github.com/RiDDiX/home-assistant-matter-hub/issues/112)) |
-
-**Previously in v2.0.17/v2.0.18:**
-
-| Feature | Description |
-|---------|-------------|
+| **🔔 Event Domain Support** | `event.*` entities mapped to Matter GenericSwitch (doorbells, buttons) |
 | **🌡️ Thermostat Overhaul** | Feature variants, negative temps, hvac_action-based running state, Alexa-compatible ([#52](https://github.com/RiDDiX/home-assistant-matter-hub/issues/52), [#136](https://github.com/RiDDiX/home-assistant-matter-hub/issues/136)) |
-| **� Lock Unlatch/Unbolt** | Apple Home Unlatch button for locks with HA OPEN support ([#153](https://github.com/RiDDiX/home-assistant-matter-hub/issues/153)) |
-| **🤖 Vacuum Fixes** | Apple Home "Updating" fix, GoHome, OperationCompletion, deduplication ([#103](https://github.com/RiDDiX/home-assistant-matter-hub/issues/103)) |
-| **🔌 Dead Session Recovery** | Auto force-close dead Alexa sessions ([#105](https://github.com/RiDDiX/home-assistant-matter-hub/issues/105)) |
-| **️ Network Map** | React Flow visualization in frontend |
+| **🔐 Lock Unlatch/Unbolt** | Apple Home Unlatch button for locks with HA OPEN support ([#153](https://github.com/RiDDiX/home-assistant-matter-hub/issues/153)) |
+| **�️ Network Map** | React Flow visualization in frontend |
 | **📱 Mobile UI** | Responsive navigation with hamburger menu ([#144](https://github.com/RiDDiX/home-assistant-matter-hub/issues/144)) |
 
 </details>
@@ -112,22 +108,7 @@ of port forwarding etc.
 <details>
 <summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
-**New in Alpha (since v2.0.21):**
-
-| Feature | Description |
-|---------|-------------|
-| **🏠 Dashboard Landing Page** | New dashboard as the application's start page showing bridge count, device count, fabric connections, HA connection status, version, uptime, quick navigation to all pages, and Bridge Wizard / Create Bridge buttons |
-| **🧙 Bridge Wizard Feature Flags** | The Bridge Wizard now includes a dedicated step for configuring feature flags: Auto Compose Devices, Auto Force Sync, Invert Cover Direction, and Include Hidden Entities |
-| **🔍 Entity Autocomplete** | Entity ID fields in the Entity Mapping dialog now provide search-as-you-type suggestions from your Home Assistant entity registry, replacing manual text input |
-| **⏱️ Light Transition Time** | Matter transition times from controller commands (brightness, color temperature, hue/saturation) are now forwarded to Home Assistant `light.turn_on` service calls as the `transition` parameter |
-| **🔄 Force Sync Composed Fix** | `autoForceSync` now correctly traverses sub-endpoints of composed devices (e.g., Temperature/Humidity/Pressure sensors created by `autoComposedDevices`) |
-| **🧊 Water Freeze Detector** | `binary_sensor` with device class `cold` now maps to Matter WaterFreezeDetector (0x0041) instead of ContactSensor |
-| **🔧 Device Type Overrides** | SmokeCO Alarm, Water Leak Detector, and Water Freeze Detector can now be selected as manual device type overrides via Entity Mapping |
-| **🌡️ Thermostat Auto-Resume** | Fixed auto-resume when setting the same temperature while device is off - "OK Google, set to 20°C" now works even if already at 20°C (#176) |
-| **🤖 Vacuum State Fix** | Vacuums now correctly show "Docked" instead of "Paused" when idle and charging (#165) |
-| **🗺️ Live Diagnostics Improvements** | Bridge cards are now uniformly sized, self-adjusting, and sorted A-Z. Info shown as chips for better scaling |
-| **💾 Memory Leak Fix** | Fixed endpoint disposal in BridgeEndpointManager and ServerModeEndpointManager to prevent OOM issues |
-| **🔋 Battery Log Spam Fix** | Reduced log noise from battery sensor auto-mapping |
+**Alpha is currently in sync with Stable (v2.1.0).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 </details>
 
@@ -197,7 +178,7 @@ Matter Bridge, Multi-Fabric support, Health Monitoring, Bridge Wizard, AirQualit
 | `button`, `input_button` | Generic Switch | |
 | `media_player` | Speaker, Basic Video Player (TV) | |
 | `valve` | Water Valve, Pump | |
-| `vacuum` | Robot Vacuum Cleaner | `serverMode`, `roomEntities`, `batteryEntity`, `cleaningModeEntity` |
+| `vacuum` | Robot Vacuum Cleaner | `serverMode`, `roomEntities`, `batteryEntity`, `cleaningModeEntity`, `suctionLevelEntity` |
 | `humidifier` | Humidifier/Dehumidifier | |
 | `water_heater` | Thermostat (Heating) | |
 | `automation`, `script`, `scene` | On/Off Switch | |
@@ -433,6 +414,7 @@ Thank you to everyone who helps improve this project by reporting issues!
 | [@400HPMustang](https://github.com/400HPMustang) | #103 |
 | [@vandir](https://github.com/vandir) | #102 |
 | [@razzietheman](https://github.com/razzietheman) | #101 #100 #80 #31 #30 |
+| [@seitenprofi](https://github.com/seitenprofi) | #176 |
 | [@semonR](https://github.com/semonR) | #99 #58 |
 | [@italoc](https://github.com/italoc) | #78 |
 | [@marksev1](https://github.com/marksev1) | #62 |

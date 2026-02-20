@@ -44,6 +44,32 @@ After configuration, your controller (Apple Home, Alexa) should show the availab
 To find the correct select entity, look in Home Assistant for a `select.*` entity belonging to your vacuum device that has options like "Vacuum", "Mop", "Vacuum and mop", etc. The naming varies by brand and language.
 :::
 
+## Suction Level (Apple Home Extra Features)
+
+For Dreame and Roborock vacuums with a separate suction level select entity, you can configure `suctionLevelEntity` to enable **Quiet/Max intensity toggles** in Apple Home's extra features panel.
+
+### Setup
+
+1. Go to **Entity Mappings** and edit your vacuum entity
+2. Set **Suction Level Entity** to the select entity controlling suction (e.g., `select.r2_d2_suction_level`)
+3. Restart the bridge
+
+### How it Works
+
+When configured, HAMH creates 12 cleaning modes (4 cleaning types × 3 intensities: Standard, Quiet, Max). Each mode carries Matter tags that Apple Home uses to show the extra features panel:
+
+- **Standard** — Base cleaning mode (no extra tag)
+- **Quiet** — Adds Matter tag `2` (Quiet) — lower suction for quiet operation
+- **Max** — Adds Matter tag `7` (Max) — maximum suction power
+
+Changing the intensity in Apple Home sets **both** the cleaning mode and the suction level entity in Home Assistant.
+
+:::{tip}
+To find the correct suction level entity, look in Home Assistant for a `select.*` entity on your vacuum device with options like "Quiet", "Standard", "Turbo", "Max", etc.
+:::
+
+---
+
 ## Server Mode (Recommended for Apple Home & Alexa)
 
 :::{important}
