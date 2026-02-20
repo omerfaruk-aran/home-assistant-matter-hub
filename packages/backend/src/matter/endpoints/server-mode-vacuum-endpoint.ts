@@ -62,6 +62,50 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
           );
         }
       }
+
+      // Auto-detect vacuum select entities (cleaning mode, suction, mop intensity)
+      const vacuumEntities = registry.findVacuumSelectEntities(
+        entity.device_id,
+      );
+      if (
+        !effectiveMapping?.cleaningModeEntity &&
+        vacuumEntities.cleaningModeEntity
+      ) {
+        effectiveMapping = {
+          ...effectiveMapping,
+          entityId: effectiveMapping?.entityId ?? entityId,
+          cleaningModeEntity: vacuumEntities.cleaningModeEntity,
+        };
+        logger.info(
+          `${entityId}: Auto-assigned cleaningMode ${vacuumEntities.cleaningModeEntity}`,
+        );
+      }
+      if (
+        !effectiveMapping?.suctionLevelEntity &&
+        vacuumEntities.suctionLevelEntity
+      ) {
+        effectiveMapping = {
+          ...effectiveMapping,
+          entityId: effectiveMapping?.entityId ?? entityId,
+          suctionLevelEntity: vacuumEntities.suctionLevelEntity,
+        };
+        logger.info(
+          `${entityId}: Auto-assigned suctionLevel ${vacuumEntities.suctionLevelEntity}`,
+        );
+      }
+      if (
+        !effectiveMapping?.mopIntensityEntity &&
+        vacuumEntities.mopIntensityEntity
+      ) {
+        effectiveMapping = {
+          ...effectiveMapping,
+          entityId: effectiveMapping?.entityId ?? entityId,
+          mopIntensityEntity: vacuumEntities.mopIntensityEntity,
+        };
+        logger.info(
+          `${entityId}: Auto-assigned mopIntensity ${vacuumEntities.mopIntensityEntity}`,
+        );
+      }
     } else {
       logger.warn(`${entityId}: No device_id — cannot auto-assign battery`);
     }

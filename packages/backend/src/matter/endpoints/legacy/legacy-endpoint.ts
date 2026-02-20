@@ -182,6 +182,52 @@ export class LegacyEndpoint extends EntityEndpoint {
           }
         }
       }
+
+      // 6. Auto-detect vacuum select entities (cleaning mode, suction, mop intensity)
+      if (entityId.startsWith("vacuum.")) {
+        const vacuumEntities = registry.findVacuumSelectEntities(
+          entity.device_id,
+        );
+        if (
+          !effectiveMapping?.cleaningModeEntity &&
+          vacuumEntities.cleaningModeEntity
+        ) {
+          effectiveMapping = {
+            ...effectiveMapping,
+            entityId: effectiveMapping?.entityId ?? entityId,
+            cleaningModeEntity: vacuumEntities.cleaningModeEntity,
+          };
+          logger.debug(
+            `Auto-assigned cleaningMode ${vacuumEntities.cleaningModeEntity} to ${entityId}`,
+          );
+        }
+        if (
+          !effectiveMapping?.suctionLevelEntity &&
+          vacuumEntities.suctionLevelEntity
+        ) {
+          effectiveMapping = {
+            ...effectiveMapping,
+            entityId: effectiveMapping?.entityId ?? entityId,
+            suctionLevelEntity: vacuumEntities.suctionLevelEntity,
+          };
+          logger.debug(
+            `Auto-assigned suctionLevel ${vacuumEntities.suctionLevelEntity} to ${entityId}`,
+          );
+        }
+        if (
+          !effectiveMapping?.mopIntensityEntity &&
+          vacuumEntities.mopIntensityEntity
+        ) {
+          effectiveMapping = {
+            ...effectiveMapping,
+            entityId: effectiveMapping?.entityId ?? entityId,
+            mopIntensityEntity: vacuumEntities.mopIntensityEntity,
+          };
+          logger.debug(
+            `Auto-assigned mopIntensity ${vacuumEntities.mopIntensityEntity} to ${entityId}`,
+          );
+        }
+      }
     }
 
     // When autoComposedDevices is enabled and this is a temperature sensor

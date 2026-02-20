@@ -202,6 +202,52 @@ export class BridgeRegistry {
   }
 
   /**
+   * Auto-detect vacuum-related select entities on the same HA device.
+   * HA integrations (Dreame, Roborock, Ecovacs, etc.) expose vacuum features
+   * as select entities with well-known suffixes. This finds them automatically
+   * so users don't need to configure each entity manually.
+   */
+  findVacuumSelectEntities(deviceId: string): {
+    cleaningModeEntity?: string;
+    suctionLevelEntity?: string;
+    mopIntensityEntity?: string;
+  } {
+    const entities = values(this.registry.entities);
+    const sameDevice = entities.filter(
+      (e) => e.device_id === deviceId && e.entity_id.startsWith("select."),
+    );
+
+    let cleaningModeEntity: string | undefined;
+    let suctionLevelEntity: string | undefined;
+    let mopIntensityEntity: string | undefined;
+
+    for (const entity of sameDevice) {
+      const state = this.registry.states[entity.entity_id];
+      if (!state) continue;
+
+      const id = entity.entity_id.toLowerCase();
+
+      if (!cleaningModeEntity && id.includes("cleaning_mode")) {
+        cleaningModeEntity = entity.entity_id;
+      }
+      if (!suctionLevelEntity && id.includes("suction_level")) {
+        suctionLevelEntity = entity.entity_id;
+      }
+      if (
+        !mopIntensityEntity &&
+        (id.includes("mop_intensity") ||
+          id.includes("mop_pad_humidity") ||
+          id.includes("water_volume") ||
+          id.includes("water_amount"))
+      ) {
+        mopIntensityEntity = entity.entity_id;
+      }
+    }
+
+    return { cleaningModeEntity, suctionLevelEntity, mopIntensityEntity };
+  }
+
+  /**
    * Find a pressure sensor entity that belongs to the same HA device.
    * Returns the entity_id of the pressure sensor, or undefined if none found.
    */
