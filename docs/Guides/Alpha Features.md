@@ -3,7 +3,7 @@
 This guide covers features available in the Alpha version of Home-Assistant-Matter-Hub.
 
 > [!NOTE]
-> **Alpha is currently in sync with Stable (v2.1.0).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
+> **Alpha is currently in sync with Stable (v2.0.24).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 > [!WARNING]
 > Alpha versions are for testing only and may contain bugs. Use at your own risk!
@@ -32,11 +32,11 @@ docker run -d \
 
 ---
 
-## Features Now in Stable (v2.1.0)
+## Features Now in Stable (v2.0.24)
 
 The following features have graduated from Alpha to Stable:
 
-**New in v2.1.0:**
+**New in v2.0.24:**
 - **Dashboard Landing Page** - System overview with bridge/device counts, fabric connections, HA status, uptime
 - **Composed Devices** (`autoComposedDevices`) - Real Matter Composed Devices for temperature sensors with humidity/pressure (#179)
 - **Bridge Wizard Feature Flags** - 5-step wizard with Auto Composed, Force Sync, Cover Inversion, Hidden Entities
@@ -112,7 +112,7 @@ The following features have graduated from Alpha to Stable:
 
 ---
 
-## Feature Details (now in Stable v2.1.0)
+## Feature Details (now in Stable v2.0.24)
 
 The following sections provide detailed usage instructions for features that have been promoted to stable.
 

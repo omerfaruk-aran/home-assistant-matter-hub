@@ -284,7 +284,7 @@ Mapped based on `device_class` attribute.
 | Other / unset | OnOffSensor | On/Off |
 
 > [!NOTE]
-> **WaterFreezeDetector** (device class `cold`) is supported since v2.1.0. Shows freeze detection status in controllers.
+> **WaterFreezeDetector** (device class `cold`) is supported since v2.0.24. Shows freeze detection status in controllers.
 
 ---
 

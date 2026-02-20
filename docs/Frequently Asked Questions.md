@@ -179,28 +179,28 @@ When reporting Alpha issues, include:
 
 ## My thermostat doesn't turn on when I set the temperature
 
-Since v2.1.0-alpha, thermostats support **auto-resume** — when off and you set a temperature (even the same one), it automatically turns on. This works with all voice assistants.
+Since v2.0.24, thermostats support **auto-resume** — when off and you set a temperature (even the same one), it automatically turns on. This works with all voice assistants.
 
 If not working:
-- Update to alpha v2.1.0-alpha.266+
+- Update to v2.0.24+
 - Only works for single-temp mode (not range/auto)
 - Thermostat must be in "Off" state
 
 ## Vacuum shows "Paused" instead of "Docked"
 
-Fixed in v2.1.0-alpha. Previously some vacuums (Ecovacs, some Roborock) reported `idle` while docked, showing as "Paused". Now correctly shows "Docked" when charging.
+Fixed in v2.0.24. Previously some vacuums (Ecovacs, some Roborock) reported `idle` while docked, showing as "Paused". Now correctly shows "Docked" when charging.
 
 ## Too many "No battery entity found" log messages
 
-Fixed in v2.1.0-alpha. Battery sensor auto-mapping now uses caching and reduced log levels (debug only). Previously every entity without battery logged a warning.
+Fixed in v2.0.24. Battery sensor auto-mapping now uses caching and reduced log levels (debug only). Previously every entity without battery logged a warning.
 
 ## Bridge runs out of memory after several days
 
-Fixed in v2.1.0-alpha. Endpoint disposal was improved in `BridgeEndpointManager` and `ServerModeEndpointManager`. Previously endpoints weren't cleaned up during restarts, causing memory leaks.
+Fixed in v2.0.24. Endpoint disposal was improved in `BridgeEndpointManager` and `ServerModeEndpointManager`. Previously endpoints weren't cleaned up during restarts, causing memory leaks.
 
 ## How do I use the Dashboard landing page?
 
-Since v2.1.0-alpha, the app opens with a **Dashboard** showing:
+Since v2.0.24, the app opens with a **Dashboard** showing:
 - Bridge count, device count, fabric connections
 - Quick navigation to all pages
 - Bridge Wizard and Create Bridge buttons
