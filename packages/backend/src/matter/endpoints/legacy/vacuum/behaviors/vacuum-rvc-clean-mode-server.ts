@@ -134,33 +134,32 @@ const CLEAN_TYPE_LABELS: Record<CleanType, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Fan speed aliases
+// Fan speed tag patterns (regex-based, manufacturer-agnostic)
 // ---------------------------------------------------------------------------
+// Each pattern matches the FULL fan_speed_list entry (anchored with ^ $).
+// Compound names like "max_plus" deliberately do NOT match — they become
+// their own untagged mode so Apple Home shows them separately.
 
-const FAN_QUIET_ALIASES = ["quiet", "silent", "low", "eco", "gentle"];
-const FAN_MAX_ALIASES = [
-  "turbo",
-  "max",
-  "strong",
-  "boost",
-  "power",
-  "high",
-  "full",
-];
-const FAN_NORMAL_ALIASES = [
-  "normal",
-  "standard",
-  "medium",
-  "auto",
-  "balanced",
-  "default",
+const FAN_TAG_PATTERNS: Array<{ pattern: RegExp; tag: number }> = [
+  {
+    pattern: /^(quiet|silent|low|eco|gentle|min|leise)$/i,
+    tag: RvcCleanMode.ModeTag.Quiet,
+  },
+  {
+    pattern: /^(normal|standard|medium|auto|balanced|default|mittel)$/i,
+    tag: RvcCleanMode.ModeTag.Auto,
+  },
+  {
+    pattern: /^(turbo|max|strong|boost|power|high|full|stark)$/i,
+    tag: RvcCleanMode.ModeTag.Max,
+  },
 ];
 
 function getFanSpeedTag(name: string): number | undefined {
-  const s = name.toLowerCase();
-  if (FAN_QUIET_ALIASES.includes(s)) return RvcCleanMode.ModeTag.Quiet;
-  if (FAN_MAX_ALIASES.includes(s)) return RvcCleanMode.ModeTag.Max;
-  if (FAN_NORMAL_ALIASES.includes(s)) return RvcCleanMode.ModeTag.Auto;
+  const s = name.toLowerCase().trim();
+  for (const { pattern, tag } of FAN_TAG_PATTERNS) {
+    if (pattern.test(s)) return tag;
+  }
   return undefined;
 }
 
@@ -286,19 +285,21 @@ function matchFanSpeedOption(
     (o) => o.toLowerCase().includes(s) || s.includes(o.toLowerCase()),
   );
   if (contains) return contains;
-  // Alias match via tag category
+  // Alias match via tag category — find sibling names in the same group
   const tag = getFanSpeedTag(name);
-  const aliases =
-    tag === RvcCleanMode.ModeTag.Quiet
-      ? FAN_QUIET_ALIASES
-      : tag === RvcCleanMode.ModeTag.Max
-        ? FAN_MAX_ALIASES
-        : FAN_NORMAL_ALIASES;
-  for (const a of aliases) {
-    const m = availableOptions.find(
-      (o) => o.toLowerCase() === a || o.toLowerCase().includes(a),
-    );
-    if (m) return m;
+  if (tag !== undefined) {
+    const group = FAN_TAG_PATTERNS.find((p) => p.tag === tag);
+    if (group) {
+      const aliases = group.pattern.source
+        .replace(/^\^\(|\)\$$/g, "")
+        .split("|");
+      for (const a of aliases) {
+        const m = availableOptions.find(
+          (o) => o.toLowerCase() === a || o.toLowerCase().includes(a),
+        );
+        if (m) return m;
+      }
+    }
   }
   return undefined;
 }
