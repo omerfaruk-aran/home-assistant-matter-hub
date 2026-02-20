@@ -90,19 +90,40 @@ function StatCard({
 }) {
   const content = (
     <CardContent sx={{ py: 2, "&:last-child": { pb: 2 } }}>
-      <Box display="flex" alignItems="center" gap={2}>
-        <Avatar sx={{ bgcolor: `${color}20`, color, width: 48, height: 48 }}>
+      <Box
+        display="flex"
+        sx={{
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: "center",
+          gap: { xs: 1, sm: 2 },
+          textAlign: { xs: "center", sm: "left" },
+        }}
+      >
+        <Avatar
+          sx={{
+            bgcolor: `${color}20`,
+            color,
+            width: { xs: 40, sm: 48 },
+            height: { xs: 40, sm: 48 },
+            flexShrink: 0,
+          }}
+        >
           {icon}
         </Avatar>
-        <Box>
-          <Typography variant="h4" fontWeight={700} lineHeight={1.1}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            fontWeight={700}
+            lineHeight={1.1}
+            noWrap
+            sx={{ fontSize: { xs: "1.5rem", sm: "2.125rem" } }}
+          >
             {value}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" noWrap>
             {title}
           </Typography>
           {subtitle && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" noWrap>
               {subtitle}
             </Typography>
           )}
