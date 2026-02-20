@@ -307,23 +307,9 @@ export const DashboardPage = () => {
     <Box sx={{ p: 2 }}>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
         <HomeIcon color="primary" fontSize="large" />
-        <Box>
-          <Typography variant="h5" fontWeight={600}>
-            Dashboard
-          </Typography>
-          <Stack direction="row" spacing={1} alignItems="center">
-            {health?.version && (
-              <Typography variant="caption" color="text.secondary">
-                v{health.version}
-              </Typography>
-            )}
-            {health?.uptime != null && (
-              <Typography variant="caption" color="text.secondary">
-                · Uptime {formatUptime(health.uptime)}
-              </Typography>
-            )}
-          </Stack>
-        </Box>
+        <Typography variant="h5" fontWeight={600}>
+          Dashboard
+        </Typography>
       </Box>
 
       {/* Navigation Guide - Icon Legend */}
@@ -435,6 +421,11 @@ export const DashboardPage = () => {
             value={haConnected ? "Online" : "Offline"}
             icon={haConnected ? <CheckCircleIcon /> : <ErrorIcon />}
             color={haConnected ? "#4caf50" : "#f44336"}
+            subtitle={
+              health?.uptime != null
+                ? `Uptime ${formatUptime(health.uptime)}`
+                : undefined
+            }
           />
         </Grid>
       </Grid>
