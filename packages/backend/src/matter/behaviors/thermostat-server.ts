@@ -17,6 +17,12 @@ import RunningMode = Thermostat.ThermostatRunningMode;
 import type { ActionContext } from "@matter/main";
 import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 
+// Per-instance flag tracking whether the device was off on the previous update() call.
+// Used to skip the setpoint nudge during the Off transition (first update where
+// systemMode=Off) so the nudge DataReport doesn't ride with the systemMode change.
+// WeakMap ensures flags are garbage-collected when the behavior instance is disposed.
+const wasOffOnPreviousUpdate = new WeakMap<object, boolean>();
+
 // For dual-mode thermostats (heating + cooling), AutoMode is ENABLED so Apple Home
 // can offer Auto mode and dual setpoints. Without AutoMode, Apple Home loses Auto.
 //
@@ -362,7 +368,14 @@ export class ThermostatServerBase extends FullFeaturedBase {
     // matter.js deduplicates identical attribute writes at the Datasource layer —
     // $Changing never fires for same-value writes, preventing auto-resume (#176).
     // The nudge is below controller display resolution (typically 0.5°C steps).
-    if (systemMode === Thermostat.SystemMode.Off) {
+    //
+    // IMPORTANT: Only nudge when the device was ALREADY off on the previous
+    // update() call, not during the Off transition itself. On the transition,
+    // the nudge would ride along with the systemMode=Off DataReport, causing
+    // Google Home to skip the "X was turned off" voice confirmation.
+    const previouslyOff = wasOffOnPreviousUpdate.get(this) ?? false;
+    wasOffOnPreviousUpdate.set(this, systemMode === Thermostat.SystemMode.Off);
+    if (systemMode === Thermostat.SystemMode.Off && previouslyOff) {
       if (this.features.heating) {
         const max = maxHeatLimit ?? WIDE_MAX;
         clampedHeatingSetpoint =
