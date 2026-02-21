@@ -1,7 +1,5 @@
 # Home Assistant Matter Hub - REST API Documentation
 
-> ⚠️ **Note:** This API is currently only available in the **Alpha branch**. It will be migrated to the stable (main) branch in a future release.
-
 ## Table of Contents
 
 - [Overview](#overview)

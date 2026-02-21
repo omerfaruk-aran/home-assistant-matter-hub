@@ -53,30 +53,45 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 ## What's New
 
 <details>
-<summary><strong>📦 Stable (v2.0.24) - Current</strong></summary>
+<summary><strong>📦 Stable (v2.1.0) - Current</strong></summary>
+
+**New in v2.1.0:**
 
 | Feature | Description |
 |---------|-------------|
-| **� Dashboard** | New landing page with bridge overview, quick navigation, and Bridge Wizard access |
+| **🤖 Vacuum Mop Intensity** | `mopIntensityEntity` mapping adds mop intensity modes to Apple Home extra features |
+| **🤖 Vacuum Auto-Detection** | Cleaning mode, suction level, and mop intensity entities auto-detected for Dreame, Roborock, Ecovacs |
+| **🤖 Roborock Room Auto-Detect** | Rooms resolved via `roborock.get_maps` service — no manual button mapping needed |
+| **🔄 Live Entity Mapping** | Device type changes take effect automatically without bridge restart ([#192](https://github.com/RiDDiX/home-assistant-matter-hub/issues/192)) |
+| **💾 Dynamic Heap Sizing** | Node.js heap calculated from system RAM (25%, 256–1024 MB) instead of hardcoded 768 MB ([#190](https://github.com/RiDDiX/home-assistant-matter-hub/issues/190)) |
+| **🔗 Multi-Fabric Commissioning** | Open commissioning window API for easier multi-fabric pairing |
+| **🏷️ Fabric Vendor Names** | Decoded vendor names (Apple, Google, Amazon, Samsung) in bridge details |
+| **🍎 Fan Speed Label Fix** | Prevented Apple Home from renaming fan speed modes to "Automatic" |
+
+**Previously in v2.0.24:**
+
+| Feature | Description |
+|---------|-------------|
+| **🏠 Dashboard** | New landing page with bridge overview, quick navigation, and Bridge Wizard access |
 | **🧪 Composed Devices** | `autoComposedDevices` creates real Matter Composed Devices for temperature sensors with humidity/pressure ([#179](https://github.com/RiDDiX/home-assistant-matter-hub/issues/179)) |
 | **🧙 Wizard Feature Flags** | 5-step wizard with Auto Composed, Force Sync, Cover Inversion, Hidden Entities |
 | **🔍 Entity Autocomplete** | Search-as-you-type entity suggestions in Entity Mapping dialogs |
 | **⏱️ Light Transitions** | Matter transition times forwarded to HA `light.turn_on` service |
 | **🩺 Live Diagnostics** | Real-time WebSocket event streaming on Health Dashboard |
-| **🧊 Water Freeze Detector** | `binary_sensor.cold` maps to Matter WaterFreezeDetector |
+| **� Water Freeze Detector** | `binary_sensor.cold` maps to Matter WaterFreezeDetector |
 | **🤖 Vacuum Suction Level** | `suctionLevelEntity` adds Quiet/Max intensity toggles in Apple Home ([#110](https://github.com/RiDDiX/home-assistant-matter-hub/issues/110)) |
 | **🌡️ Thermostat Auto-Resume** | "Set to 20°C" works when off and already at 20°C ([#176](https://github.com/RiDDiX/home-assistant-matter-hub/issues/176)) |
 | **🤖 Vacuum Docked State** | Correctly shows "Docked" when idle and charging ([#165](https://github.com/RiDDiX/home-assistant-matter-hub/issues/165)) |
 | **💾 Memory Fixes** | Endpoint disposal fixes to prevent OOM issues ([#180](https://github.com/RiDDiX/home-assistant-matter-hub/issues/180)) |
 | **📏 Measurement Fixes** | Fixed minMeasuredValue for humidity, flow, electrical clusters |
-| **� Lighting Feature Fix** | Removed Lighting from OnOff for non-light devices ([#182](https://github.com/RiDDiX/home-assistant-matter-hub/issues/182)) |
+| **💡 Lighting Feature Fix** | Removed Lighting from OnOff for non-light devices ([#182](https://github.com/RiDDiX/home-assistant-matter-hub/issues/182)) |
 
 </details>
 
 <details>
 <summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-Alpha is currently in sync with Stable (v2.0.24). All alpha features have been promoted to stable. New alpha features will appear here as development continues.
+Alpha is currently in sync with Stable (v2.1.0). All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 </details>
 

@@ -70,6 +70,23 @@ Changing the intensity in Apple Home calls `vacuum.set_fan_speed` in Home Assist
 
 If your vacuum uses a separate `select.*` entity for suction control instead of the built-in fan speed, you can configure `suctionLevelEntity` in the Entity Mapping to override the auto-detected fan speed.
 
+## Mop Intensity (Apple Home Extra Features)
+
+When your vacuum has mop intensity / water level options (e.g., Low, Medium, High), HAMH adds mop intensity modes that Apple Home shows in its **extra features panel** under the Mop cleaning type.
+
+### Auto-Detection
+
+Mop intensity entities are **automatically detected** for Dreame and Ecovacs vacuums based on naming conventions. No manual configuration is needed.
+
+### Manual Configuration (mopIntensityEntity)
+
+If your vacuum uses a separate `select.*` entity for mop intensity / water level, configure `mopIntensityEntity` in the Entity Mapping:
+
+1. Go to your **bridge settings** → **Entity Mappings**
+2. **Edit your vacuum entity**
+3. Set **Mop Intensity Entity** to the select entity (e.g., `select.r2_d2_mop_pad_humidity`)
+4. The mop intensity modes will appear in Apple Home's extra features panel
+
 ---
 
 ## Server Mode (Recommended for Apple Home & Alexa)
@@ -172,7 +189,7 @@ Room selection works with any integration that exposes room data as attributes:
 
 | Integration | Room Attribute | Cleaning Modes | Notes |
 |-------------|---------------|----------------|-------|
-| Roborock (Official) | Button entities | — | Use Entity Mapping UI (see below) |
+| Roborock (Official) | Auto-detected via `roborock.get_maps` | — | Automatic since v2.1.0 (fallback: button entities) |
 | Roborock (Xiaomi Miot) | `rooms` or `segments` | — | Native support |
 | Dreame | `rooms` | Auto-detected | Nested format with map name |
 | Xiaomi | `rooms` | — | May require custom integration |
@@ -180,14 +197,18 @@ Room selection works with any integration that exposes room data as attributes:
 
 ### Roborock (Official Integration)
 
-The official **Roborock integration** does not expose room data as attributes. Instead, it creates **button entities** for each room/scene configured in the Roborock app.
+Since v2.1.0, HAMH **automatically detects Roborock rooms** via the `roborock.get_maps` service call. No manual button entity mapping is needed — rooms are resolved directly from the Roborock cloud and appear in Apple Home's room selection.
+
+The startup log will show: `Resolved X rooms via roborock.get_maps`
+
+#### Fallback: Manual Button Entity Mapping
+
+If auto-detection doesn't work (e.g., older Roborock firmware or custom integration), you can still use button entities:
 
 **Example button entities:**
 - `button.roborock_clean_kitchen`
 - `button.roborock_clean_living_room`
 - `button.roborock_clean_bedroom`
-
-#### Setting up Room Selection for Roborock
 
 1. **Open the Entity Mapping page** in the Matter Hub web UI
 2. **Edit your Roborock vacuum entity** (e.g., `vacuum.roborock_qrevo`)
@@ -195,9 +216,9 @@ The official **Roborock integration** does not expose room data as attributes. I
    - The UI will auto-discover button entities belonging to the same device
    - You can also manually enter entity IDs
 4. **Save** the mapping
-5. **Restart the bridge** or re-pair to apply changes
+5. Changes take effect automatically within ~30 seconds
 
-#### How it works
+#### How button entity mapping works
 
 When you select a room in Apple Home and start cleaning:
 1. HAMH identifies which room was selected

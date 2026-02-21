@@ -300,6 +300,9 @@ Mapped to **Speaker** device with volume and playback control.
 - Stop
 - Next/Previous track
 
+**Device Type Override:**
+Media players can be overridden to other device types via Entity Mapping. For example, mapping a media player to **OnOffPlugInUnit** (switch) makes it appear as a simple on/off switch in controllers like Alexa — useful when you only need power control.
+
 **Controller Notes:**
 - Media player support in Matter is limited
 - Not all controllers support all features
@@ -401,6 +404,7 @@ Mapped to **RoboticVacuumCleaner**.
 | `batteryEntity` | External battery sensor entity (Roomba, Deebot) |
 | `cleaningModeEntity` | Select entity for cleaning mode (Dreame, Ecovacs, etc.) |
 | `suctionLevelEntity` | Select entity for suction level — adds Quiet/Max intensity toggles to Apple Home's extra features panel |
+| `mopIntensityEntity` | Select entity for mop intensity / water level — adds mop intensity modes to Apple Home's extra features panel |
 
 **Feature Flags (Bridge Settings):**
 | Flag | Description |
@@ -439,14 +443,30 @@ You can override the default device type mapping per entity using the Entity Map
 - ColorTemperatureLight
 - ExtendedColorLight
 - OnOffPlugInUnit
+- OnOffSwitch
+- DoorLock
+- WindowCovering
+- Thermostat
+- Fan
 - AirPurifier
-- Pump
-- (more in future versions)
+- RobotVacuumCleaner
+- Humidifier/Dehumidifier
+- Speaker
+- BasicVideoPlayer
+- HumiditySensor, TemperatureSensor, PressureSensor, LightSensor, FlowSensor
+- AirQualitySensor, BatteryStorage, TVOCSensor
+- WaterValve, Pump
+- WaterHeater
+- GenericSwitch
+- SmokeCO Alarm, Water Leak Detector, Water Freeze Detector
 
 **Use Cases:**
-- Map a fan to Air Purifier type
-- Map a switch to Pump type
+- Map a `media_player` to OnOffPlugInUnit for simple on/off switch in Alexa
+- Map a `fan` to Air Purifier type for HEPA filter monitoring
+- Map a `switch` to Pump type
 - Force a specific light type
+
+> **Note:** Since v2.1.0, entity mapping changes take effect automatically within ~30 seconds. No bridge restart is required.
 
 ---
 

@@ -3,7 +3,7 @@
 This guide covers features available in the Alpha version of Home-Assistant-Matter-Hub.
 
 > [!NOTE]
-> **Alpha is currently in sync with Stable (v2.0.24).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
+> **Alpha is currently in sync with Stable (v2.1.0).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 > [!WARNING]
 > Alpha versions are for testing only and may contain bugs. Use at your own risk!
@@ -32,11 +32,22 @@ docker run -d \
 
 ---
 
-## Features Now in Stable (v2.0.24)
+## Features Now in Stable (v2.1.0)
 
 The following features have graduated from Alpha to Stable:
 
-**New in v2.0.24:**
+**New in v2.1.0:**
+- **Vacuum Mop Intensity** - `mopIntensityEntity` mapping adds mop intensity modes to Apple Home extra features
+- **Vacuum Auto-Detection** - Cleaning mode, suction level, and mop intensity entities auto-detected for Dreame, Roborock, Ecovacs
+- **Roborock Room Auto-Detect** - Rooms resolved via `roborock.get_maps` service — no manual button mapping needed (#189)
+- **Live Entity Mapping** - Device type and mapping changes take effect automatically without bridge restart (#192)
+- **Dynamic Heap Sizing** - Node.js heap calculated from system RAM (25%, 256–1024 MB) instead of hardcoded 768 MB (#190)
+- **Multi-Fabric Commissioning** - Open commissioning window API for easier multi-fabric pairing
+- **Fabric Vendor Names** - Decoded vendor names (Apple, Google, Amazon, Samsung) in bridge details and health dashboard
+- **Fan Speed Label Fix** - Prevented Apple Home from renaming fan speed modes like "normal" to "Automatic"
+- **Vacuum Fan Speed Modes** - Dynamic fan speed modes with multi-manufacturer regex-based tag patterns
+
+**Previously in v2.0.24:**
 - **Dashboard Landing Page** - System overview with bridge/device counts, fabric connections, HA status, uptime
 - **Composed Devices** (`autoComposedDevices`) - Real Matter Composed Devices for temperature sensors with humidity/pressure (#179)
 - **Bridge Wizard Feature Flags** - 5-step wizard with Auto Composed, Force Sync, Cover Inversion, Hidden Entities
@@ -112,7 +123,7 @@ The following features have graduated from Alpha to Stable:
 
 ---
 
-## Feature Details (now in Stable v2.0.24)
+## Feature Details (now in Stable v2.1.0)
 
 The following sections provide detailed usage instructions for features that have been promoted to stable.
 

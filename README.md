@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.24 | Production-ready, recommended for most users |
+| **Stable** | `main` | v2.1.0 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -52,9 +52,24 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.0.24)</strong> - Click to expand</summary>
+<summary><strong>📦 Stable Features (v2.1.0)</strong> - Click to expand</summary>
 
-**New in v2.0.24** (merged from alpha):
+**New in v2.1.0** (merged from alpha):
+
+| Feature | Description |
+|---------|-------------|
+| **🤖 Vacuum Mop Intensity** | New `mopIntensityEntity` mapping option adds mop intensity modes to Apple Home's extra features panel |
+| **🤖 Vacuum Auto-Detection** | Cleaning mode, suction level, and mop intensity entities are now auto-detected for Dreame, Roborock, and Ecovacs vacuums |
+| **🤖 Roborock Room Auto-Detect** | Rooms are now automatically resolved via `roborock.get_maps` service call — no more manual button entity mapping needed for Roborock vacuums |
+| **🤖 Vacuum Fan Speed Modes** | Dynamic fan speed modes with multi-manufacturer regex-based tag patterns |
+| **🔗 Multi-Fabric Commissioning** | Open commissioning window API for easier multi-fabric pairing |
+| **🏷️ Fabric Vendor Names** | Fabric icons now show decoded vendor names (Apple, Google, Amazon, Samsung) in bridge details and health dashboard |
+| **🔄 Live Entity Mapping** | Changing device type or any mapping field now takes effect automatically without bridge restart ([#192](https://github.com/RiDDiX/home-assistant-matter-hub/issues/192)) |
+| **💾 Dynamic Heap Sizing** | Node.js heap size is now dynamically calculated from system RAM (25% clamped 256–1024 MB) instead of hardcoded 768 MB, preventing OOM crashes on low-memory devices ([#190](https://github.com/RiDDiX/home-assistant-matter-hub/issues/190)) |
+| **🌡️ Thermostat Auto-Resume Fix** | Deferred setpoint nudge for reliable auto-resume across all voice assistants ([#176](https://github.com/RiDDiX/home-assistant-matter-hub/issues/176)) |
+| **🍎 Fan Speed Label Fix** | Prevented Apple Home from renaming fan speed modes like "normal" to "Automatic" |
+
+**Previously in v2.0.24:**
 
 | Feature | Description |
 |---------|-------------|
@@ -108,7 +123,7 @@ of port forwarding etc.
 <details>
 <summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
-**Alpha is currently in sync with Stable (v2.0.24).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
+**Alpha is currently in sync with Stable (v2.1.0).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 </details>
 
@@ -178,7 +193,7 @@ Matter Bridge, Multi-Fabric support, Health Monitoring, Bridge Wizard, AirQualit
 | `button`, `input_button` | Generic Switch | |
 | `media_player` | Speaker, Basic Video Player (TV) | |
 | `valve` | Water Valve, Pump | |
-| `vacuum` | Robot Vacuum Cleaner | `serverMode`, `roomEntities`, `batteryEntity`, `cleaningModeEntity`, `suctionLevelEntity` |
+| `vacuum` | Robot Vacuum Cleaner | `serverMode`, `roomEntities`, `batteryEntity`, `cleaningModeEntity`, `suctionLevelEntity`, `mopIntensityEntity` |
 | `humidifier` | Humidifier/Dehumidifier | |
 | `water_heater` | Thermostat (Heating) | |
 | `automation`, `script`, `scene` | On/Off Switch | |

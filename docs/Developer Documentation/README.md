@@ -117,7 +117,7 @@ Exposed via Express (`matterApi`):
 - `/bridges` (GET, POST): List/create bridges
 - `/bridges/:bridgeId` (GET, PUT, DELETE): Get/update/delete bridge
 - `/bridges/:bridgeId/devices` (GET): List devices for a bridge
-- `/bridges/:bridgeId/actions/factory-reset` (GET): Factory reset bridge
+- `/bridges/:bridgeId/actions/factory-reset` (POST): Factory reset bridge
 
 ---
 
