@@ -17,11 +17,16 @@ import RunningMode = Thermostat.ThermostatRunningMode;
 import type { ActionContext } from "@matter/main";
 import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 
-// Per-instance flag tracking whether the device was off on the previous update() call.
-// Used to skip the setpoint nudge during the Off transition (first update where
-// systemMode=Off) so the nudge DataReport doesn't ride with the systemMode change.
-// WeakMap ensures flags are garbage-collected when the behavior instance is disposed.
-const wasOffOnPreviousUpdate = new WeakMap<object, boolean>();
+// Per-instance timers for deferred setpoint nudge.
+// When the device transitions to Off, a timer is scheduled to nudge the stored
+// setpoint by 1 centidegree after a short delay. This ensures the nudge arrives
+// in a SEPARATE DataReport from the systemMode=Off change, giving controllers
+// like Google Home time to process the Off confirmation before seeing the
+// setpoint change. The nudge guarantees that subsequent same-value setpoint
+// writes trigger $Changing (matter.js deduplicates identical attribute writes).
+// WeakMap ensures timers are garbage-collected when the behavior instance is disposed.
+const pendingNudgeTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
+const NUDGE_DELAY_MS = 2000;
 
 // For dual-mode thermostats (heating + cooling), AutoMode is ENABLED so Apple Home
 // can offer Auto mode and dual setpoints. Without AutoMode, Apple Home loses Auto.
@@ -250,8 +255,10 @@ async function thermostatPostInitialize(self: any): Promise<void> {
 
   // Auto-resume (#176): when device is OFF and a controller writes a setpoint,
   // the $Changing handler detects systemMode==Off and sends a mode change to HA.
-  // To ensure $Changing fires even for same-value writes, update() nudges the
-  // stored setpoint by 1 centidegree when off (matter.js deduplicates identical writes).
+  // To ensure $Changing fires even for same-value writes, update() schedules a
+  // deferred setpoint nudge (+1 centidegree) via setTimeout when going Off.
+  // The delay ensures the nudge arrives in a separate DataReport from the Off
+  // transition, preserving Google Home's voice confirmation.
 }
 
 export class ThermostatServerBase extends FullFeaturedBase {
@@ -350,47 +357,18 @@ export class ThermostatServerBase extends FullFeaturedBase {
 
     // Clamp setpoints to be within the calculated limits to prevent Matter.js validation errors
     // This handles cases where HA reports setpoints outside the valid range
-    let clampedHeatingSetpoint = this.clampSetpoint(
+    const clampedHeatingSetpoint = this.clampSetpoint(
       targetHeatingTemperature,
       minHeatLimit,
       maxHeatLimit,
       "heat",
     );
-    let clampedCoolingSetpoint = this.clampSetpoint(
+    const clampedCoolingSetpoint = this.clampSetpoint(
       targetCoolingTemperature,
       minCoolLimit,
       maxCoolLimit,
       "cool",
     );
-
-    // When device is OFF, nudge setpoints by 1 centidegree (0.01°C) so that
-    // subsequent controller writes always differ from the stored value.
-    // matter.js deduplicates identical attribute writes at the Datasource layer —
-    // $Changing never fires for same-value writes, preventing auto-resume (#176).
-    // The nudge is below controller display resolution (typically 0.5°C steps).
-    //
-    // IMPORTANT: Only nudge when the device was ALREADY off on the previous
-    // update() call, not during the Off transition itself. On the transition,
-    // the nudge would ride along with the systemMode=Off DataReport, causing
-    // Google Home to skip the "X was turned off" voice confirmation.
-    const previouslyOff = wasOffOnPreviousUpdate.get(this) ?? false;
-    wasOffOnPreviousUpdate.set(this, systemMode === Thermostat.SystemMode.Off);
-    if (systemMode === Thermostat.SystemMode.Off && previouslyOff) {
-      if (this.features.heating) {
-        const max = maxHeatLimit ?? WIDE_MAX;
-        clampedHeatingSetpoint =
-          clampedHeatingSetpoint < max
-            ? clampedHeatingSetpoint + 1
-            : clampedHeatingSetpoint - 1;
-      }
-      if (this.features.cooling) {
-        const max = maxCoolLimit ?? WIDE_MAX;
-        clampedCoolingSetpoint =
-          clampedCoolingSetpoint < max
-            ? clampedCoolingSetpoint + 1
-            : clampedCoolingSetpoint - 1;
-      }
-    }
 
     logger.debug(
       `update: limits heat=[${minHeatLimit}, ${maxHeatLimit}], cool=[${minCoolLimit}, ${maxCoolLimit}], systemMode=${systemMode}, runningMode=${runningMode}`,
@@ -441,6 +419,46 @@ export class ThermostatServerBase extends FullFeaturedBase {
         ? { occupiedCoolingSetpoint: clampedCoolingSetpoint }
         : {}),
     });
+
+    // Deferred setpoint nudge for auto-resume (#176).
+    // When the device is Off, nudge setpoints by 1 centidegree (0.01°C) so
+    // subsequent controller writes always differ from the stored value.
+    // matter.js deduplicates identical attribute writes — $Changing never fires
+    // for same-value writes, which would prevent auto-resume.
+    // The nudge is deferred via setTimeout so it arrives in a SEPARATE DataReport
+    // from the systemMode=Off change. This gives controllers time to process and
+    // confirm the Off transition before seeing the setpoint change.
+    if (systemMode !== Thermostat.SystemMode.Off) {
+      // Not off — cancel any pending nudge
+      const timer = pendingNudgeTimers.get(this);
+      if (timer) {
+        clearTimeout(timer);
+        pendingNudgeTimers.delete(this);
+      }
+    } else if (!pendingNudgeTimers.has(this)) {
+      // Just went Off and no nudge pending — schedule one
+      const timer = setTimeout(() => {
+        pendingNudgeTimers.delete(this);
+        try {
+          if (this.features.heating) {
+            const current = this.state.occupiedHeatingSetpoint;
+            const max = this.state.maxHeatSetpointLimit ?? 5000;
+            this.state.occupiedHeatingSetpoint =
+              current < max ? current + 1 : current - 1;
+          }
+          if (this.features.cooling) {
+            const current = this.state.occupiedCoolingSetpoint;
+            const max = this.state.maxCoolSetpointLimit ?? 5000;
+            this.state.occupiedCoolingSetpoint =
+              current < max ? current + 1 : current - 1;
+          }
+          logger.debug("Deferred setpoint nudge applied for auto-resume");
+        } catch {
+          // Behavior may have been disposed or endpoint deleted — ignore
+        }
+      }, NUDGE_DELAY_MS);
+      pendingNudgeTimers.set(this, timer);
+    }
   }
 
   override setpointRaiseLower(request: Thermostat.SetpointRaiseLowerRequest) {
