@@ -17,6 +17,22 @@ const activeStates = new Set([
   OperationalState.SeekingCharger,
 ]);
 
+// Operational states to advertise in operationalStateList.
+// Only include the well-established states from the base OperationalState
+// cluster (0-3) and the core RVC-specific states (64-66).
+// Matter 1.4 added new states (EmptyingDustBin=67, CleaningMop=68,
+// FillingWaterTank=69, UpdatingMaps=70) but controllers like Alexa
+// (Matter 1.3) may not handle them and could reject the device.
+const advertisedOperationalStates: number[] = [
+  OperationalState.Stopped,
+  OperationalState.Running,
+  OperationalState.Paused,
+  OperationalState.Error,
+  OperationalState.SeekingCharger,
+  OperationalState.Charging,
+  OperationalState.Docked,
+];
+
 export interface RvcOperationalStateServerConfig {
   getOperationalState: ValueGetter<OperationalState>;
   pause: ValueSetter<void>;
@@ -29,13 +45,12 @@ class RvcOperationalStateServerBase extends Base {
   declare state: RvcOperationalStateServerBase.State;
 
   override async initialize() {
-    // Set initial operationalStateList with required error entry BEFORE super.initialize()
-    // Matter.js validates that the list contains at least one error entry
-    this.state.operationalStateList = Object.values(OperationalState)
-      .filter((id): id is number => !Number.isNaN(+id))
-      .map((id) => ({
-        operationalStateId: id,
-      }));
+    // Set initial operationalStateList BEFORE super.initialize().
+    // Use the explicit list of well-known states to avoid advertising
+    // Matter 1.4 states that older controllers may not understand.
+    this.state.operationalStateList = advertisedOperationalStates.map((id) => ({
+      operationalStateId: id,
+    }));
     this.state.operationalState = OperationalState.Stopped;
     this.state.operationalError = { errorStateId: ErrorState.NoError };
 

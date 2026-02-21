@@ -80,13 +80,19 @@ Currently supported sensor types:
 
 See [Temperature & Humidity Sensor](./Devices/Temperature%20Humidity%20Sensor.md) for details on combining temperature, humidity, pressure, and battery into a single device.
 
-## The app keeps crashing or restarting on my HA Yellow / Raspberry Pi
+## The app keeps crashing or restarting on my HA Yellow / Raspberry Pi / VM
 
-Low-resource devices (1–2 GB RAM) can run out of memory when running many bridges or devices. Since v2.0.17, HAMH limits the Node.js heap to 512 MB to prevent uncontrolled OOM kills. If crashes persist:
+Low-resource devices (1–2 GB RAM) or VMs with limited memory allocation can run out of memory. HAMH limits the Node.js heap to 768 MB, but the total process memory (including matter.js cluster definitions, SQLite, and V8 overhead) can reach 400–600 MB even before bridges start.
+
+The telltale sign of an OOM kill is the log showing `Killed` with no error message or stack trace — this means the Linux kernel terminated the process.
+
+If crashes persist:
 
 1. Reduce the number of devices per bridge
 2. Split large bridges into smaller ones (e.g. per room)
-3. Consider using a device with more RAM
+3. Stop other memory-heavy add-ons (Frigate, Whisper, Piper, Music Assistant, Python Matter Server)
+4. For VMs (`qemux86-64`): increase RAM allocation to at least 4 GB
+5. Consider using a device with more RAM
 
 See [#141](https://github.com/RiDDiX/home-assistant-matter-hub/issues/141) for details.
 
