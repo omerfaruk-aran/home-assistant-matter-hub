@@ -17,17 +17,6 @@ import RunningMode = Thermostat.ThermostatRunningMode;
 import type { ActionContext } from "@matter/main";
 import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 
-// Per-instance timers for deferred setpoint nudge.
-// When the device transitions to Off, a timer is scheduled to nudge the stored
-// setpoint by 1 centidegree after a short delay. This ensures the nudge arrives
-// in a SEPARATE DataReport from the systemMode=Off change, giving controllers
-// like Google Home time to process the Off confirmation before seeing the
-// setpoint change. The nudge guarantees that subsequent same-value setpoint
-// writes trigger $Changing (matter.js deduplicates identical attribute writes).
-// WeakMap ensures timers are garbage-collected when the behavior instance is disposed.
-const pendingNudgeTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
-const NUDGE_DELAY_MS = 2000;
-
 // For dual-mode thermostats (heating + cooling), AutoMode is ENABLED so Apple Home
 // can offer Auto mode and dual setpoints. Without AutoMode, Apple Home loses Auto.
 //
@@ -253,12 +242,90 @@ async function thermostatPostInitialize(self: any): Promise<void> {
   }
   self.reactTo(homeAssistant.onChange, self.update);
 
-  // Auto-resume (#176): when device is OFF and a controller writes a setpoint,
-  // the $Changing handler detects systemMode==Off and sends a mode change to HA.
-  // To ensure $Changing fires even for same-value writes, update() schedules a
-  // deferred setpoint nudge (+1 centidegree) via setTimeout when going Off.
-  // The delay ensures the nudge arrives in a separate DataReport from the Off
-  // transition, preserving Google Home's voice confirmation.
+  // Auto-resume (#176): install write interceptors on setpoint attributes.
+  // matter.js deduplicates identical attribute writes — $Changing never fires
+  // for same-value writes. The interceptor bypasses this by catching ALL writes
+  // at the property setter level, even when the value is unchanged.
+  // update() skips setpoint writes while Off, so the interceptor only fires
+  // for controller-originated writes, preserving Google Home voice confirmations.
+  installSetpointWriteInterceptor(self, "occupiedHeatingSetpoint", "heating");
+  installSetpointWriteInterceptor(self, "occupiedCoolingSetpoint", "cooling");
+}
+
+/**
+ * Installs a write interceptor on a setpoint attribute to enable auto-resume.
+ * Runs on EVERY write, even if the value is unchanged, bypassing matter.js dedup.
+ */
+function installSetpointWriteInterceptor(
+  // biome-ignore lint/suspicious/noExplicitAny: Internal helper working across feature variants
+  self: any,
+  attributeName: string,
+  mode: "heating" | "cooling",
+): void {
+  const state = self.state;
+  const originalDescriptor = Object.getOwnPropertyDescriptor(
+    state,
+    attributeName,
+  );
+  if (!originalDescriptor) {
+    return;
+  }
+
+  const originalSetter = originalDescriptor.set;
+  if (!originalSetter) {
+    return;
+  }
+
+  Object.defineProperty(state, attributeName, {
+    get: originalDescriptor.get,
+    set: (value: number) => {
+      try {
+        const currentMode = self.state.systemMode;
+        const isOff = currentMode === Thermostat.SystemMode.Off;
+
+        if (isOff) {
+          const homeAssistant = self.agent.get(HomeAssistantEntityBehavior);
+          const config = self.state.config;
+          const supportsRange = config.supportsTemperatureRange(
+            homeAssistant.entity.state,
+            self.agent,
+          );
+
+          if (!supportsRange) {
+            if (mode === "heating" && self.features.heating) {
+              logger.info(
+                `${attributeName} write intercepted while off: auto-switching to Heat`,
+              );
+              const modeAction = config.setSystemMode(
+                Thermostat.SystemMode.Heat,
+                self.agent,
+              );
+              homeAssistant.callAction(modeAction);
+            } else if (
+              mode === "cooling" &&
+              !self.features.heating &&
+              self.features.cooling
+            ) {
+              logger.info(
+                `${attributeName} write intercepted while off: auto-switching to Cool`,
+              );
+              const modeAction = config.setSystemMode(
+                Thermostat.SystemMode.Cool,
+                self.agent,
+              );
+              homeAssistant.callAction(modeAction);
+            }
+          }
+        }
+      } catch {
+        // Agent may be unavailable during disposal — ignore
+      }
+
+      originalSetter.call(state, value);
+    },
+    enumerable: originalDescriptor.enumerable,
+    configurable: originalDescriptor.configurable,
+  });
 }
 
 export class ThermostatServerBase extends FullFeaturedBase {
@@ -412,9 +479,10 @@ export class ThermostatServerBase extends FullFeaturedBase {
       systemMode === Thermostat.SystemMode.Auto
         ? { thermostatRunningMode: runningMode }
         : {}),
-      // Skip setpoint updates while Off to preserve the deferred nudge (#176).
-      // HA state updates would overwrite the +0.01°C nudge, defeating same-value
-      // auto-resume. The correct setpoint is restored when the device turns on.
+      // Skip setpoint updates while Off (#176). This prevents HA state updates
+      // from writing setpoints while Off, which would trigger the write interceptor
+      // and cause unwanted auto-resume. Only controller writes should trigger it.
+      // The correct setpoint is restored when the device turns on.
       ...(this.features.heating && systemMode !== Thermostat.SystemMode.Off
         ? { occupiedHeatingSetpoint: clampedHeatingSetpoint }
         : {}),
@@ -422,46 +490,6 @@ export class ThermostatServerBase extends FullFeaturedBase {
         ? { occupiedCoolingSetpoint: clampedCoolingSetpoint }
         : {}),
     });
-
-    // Deferred setpoint nudge for auto-resume (#176).
-    // When the device is Off, nudge setpoints by 1 centidegree (0.01°C) so
-    // subsequent controller writes always differ from the stored value.
-    // matter.js deduplicates identical attribute writes — $Changing never fires
-    // for same-value writes, which would prevent auto-resume.
-    // The nudge is deferred via setTimeout so it arrives in a SEPARATE DataReport
-    // from the systemMode=Off change. This gives controllers time to process and
-    // confirm the Off transition before seeing the setpoint change.
-    if (systemMode !== Thermostat.SystemMode.Off) {
-      // Not off — cancel any pending nudge
-      const timer = pendingNudgeTimers.get(this);
-      if (timer) {
-        clearTimeout(timer);
-        pendingNudgeTimers.delete(this);
-      }
-    } else if (!pendingNudgeTimers.has(this)) {
-      // Just went Off and no nudge pending — schedule one
-      const timer = setTimeout(() => {
-        pendingNudgeTimers.delete(this);
-        try {
-          if (this.features.heating) {
-            const current = this.state.occupiedHeatingSetpoint;
-            const max = this.state.maxHeatSetpointLimit ?? 5000;
-            this.state.occupiedHeatingSetpoint =
-              current < max ? current + 1 : current - 1;
-          }
-          if (this.features.cooling) {
-            const current = this.state.occupiedCoolingSetpoint;
-            const max = this.state.maxCoolSetpointLimit ?? 5000;
-            this.state.occupiedCoolingSetpoint =
-              current < max ? current + 1 : current - 1;
-          }
-          logger.debug("Deferred setpoint nudge applied for auto-resume");
-        } catch {
-          // Behavior may have been disposed or endpoint deleted — ignore
-        }
-      }, NUDGE_DELAY_MS);
-      pendingNudgeTimers.set(this, timer);
-    }
   }
 
   override setpointRaiseLower(request: Thermostat.SetpointRaiseLowerRequest) {
@@ -540,20 +568,8 @@ export class ThermostatServerBase extends FullFeaturedBase {
         const isOff = currentMode === Thermostat.SystemMode.Off;
 
         if (isOff && this.features.heating) {
-          // Auto-resume: setting a temperature while off should turn on the device (#176).
-          // Controllers like Google Home expect "set to 20°C" to work even when off.
-          // Only resume from this handler if heating is allowed by controlSequenceOfOperation.
-          // For cooling-only devices, coolingSetpointChanging handles auto-resume instead.
-          // For dual-mode (CoolingAndHeating) devices, only THIS handler resumes to prevent
-          // dual-fire when matter.js deadband adjusts both setpoints simultaneously.
-          logger.info(
-            "heatingSetpointChanging: device is off, auto-switching to Heat mode",
-          );
-          const modeAction = config.setSystemMode(
-            Thermostat.SystemMode.Heat,
-            this.agent,
-          );
-          homeAssistant.callAction(modeAction);
+          // Auto-resume mode change is handled by the write interceptor (#176).
+          // Just proceed to forward the temperature to HA below.
         } else if (!isAutoMode && !isHeatingMode) {
           // In Auto mode: heating setpoint updates temperature (cooling setpoint is ignored)
           // In Heat mode: heating setpoint updates temperature
@@ -621,19 +637,8 @@ export class ThermostatServerBase extends FullFeaturedBase {
         const isOff = currentMode === Thermostat.SystemMode.Off;
 
         if (isOff && !this.features.heating && this.features.cooling) {
-          // Auto-resume for COOLING-ONLY devices (#176).
-          // For dual-mode devices (heating + cooling), heatingSetpointChanging handles
-          // auto-resume exclusively to prevent dual-fire: when matter.js enforces deadband
-          // (AutoMode), both setpoint handlers fire simultaneously — if both send mode
-          // changes, HA receives heat+cool in quick succession causing mode cycling.
-          logger.info(
-            "coolingSetpointChanging: cooling-only device is off, auto-switching to Cool mode",
-          );
-          const modeAction = this.state.config.setSystemMode(
-            Thermostat.SystemMode.Cool,
-            this.agent,
-          );
-          homeAssistant.callAction(modeAction);
+          // Auto-resume mode change is handled by the write interceptor (#176).
+          // Just proceed to forward the temperature to HA below.
         } else if (!isAutoMode && !isCoolingMode) {
           // In Auto mode: BOTH heating and cooling setpoint should update temperature (#71)
           // In Cool mode: cooling setpoint updates temperature
