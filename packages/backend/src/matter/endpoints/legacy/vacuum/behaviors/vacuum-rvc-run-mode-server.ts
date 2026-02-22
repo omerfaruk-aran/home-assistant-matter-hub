@@ -115,11 +115,18 @@ const vacuumRvcRunModeConfig = {
             // Clear selected areas after use
             serviceArea.state.selectedAreas = [];
 
-            // Press the first button entity (most controllers select one room at a time)
-            // For multiple rooms, the user's Roborock scene buttons handle multi-room cleaning
+            // Dispatch extra button presses directly — the caller can only
+            // handle a single returned action, so press buttons 1..N here.
+            for (let i = 1; i < buttonEntityIds.length; i++) {
+              homeAssistant.callAction({
+                action: "button.press",
+                target: buttonEntityIds[i],
+              });
+            }
+
             return {
               action: "button.press",
-              target: buttonEntityIds[0], // Press the specific button entity
+              target: buttonEntityIds[0],
             };
           }
         }
