@@ -181,7 +181,6 @@ jobs:
           push: true
           channel: alpha
           dockerfile: ${{ matrix.dockerfile }}
-          node-version: ${{ needs.release.outputs.node-version }}
           package-version: ${{ needs.release.outputs.release-version }}
 
   dispatch-addon:
