@@ -44,6 +44,10 @@ export class ServerModeBridge {
   // Tracks the last synced state JSON per entity to avoid pushing unchanged states.
   private lastSyncedState: string | undefined;
 
+  // Session lifecycle diagnostic handler (non-destructive, logging only).
+  // biome-ignore lint/suspicious/noExplicitAny: matter.js internal types
+  private sessionDiagHandler?: (session: any, subscription: any) => void;
+
   get id(): string {
     return this.dataProvider.id;
   }
@@ -136,6 +140,7 @@ export class ServerModeBridge {
       await this.server.start();
       this.setStatus({ code: BridgeStatus.Running });
       this.startAutoForceSyncIfEnabled();
+      this.wireSessionDiagnostics();
       this.scheduleWarmStart();
       logMemoryUsage(this.log, "server mode bridge running");
       this.log.info("Server mode bridge started successfully");
@@ -154,6 +159,7 @@ export class ServerModeBridge {
     code: BridgeStatus = BridgeStatus.Stopped,
     reason = "Manually stopped",
   ): Promise<void> {
+    this.unwireSessionDiagnostics();
     this.cancelWarmStart();
     this.stopAutoForceSync();
     this.endpointManager.stopObserving();
@@ -234,6 +240,41 @@ export class ServerModeBridge {
     }, AUTO_FORCE_SYNC_INTERVAL_MS);
 
     this.log.info(`Force sync: every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s`);
+  }
+
+  private wireSessionDiagnostics() {
+    try {
+      const sessionManager = this.server.env.get(SessionManager);
+      this.sessionDiagHandler = (session: {
+        id: number;
+        peerNodeId: unknown;
+        subscriptions: { size: number };
+      }) => {
+        const sessions = [...sessionManager.sessions];
+        let totalSubs = 0;
+        for (const s of sessions) {
+          totalSubs += s.subscriptions.size;
+        }
+        this.log.info(
+          `Session ${session.id} (peer ${session.peerNodeId}): subscriptions=${session.subscriptions.size} | total: sessions=${sessions.length} subscriptions=${totalSubs}`,
+        );
+      };
+      sessionManager.subscriptionsChanged.on(this.sessionDiagHandler);
+    } catch {
+      // SessionManager not yet available
+    }
+  }
+
+  private unwireSessionDiagnostics() {
+    if (this.sessionDiagHandler) {
+      try {
+        const sessionManager = this.server.env.get(SessionManager);
+        sessionManager.subscriptionsChanged.off(this.sessionDiagHandler);
+      } catch {
+        // Already disposed
+      }
+      this.sessionDiagHandler = undefined;
+    }
   }
 
   private stopAutoForceSync() {

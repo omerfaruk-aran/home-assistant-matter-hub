@@ -17,7 +17,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useDiagnostics } from "../../hooks/useDiagnostics.ts";
 
 const eventTypeConfig: Record<string, { color: string; label: string }> = {
@@ -42,7 +42,15 @@ function formatTime(ts: number): string {
 
 const allEventTypes = Object.keys(eventTypeConfig) as DiagnosticEventType[];
 
-export function LiveEventLog() {
+export interface LiveEventLogProps {
+  sortField?: "name" | "created";
+  sortDirection?: "asc" | "desc";
+}
+
+export function LiveEventLog({
+  sortField,
+  sortDirection,
+}: LiveEventLogProps = {}) {
   const { events, snapshot, connected, clearEvents } = useDiagnostics();
   const [enabledTypes, setEnabledTypes] = useState<Set<string>>(
     new Set(allEventTypes),
@@ -62,6 +70,20 @@ export function LiveEventLog() {
   };
 
   const filteredEvents = events.filter((e) => enabledTypes.has(e.type));
+
+  const sortedBridges = useMemo(() => {
+    const bridges = snapshot?.bridges ?? [];
+    if (!sortField) return bridges;
+    return [...bridges].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === "name") {
+        cmp = a.bridgeName.localeCompare(b.bridgeName);
+      } else {
+        cmp = a.bridgeId.localeCompare(b.bridgeId);
+      }
+      return sortDirection === "desc" ? -cmp : cmp;
+    });
+  }, [snapshot?.bridges, sortField, sortDirection]);
 
   const typeCounts: Record<string, number> = {};
   for (const e of events) {
@@ -184,10 +206,10 @@ export function LiveEventLog() {
         </Collapse>
 
         {/* Snapshot bridge overview */}
-        {snapshot?.bridges && snapshot.bridges.length > 0 && (
+        {sortedBridges.length > 0 && (
           <>
             <Grid container spacing={1} sx={{ mb: 2 }}>
-              {snapshot.bridges.map((bridge) => (
+              {sortedBridges.map((bridge) => (
                 <Grid size={{ xs: 12, sm: 6 }} key={bridge.bridgeId}>
                   <Paper
                     variant="outlined"
@@ -196,18 +218,31 @@ export function LiveEventLog() {
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
+                      overflow: "hidden",
+                      minWidth: 0,
                     }}
                   >
-                    <Box>
-                      <Typography variant="body2" fontWeight={500}>
+                    <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+                      <Typography variant="body2" fontWeight={500} noWrap>
                         {bridge.bridgeName}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        noWrap
+                      >
                         {bridge.entityCount} devices · {bridge.sessionCount}{" "}
                         sessions
                       </Typography>
                     </Box>
-                    <Stack direction="row" spacing={0.5} alignItems="center">
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      alignItems="center"
+                      flexWrap="wrap"
+                      justifyContent="flex-end"
+                      sx={{ flexShrink: 0, ml: 1 }}
+                    >
                       {Object.entries(bridge.featureFlags)
                         .filter(([, v]) => v)
                         .map(([k]) => (
@@ -275,6 +310,7 @@ export function LiveEventLog() {
                     gap: 1,
                     py: 0.4,
                     px: 0.5,
+                    minWidth: 0,
                     borderBottom: "1px solid",
                     borderColor: "divider",
                     "&:hover": { bgcolor: "action.hover" },
@@ -313,7 +349,11 @@ export function LiveEventLog() {
                         color: "primary.main",
                         fontWeight: 600,
                         whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                         fontSize: "0.72rem",
+                        maxWidth: 140,
+                        flexShrink: 0,
                       }}
                     >
                       [{event.bridgeName}]
@@ -326,7 +366,11 @@ export function LiveEventLog() {
                         color: "warning.main",
                         fontFamily: "monospace",
                         whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                         fontSize: "0.72rem",
+                        maxWidth: 220,
+                        flexShrink: 1,
                       }}
                     >
                       {event.entityId}

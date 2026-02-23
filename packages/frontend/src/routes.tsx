@@ -10,6 +10,7 @@ import { HealthPage } from "./pages/health/HealthPage.tsx";
 import { LabelsPage } from "./pages/labels/LabelsPage.tsx";
 import { LockCredentialsPage } from "./pages/lock-credentials/LockCredentialsPage.tsx";
 import { NetworkMapPage } from "./pages/network-map/NetworkMapPage.tsx";
+import { SettingsPage } from "./pages/settings/SettingsPage.tsx";
 import { StartupPage } from "./pages/startup/StartupPage.tsx";
 
 const documentationUrl = "https://riddix.github.io/home-assistant-matter-hub";
@@ -24,6 +25,7 @@ export const navigation = {
   health: "/health",
   labels: "/labels",
   lockCredentials: "/lock-credentials",
+  settings: "/settings",
   startup: "/startup",
 
   githubRepository: "https://github.com/riddix/home-assistant-matter-hub/",
@@ -52,6 +54,7 @@ export const routes: RouteObject[] = [
       { path: navigation.health, element: <HealthPage /> },
       { path: navigation.labels, element: <LabelsPage /> },
       { path: navigation.lockCredentials, element: <LockCredentialsPage /> },
+      { path: navigation.settings, element: <SettingsPage /> },
       { path: navigation.startup, element: <StartupPage /> },
     ],
   },

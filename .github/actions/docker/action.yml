@@ -6,8 +6,9 @@ inputs:
     description: "Location of the Dockerfile to use. Parent directory will be used as context."
     required: true
   node-version:
-    description: "The node version to include in the dockerfile"
-    required: true
+    description: "The node version to include in the dockerfile (default: 22)"
+    required: false
+    default: "22"
   package-version:
     description: "The package version to install"
     required: true

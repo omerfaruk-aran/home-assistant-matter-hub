@@ -139,10 +139,10 @@ const featureFlagSchema: JSONSchema7 = {
     },
 
     coverSwapOpenClose: {
-      title: "Swap Open/Close Commands for Covers",
+      title: "Swap Open/Close for Covers",
       description:
-        "Swap the open and close commands for covers. Enable this if Alexa voice commands are reversed " +
-        "(saying 'close' opens the blinds and vice versa). This affects open/close commands only, not percentage control.",
+        "Swap open/close commands and invert position reporting for covers. Enable this if Alexa voice commands " +
+        "are reversed (saying 'close' opens the blinds and vice versa).",
       type: "boolean",
       default: false,
     },
@@ -224,11 +224,12 @@ const featureFlagSchema: JSONSchema7 = {
     vacuumOnOff: {
       title: "Vacuum: Include OnOff Cluster (Alexa)",
       description:
-        "Add an OnOff cluster to robot vacuum endpoints for basic start/stop control in Alexa. " +
+        "Add an OnOff cluster to robot vacuum endpoints. " +
+        "Alexa REQUIRES this (PowerController) to show robotic vacuums in the app. " +
+        "Without it, Alexa commissions the device but never displays it. " +
         "WARNING: OnOff is NOT part of the Matter RVC device type specification. " +
-        "Enabling this may break Apple Home (shows 'Updating' or renders as switch instead of vacuum) " +
-        "and Google Home (unexpected cluster on device type 0x74). " +
-        "Only enable if you primarily use Alexa.",
+        "Enabling this may break Apple Home (shows 'Updating') and Google Home. " +
+        "Use with Server Mode for Alexa-only vacuum bridges.",
       type: "boolean",
       default: false,
     },

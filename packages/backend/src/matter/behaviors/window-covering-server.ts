@@ -219,7 +219,12 @@ export class WindowCoveringServerBase extends FeaturedBase {
     );
 
     if (Object.keys(appliedPatch).length > 0) {
-      logger.info(
+      // Log operational status changes (movement start/stop) at INFO,
+      // position-only updates at DEBUG to avoid flooding the log.
+      const hasOperationalChange = "operationalStatus" in appliedPatch;
+      const log = hasOperationalChange ? logger.info : logger.debug;
+      log.call(
+        logger,
         `Cover ${entity.entity_id} state changed: ${JSON.stringify(appliedPatch)}`,
       );
     }
@@ -239,39 +244,46 @@ export class WindowCoveringServerBase extends FeaturedBase {
     );
 
     if (type === MovementType.Lift) {
-      if (targetPercent100ths != null && this.features.absolutePosition) {
+      if (
+        direction === MovementDirection.Open &&
+        (targetPercent100ths == null || targetPercent100ths === 0)
+      ) {
+        this.handleLiftOpen();
+      } else if (
+        direction === MovementDirection.Close &&
+        (targetPercent100ths == null || targetPercent100ths === 10000)
+      ) {
+        this.handleLiftClose();
+      } else if (
+        targetPercent100ths != null &&
+        this.features.absolutePosition
+      ) {
         this.handleGoToLiftPosition(targetPercent100ths);
       } else if (direction === MovementDirection.Open) {
-        // Explicit open command - always open regardless of target position
         this.handleLiftOpen();
       } else if (direction === MovementDirection.Close) {
-        // Explicit close command - always close regardless of target position
         this.handleLiftClose();
-      } else if (targetPercent100ths != null) {
-        // Fallback: No explicit direction, use target position to determine direction
-        // In Matter: 0% = open, 100% = closed
-        if (targetPercent100ths > currentLift) {
-          this.handleLiftClose();
-        } else if (targetPercent100ths < currentLift) {
-          this.handleLiftOpen();
-        }
       }
     } else if (type === MovementType.Tilt) {
-      if (targetPercent100ths != null && this.features.absolutePosition) {
+      if (
+        direction === MovementDirection.Open &&
+        (targetPercent100ths == null || targetPercent100ths === 0)
+      ) {
+        this.handleTiltOpen();
+      } else if (
+        direction === MovementDirection.Close &&
+        (targetPercent100ths == null || targetPercent100ths === 10000)
+      ) {
+        this.handleTiltClose();
+      } else if (
+        targetPercent100ths != null &&
+        this.features.absolutePosition
+      ) {
         this.handleGoToTiltPosition(targetPercent100ths);
       } else if (direction === MovementDirection.Open) {
-        // Explicit open command - always open regardless of target position
         this.handleTiltOpen();
       } else if (direction === MovementDirection.Close) {
-        // Explicit close command - always close regardless of target position
         this.handleTiltClose();
-      } else if (targetPercent100ths != null) {
-        // Fallback: No explicit direction, use target position to determine direction
-        if (targetPercent100ths > currentTilt) {
-          this.handleTiltClose();
-        } else if (targetPercent100ths < currentTilt) {
-          this.handleTiltOpen();
-        }
       }
     }
   }

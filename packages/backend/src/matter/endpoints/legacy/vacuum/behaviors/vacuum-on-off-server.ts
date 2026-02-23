@@ -7,5 +7,5 @@ export const VacuumOnOffServer = OnOffServer({
     agent.get(VacuumRvcRunModeServer).state.currentMode ===
     RvcSupportedRunMode.Cleaning,
   turnOn: () => ({ action: "vacuum.start" }),
-  turnOff: () => ({ action: "vacuum.stop" }),
+  turnOff: () => ({ action: "vacuum.return_to_base" }),
 }).with();

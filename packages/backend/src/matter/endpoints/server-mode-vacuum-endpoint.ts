@@ -42,10 +42,10 @@ export class ServerModeVacuumEndpoint extends EntityEndpoint {
     // Auto-assign battery entity if not manually set
     let effectiveMapping = mapping;
     logger.info(
-      `${entityId}: device_id=${entity.device_id}, autoBattery=${registry.isAutoBatteryMappingEnabled()}, manualBattery=${mapping?.batteryEntity ?? "none"}`,
+      `${entityId}: device_id=${entity.device_id}, manualBattery=${mapping?.batteryEntity ?? "none"}`,
     );
     if (entity.device_id) {
-      if (registry.isAutoBatteryMappingEnabled() && !mapping?.batteryEntity) {
+      if (!mapping?.batteryEntity) {
         const batteryEntityId = registry.findBatteryEntityForDevice(
           entity.device_id,
         );

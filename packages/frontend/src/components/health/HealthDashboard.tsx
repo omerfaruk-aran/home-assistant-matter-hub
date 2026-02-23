@@ -91,12 +91,26 @@ const formatUptime = (seconds: number): string => {
   return `${minutes}m`;
 };
 
-export function HealthDashboard() {
+export interface HealthDashboardProps {
+  sortField?: SortField;
+  sortDirection?: SortDirection;
+  onSortFieldChange?: (field: SortField) => void;
+  onSortDirectionChange?: (dir: SortDirection) => void;
+}
+
+export function HealthDashboard(props: HealthDashboardProps = {}) {
   const [health, setHealth] = useState<DetailedHealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<SortField>("name");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [internalSortField, setInternalSortField] = useState<SortField>("name");
+  const [internalSortDirection, setInternalSortDirection] =
+    useState<SortDirection>("asc");
+
+  const sortField = props.sortField ?? internalSortField;
+  const sortDirection = props.sortDirection ?? internalSortDirection;
+  const setSortField = props.onSortFieldChange ?? setInternalSortField;
+  const setSortDirection =
+    props.onSortDirectionChange ?? setInternalSortDirection;
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -293,7 +307,7 @@ export function HealthDashboard() {
             <IconButton
               size="small"
               onClick={() =>
-                setSortDirection((d) => (d === "asc" ? "desc" : "asc"))
+                setSortDirection(sortDirection === "asc" ? "desc" : "asc")
               }
             >
               {sortDirection === "asc" ? (

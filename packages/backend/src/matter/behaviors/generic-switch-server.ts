@@ -71,6 +71,15 @@ class GenericSwitchServerBase extends FeaturedBase {
       }),
       100,
     );
+
+    // Bridge the Matter event back to HA as a fired event
+    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+    homeAssistant.fireEvent("hamh_action", {
+      action: "press",
+      event_type: eventType,
+      press_count: pressCount,
+      source: "matter_bridge",
+    });
   }
 
   private getPressCount(eventType: string): number {

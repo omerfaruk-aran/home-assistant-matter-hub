@@ -85,14 +85,14 @@ importers:
   apps/home-assistant-matter-hub:
     dependencies:
       '@matter/general':
-        specifier: 0.16.8
-        version: 0.16.8
+        specifier: 0.16.10
+        version: 0.16.10
       '@matter/main':
-        specifier: 0.16.8
-        version: 0.16.8
+        specifier: 0.16.10
+        version: 0.16.10
       '@matter/nodejs':
-        specifier: 0.16.8
-        version: 0.16.8
+        specifier: 0.16.10
+        version: 0.16.10
       ajv:
         specifier: 8.18.0
         version: 8.18.0
@@ -167,14 +167,14 @@ importers:
         specifier: workspace:*
         version: link:../common
       '@matter/general':
-        specifier: 0.16.8
-        version: 0.16.8
+        specifier: 0.16.10
+        version: 0.16.10
       '@matter/main':
-        specifier: 0.16.8
-        version: 0.16.8
+        specifier: 0.16.10
+        version: 0.16.10
       '@matter/nodejs':
-        specifier: 0.16.8
-        version: 0.16.8
+        specifier: 0.16.10
+        version: 0.16.10
       ajv:
         specifier: 8.18.0
         version: 8.18.0
@@ -869,27 +869,27 @@ packages:
   '@marijn/find-cluster-break@1.0.2':
     resolution: {integrity: sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g==}
 
-  '@matter/general@0.16.8':
-    resolution: {integrity: sha512-ro0KXxCVri5687/bznt8G6UEFWc2zOloJQXa0V+xJOOZQCUPDaVSw/Cej6pik+CdZnMemzD9rsLME8Ai7JO2AQ==}
+  '@matter/general@0.16.10':
+    resolution: {integrity: sha512-/qytvaxvDDhEdHLaEoxlEFVBWg982jL+XXvOmAFgIv92yGDQvN4U+VcNW7S5dueJuv/L+gi0zDqhl8LUzHHAlg==}
 
-  '@matter/main@0.16.8':
-    resolution: {integrity: sha512-MI+fV9S0artLNAzRaU9JtvcY4P0JmhEBi3uxnJZ+qd9IYA6abiDtrmfvJTRnRm9vnN9uJ5lVZhlR+yCZVPQV2Q==}
+  '@matter/main@0.16.10':
+    resolution: {integrity: sha512-QKoQrmMnt6cB893+Oezk3DdIVgQJj5spt/ikEszF8pjyTuvB69zlzq1wnrn52N3mi57R6UWwk6+BPEbQE95FSw==}
 
-  '@matter/model@0.16.8':
-    resolution: {integrity: sha512-NtozNBdLu9Acwn0GEY/1Wx3MUSN/ssLAGIZP+WNzM+hVWoWIqI9VuW+6Ws3viWEjC/iDKVimjxFqMKq3ce7Jjw==}
+  '@matter/model@0.16.10':
+    resolution: {integrity: sha512-6Ei8gETAkcKGEMRW+z8Mak55Y1Jl1TKGQIboC/4vvsrqcvB8zhIvGBS3GaAllxzvF0qjE7ihCPpgXXr6HuTLyg==}
 
-  '@matter/node@0.16.8':
-    resolution: {integrity: sha512-7P945cGEuQ8bKpQfKH1cfDG6Z9lUVp5nBQBz0ddWjHcLfkfxnww3Ve5O5ZbiaGNWEE482PqFSsOwRcLgbQFIeA==}
+  '@matter/node@0.16.10':
+    resolution: {integrity: sha512-Hb2AxuEf0DlfN8yHxeahZGYurUUu/UDWJkmdvpDKuwSR0eIHhMweOG2RBO55/anyRFObANaUr1gr3DnyocB/0w==}
 
-  '@matter/nodejs@0.16.8':
-    resolution: {integrity: sha512-/dGlowID/3bkyiFJ+3kUIIn1VWOtb0DNEhoO1axVBep+Ewzet3DJZR4Q/FUYzt9JvRPTCLxe+7GBWU5w3yFmKw==}
+  '@matter/nodejs@0.16.10':
+    resolution: {integrity: sha512-o8e9tGZVsiqmEtD1osSL9+gRMIuNjtwXt29I3YDRzSqb3N5Dvd4Khj3HN68YhaFFeBlM4YEV2TS0/9VF3C06/w==}
     engines: {node: '>=20.19.0 <22.0.0 || >=22.13.0'}
 
-  '@matter/protocol@0.16.8':
-    resolution: {integrity: sha512-xyoGo6bLBgqSx+I/QWvwO02NA7aBGCBPQoAl/YquaHxq8P98Y1FrklvkPoIj1/y6/x88X3cz3aZ8poc9JpTU/A==}
+  '@matter/protocol@0.16.10':
+    resolution: {integrity: sha512-vPQEMl8Wf4vc3tauwsGlLZRrDx+VrCPfccw3n50Lvyucws4UBt+SuBszSyIO2+QPnJcr4MB4L+EgCRI14U4zRA==}
 
-  '@matter/types@0.16.8':
-    resolution: {integrity: sha512-3unq1c5lDReMosK+BNiqthszcwhdhGljj9ha/syjKyFMT6XENnVOuXsN4b0X6Uzxk52X3abpws1B5h/eEXejnQ==}
+  '@matter/types@0.16.10':
+    resolution: {integrity: sha512-AW86tGgL3sN1Vb76+03VPdQMsW9vWsaVGHe9agcED1sjtWRJBV17tcLDymAQ8k7fEeVqiy3qf9CUwFK1bhfXKQ==}
 
   '@mui/core-downloads-tracker@7.3.8':
     resolution: {integrity: sha512-s9UHZo7QJVly7gNArEZkbbsimHqJZhElgBpXIJdehZ4OWXt+CCr0SBDgUCDJnQrqpd1dWK2dLq5rmO4mCBmI3w==}
@@ -5113,48 +5113,48 @@ snapshots:
 
   '@marijn/find-cluster-break@1.0.2': {}
 
-  '@matter/general@0.16.8':
+  '@matter/general@0.16.10':
     dependencies:
       '@noble/curves': 2.0.1
 
-  '@matter/main@0.16.8':
+  '@matter/main@0.16.10':
     dependencies:
-      '@matter/general': 0.16.8
-      '@matter/model': 0.16.8
-      '@matter/node': 0.16.8
-      '@matter/protocol': 0.16.8
-      '@matter/types': 0.16.8
+      '@matter/general': 0.16.10
+      '@matter/model': 0.16.10
+      '@matter/node': 0.16.10
+      '@matter/protocol': 0.16.10
+      '@matter/types': 0.16.10
     optionalDependencies:
-      '@matter/nodejs': 0.16.8
+      '@matter/nodejs': 0.16.10
 
-  '@matter/model@0.16.8':
+  '@matter/model@0.16.10':
     dependencies:
-      '@matter/general': 0.16.8
+      '@matter/general': 0.16.10
 
-  '@matter/node@0.16.8':
+  '@matter/node@0.16.10':
     dependencies:
-      '@matter/general': 0.16.8
-      '@matter/model': 0.16.8
-      '@matter/protocol': 0.16.8
-      '@matter/types': 0.16.8
+      '@matter/general': 0.16.10
+      '@matter/model': 0.16.10
+      '@matter/protocol': 0.16.10
+      '@matter/types': 0.16.10
 
-  '@matter/nodejs@0.16.8':
+  '@matter/nodejs@0.16.10':
     dependencies:
-      '@matter/general': 0.16.8
-      '@matter/node': 0.16.8
-      '@matter/protocol': 0.16.8
-      '@matter/types': 0.16.8
+      '@matter/general': 0.16.10
+      '@matter/node': 0.16.10
+      '@matter/protocol': 0.16.10
+      '@matter/types': 0.16.10
 
-  '@matter/protocol@0.16.8':
+  '@matter/protocol@0.16.10':
     dependencies:
-      '@matter/general': 0.16.8
-      '@matter/model': 0.16.8
-      '@matter/types': 0.16.8
+      '@matter/general': 0.16.10
+      '@matter/model': 0.16.10
+      '@matter/types': 0.16.10
 
-  '@matter/types@0.16.8':
+  '@matter/types@0.16.10':
     dependencies:
-      '@matter/general': 0.16.8
-      '@matter/model': 0.16.8
+      '@matter/general': 0.16.10
+      '@matter/model': 0.16.10
 
   '@mui/core-downloads-tracker@7.3.8': {}
 

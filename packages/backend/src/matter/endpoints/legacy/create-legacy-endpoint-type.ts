@@ -33,6 +33,7 @@ import { PumpEndpoint } from "./pump/index.js";
 import { RemoteDevice } from "./remote/index.js";
 import { SceneDevice } from "./scene/index.js";
 import { ScriptDevice } from "./script/index.js";
+import { InputSelectDevice, SelectDevice } from "./select/index.js";
 import { AirQualitySensorType } from "./sensor/devices/air-quality-sensor.js";
 import { BatterySensorType } from "./sensor/devices/battery-sensor.js";
 import { FlowSensorType } from "./sensor/devices/flow-sensor.js";
@@ -153,6 +154,8 @@ const deviceCtrs: Partial<
   button: ButtonDevice,
   automation: AutomationDevice,
   script: ScriptDevice,
+  select: SelectDevice,
+  input_select: InputSelectDevice,
   scene: SceneDevice,
   media_player: MediaPlayerDevice,
   humidifier: HumidifierDevice,
@@ -231,6 +234,7 @@ const matterDeviceTypeFactories: Partial<
     TvocSensorType.set({
       homeAssistantEntity: { entity: ha.entity, customName: ha.customName },
     }),
+  mode_select: SelectDevice,
   water_valve: ValveDevice,
   pump: PumpEndpoint,
   water_heater: WaterHeaterDevice,

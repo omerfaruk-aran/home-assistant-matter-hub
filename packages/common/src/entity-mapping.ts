@@ -19,6 +19,7 @@ export type MatterDeviceType =
   | "humidifier_dehumidifier"
   | "humidity_sensor"
   | "light_sensor"
+  | "mode_select"
   | "occupancy_sensor"
   | "on_off_light"
   | "on_off_plugin_unit"
@@ -160,6 +161,7 @@ export const matterDeviceTypeLabels: Record<MatterDeviceType, string> = {
   humidifier_dehumidifier: "Humidifier/Dehumidifier",
   humidity_sensor: "Humidity Sensor",
   light_sensor: "Light Sensor",
+  mode_select: "Mode Select",
   occupancy_sensor: "Occupancy Sensor",
   on_off_light: "On/Off Light",
   on_off_plugin_unit: "On/Off Plug-in Unit",
@@ -197,6 +199,7 @@ export const domainToDefaultMatterTypes: Partial<
   fan: ["air_purifier", "fan"],
   humidifier: ["humidifier_dehumidifier"],
   input_boolean: ["on_off_plugin_unit", "on_off_switch"],
+  input_select: ["mode_select"],
   input_button: ["generic_switch"],
   light: [
     "color_temperature_light",
@@ -217,6 +220,7 @@ export const domainToDefaultMatterTypes: Partial<
     "temperature_sensor",
     "tvoc_sensor",
   ],
+  select: ["mode_select"],
   switch: ["on_off_plugin_unit", "on_off_switch", "pump", "water_valve"],
   vacuum: ["robot_vacuum_cleaner"],
   valve: ["water_valve", "on_off_plugin_unit"],

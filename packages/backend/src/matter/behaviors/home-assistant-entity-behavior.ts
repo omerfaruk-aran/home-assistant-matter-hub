@@ -39,6 +39,14 @@ export class HomeAssistantEntityBehavior extends Behavior {
     const actions = this.env.get(HomeAssistantActions);
     actions.call(action, this.entityId);
   }
+
+  fireEvent(eventType: string, eventData?: Record<string, unknown>) {
+    const actions = this.env.get(HomeAssistantActions);
+    actions.fireEvent(eventType, {
+      entity_id: this.entityId,
+      ...eventData,
+    });
+  }
 }
 
 export namespace HomeAssistantEntityBehavior {

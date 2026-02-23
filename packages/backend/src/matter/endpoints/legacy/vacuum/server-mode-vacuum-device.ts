@@ -32,7 +32,7 @@ import { parseVacuumRooms } from "./utils/parse-vacuum-rooms.js";
  * Only clusters from the Matter RoboticVacuumCleaner device type (0x74) are included:
  * Required: Identify, RvcRunMode, RvcOperationalState
  * Optional: RvcCleanMode, ServiceArea
- * Additional: PowerSource (for battery info, commonly used)
+ * Additional: PowerSource (for battery info)
  *
  * The BasicInformation comes from the ServerNode itself, not the endpoint.
  */

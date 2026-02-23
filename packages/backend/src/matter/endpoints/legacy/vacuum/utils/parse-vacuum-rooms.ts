@@ -207,7 +207,7 @@ export function parseVacuumRooms(
 
 /**
  * Base mode value for room-specific cleaning modes.
- * Room modes start at 100 to avoid conflicts with standard modes (Idle=0, Cleaning=1).
+ * Room modes start at 100 to avoid conflicts with standard modes (Idle=1, Cleaning=2).
  */
 export const ROOM_MODE_BASE = 100;
 

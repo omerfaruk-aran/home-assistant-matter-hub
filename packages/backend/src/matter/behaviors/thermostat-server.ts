@@ -17,16 +17,19 @@ import RunningMode = Thermostat.ThermostatRunningMode;
 import type { ActionContext } from "@matter/main";
 import { transactionIsOffline } from "../../utils/transaction-is-offline.js";
 
-// Per-instance timers for deferred setpoint nudge.
-// When the device transitions to Off, a timer is scheduled to nudge the stored
-// setpoint by 1 centidegree after a short delay. This ensures the nudge arrives
-// in a SEPARATE DataReport from the systemMode=Off change, giving controllers
-// like Google Home time to process the Off confirmation before seeing the
-// setpoint change. The nudge guarantees that subsequent same-value setpoint
-// writes trigger $Changing (matter.js deduplicates identical attribute writes).
-// WeakMap ensures timers are garbage-collected when the behavior instance is disposed.
-const pendingNudgeTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
-const NUDGE_DELAY_MS = 2000;
+// Tracks entity IDs currently receiving a nudge write from update().
+// Prevents the nudge itself from triggering auto-resume in $Changing handlers.
+const nudgingSetpoints = new Set<string>();
+
+/**
+ * Nudge a setpoint by +1 centidegree (0.01°C) so that any controller write
+ * of the "real" value produces a value change and triggers $Changing.
+ * If already at the max limit, nudge -1 instead to stay within bounds.
+ */
+function nudgeSetpoint(value: number | undefined, maxLimit: number): number {
+  if (value == null) return 2000; // fallback 20°C
+  return value >= maxLimit ? value - 1 : value + 1;
+}
 
 // For dual-mode thermostats (heating + cooling), AutoMode is ENABLED so Apple Home
 // can offer Auto mode and dual setpoints. Without AutoMode, Apple Home loses Auto.
@@ -252,13 +255,6 @@ async function thermostatPostInitialize(self: any): Promise<void> {
     );
   }
   self.reactTo(homeAssistant.onChange, self.update);
-
-  // Auto-resume (#176): when device is OFF and a controller writes a setpoint,
-  // the $Changing handler detects systemMode==Off and sends a mode change to HA.
-  // To ensure $Changing fires even for same-value writes, update() schedules a
-  // deferred setpoint nudge (+1 centidegree) via setTimeout when going Off.
-  // The delay ensures the nudge arrives in a separate DataReport from the Off
-  // transition, preserving Google Home's voice confirmation.
 }
 
 export class ThermostatServerBase extends FullFeaturedBase {
@@ -283,6 +279,7 @@ export class ThermostatServerBase extends FullFeaturedBase {
       return;
     }
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+    const entityId = homeAssistant.entityId;
     const config = this.state.config;
 
     // When unavailable, keep last known values but report offline via BasicInformation.reachable
@@ -412,52 +409,40 @@ export class ThermostatServerBase extends FullFeaturedBase {
       systemMode === Thermostat.SystemMode.Auto
         ? { thermostatRunningMode: runningMode }
         : {}),
-      ...(this.features.heating
-        ? { occupiedHeatingSetpoint: clampedHeatingSetpoint }
-        : {}),
-      ...(this.features.cooling
-        ? { occupiedCoolingSetpoint: clampedCoolingSetpoint }
-        : {}),
     });
 
-    // Deferred setpoint nudge for auto-resume (#176).
-    // When the device is Off, nudge setpoints by 1 centidegree (0.01°C) so
-    // subsequent controller writes always differ from the stored value.
-    // matter.js deduplicates identical attribute writes — $Changing never fires
-    // for same-value writes, which would prevent auto-resume.
-    // The nudge is deferred via setTimeout so it arrives in a SEPARATE DataReport
-    // from the systemMode=Off change. This gives controllers time to process and
-    // confirm the Off transition before seeing the setpoint change.
-    if (systemMode !== Thermostat.SystemMode.Off) {
-      // Not off — cancel any pending nudge
-      const timer = pendingNudgeTimers.get(this);
-      if (timer) {
-        clearTimeout(timer);
-        pendingNudgeTimers.delete(this);
-      }
-    } else if (!pendingNudgeTimers.has(this)) {
-      // Just went Off and no nudge pending — schedule one
-      const timer = setTimeout(() => {
-        pendingNudgeTimers.delete(this);
-        try {
-          if (this.features.heating) {
-            const current = this.state.occupiedHeatingSetpoint;
-            const max = this.state.maxHeatSetpointLimit ?? 5000;
-            this.state.occupiedHeatingSetpoint =
-              current < max ? current + 1 : current - 1;
-          }
-          if (this.features.cooling) {
-            const current = this.state.occupiedCoolingSetpoint;
-            const max = this.state.maxCoolSetpointLimit ?? 5000;
-            this.state.occupiedCoolingSetpoint =
-              current < max ? current + 1 : current - 1;
-          }
-          logger.debug("Deferred setpoint nudge applied for auto-resume");
-        } catch {
-          // Behavior may have been disposed or endpoint deleted — ignore
-        }
-      }, NUDGE_DELAY_MS);
-      pendingNudgeTimers.set(this, timer);
+    // Setpoints are applied in a separate patch wrapped with the nudgingSetpoints
+    // guard. When Off, setpoints are nudged by +1 centidegree (0.01°C) so any
+    // controller write — even the "same" temperature — triggers $Changing for
+    // auto-resume (#176). The guard prevents the nudge itself from auto-resuming.
+    nudgingSetpoints.add(entityId);
+    try {
+      applyPatchState(this.state, {
+        ...(this.features.heating
+          ? {
+              occupiedHeatingSetpoint:
+                systemMode === Thermostat.SystemMode.Off
+                  ? nudgeSetpoint(
+                      clampedHeatingSetpoint,
+                      maxHeatLimit ?? WIDE_MAX,
+                    )
+                  : clampedHeatingSetpoint,
+            }
+          : {}),
+        ...(this.features.cooling
+          ? {
+              occupiedCoolingSetpoint:
+                systemMode === Thermostat.SystemMode.Off
+                  ? nudgeSetpoint(
+                      clampedCoolingSetpoint,
+                      maxCoolLimit ?? WIDE_MAX,
+                    )
+                  : clampedCoolingSetpoint,
+            }
+          : {}),
+      });
+    } finally {
+      nudgingSetpoints.delete(entityId);
     }
   }
 
@@ -537,20 +522,24 @@ export class ThermostatServerBase extends FullFeaturedBase {
         const isOff = currentMode === Thermostat.SystemMode.Off;
 
         if (isOff && this.features.heating) {
-          // Auto-resume: setting a temperature while off should turn on the device (#176).
-          // Controllers like Google Home expect "set to 20°C" to work even when off.
-          // Only resume from this handler if heating is allowed by controlSequenceOfOperation.
-          // For cooling-only devices, coolingSetpointChanging handles auto-resume instead.
-          // For dual-mode (CoolingAndHeating) devices, only THIS handler resumes to prevent
-          // dual-fire when matter.js deadband adjusts both setpoints simultaneously.
+          // Auto-resume (#176): controller wrote a heating setpoint while Off.
+          // The nudge in update() ensures $Changing fires even for same-value writes.
+          // Skip if this $Changing was caused by the nudge itself (not a controller write).
+          if (nudgingSetpoints.has(homeAssistant.entityId)) {
+            logger.debug(
+              `heatingSetpointChanging: skipping auto-resume - nudge write in progress`,
+            );
+            return;
+          }
           logger.info(
-            "heatingSetpointChanging: device is off, auto-switching to Heat mode",
+            `heatingSetpointChanging: auto-resume - switching to Heat (was Off)`,
           );
           const modeAction = config.setSystemMode(
             Thermostat.SystemMode.Heat,
             this.agent,
           );
           homeAssistant.callAction(modeAction);
+          // Proceed to forward the temperature to HA below.
         } else if (!isAutoMode && !isHeatingMode) {
           // In Auto mode: heating setpoint updates temperature (cooling setpoint is ignored)
           // In Heat mode: heating setpoint updates temperature
@@ -618,19 +607,24 @@ export class ThermostatServerBase extends FullFeaturedBase {
         const isOff = currentMode === Thermostat.SystemMode.Off;
 
         if (isOff && !this.features.heating && this.features.cooling) {
-          // Auto-resume for COOLING-ONLY devices (#176).
-          // For dual-mode devices (heating + cooling), heatingSetpointChanging handles
-          // auto-resume exclusively to prevent dual-fire: when matter.js enforces deadband
-          // (AutoMode), both setpoint handlers fire simultaneously — if both send mode
-          // changes, HA receives heat+cool in quick succession causing mode cycling.
+          // Auto-resume (#176): controller wrote a cooling setpoint while Off.
+          // The nudge in update() ensures $Changing fires even for same-value writes.
+          // Skip if this $Changing was caused by the nudge itself (not a controller write).
+          if (nudgingSetpoints.has(homeAssistant.entityId)) {
+            logger.debug(
+              `coolingSetpointChanging: skipping auto-resume - nudge write in progress`,
+            );
+            return;
+          }
           logger.info(
-            "coolingSetpointChanging: cooling-only device is off, auto-switching to Cool mode",
+            `coolingSetpointChanging: auto-resume - switching to Cool (was Off)`,
           );
-          const modeAction = this.state.config.setSystemMode(
+          const modeAction = config.setSystemMode(
             Thermostat.SystemMode.Cool,
             this.agent,
           );
           homeAssistant.callAction(modeAction);
+          // Proceed to forward the temperature to HA below.
         } else if (!isAutoMode && !isCoolingMode) {
           // In Auto mode: BOTH heating and cooling setpoint should update temperature (#71)
           // In Cool mode: cooling setpoint updates temperature

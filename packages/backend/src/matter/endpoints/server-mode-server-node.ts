@@ -42,6 +42,9 @@ export class ServerModeServerNode extends ServerNode {
         softwareVersion: bridgeData.basicInformation.softwareVersion,
         ...(bridgeData.countryCode ? { location: bridgeData.countryCode } : {}),
       },
+      subscriptions: {
+        persistenceEnabled: false,
+      },
     });
   }
 
@@ -57,6 +60,14 @@ export class ServerModeServerNode extends ServerNode {
     }
     this.deviceEndpoint = endpoint;
     await this.add(endpoint);
+  }
+
+  /**
+   * Clear the device reference after the endpoint has been deleted externally.
+   * Must be called before addDevice() when replacing the device endpoint.
+   */
+  clearDevice(): void {
+    this.deviceEndpoint = undefined;
   }
 
   async factoryReset(): Promise<void> {

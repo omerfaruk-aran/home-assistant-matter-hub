@@ -10,6 +10,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import MenuIcon from "@mui/icons-material/Menu";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import SettingsIcon from "@mui/icons-material/Settings";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
@@ -68,6 +69,7 @@ export const AppTopBar = () => {
       to: navigation.lockCredentials,
     },
     { label: "Filter Reference", icon: <LabelIcon />, to: navigation.labels },
+    { label: "Settings", icon: <SettingsIcon />, to: navigation.settings },
     {
       label: mode === "dark" ? "Light Mode" : "Dark Mode",
       icon: mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />,

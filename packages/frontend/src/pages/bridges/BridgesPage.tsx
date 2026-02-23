@@ -137,7 +137,7 @@ export const BridgesPage = () => {
               gap={1}
               paddingTop={{ xs: 1, sm: 0 }}
             >
-              {bridges.length > 1 && (
+              {bridges.length >= 1 && (
                 <>
                   <Button
                     onClick={() => handleBulkAction("start")}

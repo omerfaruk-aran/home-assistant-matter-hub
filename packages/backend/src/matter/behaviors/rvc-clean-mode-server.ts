@@ -1,4 +1,5 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import type { Agent } from "@matter/main";
 import { RvcCleanModeServer as Base } from "@matter/main/behaviors";
 import { ModeBase } from "@matter/main/clusters/mode-base";
@@ -6,6 +7,8 @@ import { RvcCleanMode } from "@matter/main/clusters/rvc-clean-mode";
 import { applyPatchState } from "../../utils/apply-patch-state.js";
 import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js";
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
+
+const logger = Logger.get("RvcCleanModeServerBase");
 
 export interface RvcCleanModeServerConfig {
   getCurrentMode: ValueGetter<number>;
@@ -76,12 +79,33 @@ class RvcCleanModeServerBase extends Base {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const { newMode } = request;
 
+    // Validate mode exists in supportedModes (matches matter.js base behavior)
+    if (
+      newMode !== this.state.currentMode &&
+      !this.state.supportedModes.some((m) => m.mode === newMode)
+    ) {
+      logger.warn(`changeToMode(${newMode}) rejected: unsupported mode`);
+      return {
+        status: ModeBase.ModeChangeStatus.UnsupportedMode,
+        statusText: `Unsupported mode: ${newMode}`,
+      };
+    }
+
+    const modeLabel = this.state.supportedModes.find((m) => m.mode === newMode);
+    logger.info(
+      `changeToMode(${newMode}) "${modeLabel?.label ?? "unknown"}" ` +
+        `for ${homeAssistant.entityId}`,
+    );
+
     this.pendingMode = newMode;
     this.pendingModeTimestamp = Date.now();
     this.state.currentMode = newMode;
 
     const action = this.state.config.setCleanMode(newMode, this.agent);
     if (action) {
+      logger.info(
+        `changeToMode: dispatching action ${action.action} → ${action.target ?? homeAssistant.entityId}`,
+      );
       homeAssistant.callAction(action);
     }
 
@@ -109,7 +133,7 @@ export function RvcCleanModeServer(
   const defaultModes: RvcCleanMode.ModeOption[] = [
     {
       label: "Vacuum",
-      mode: 0,
+      mode: 1,
       modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }],
     },
   ];
@@ -117,6 +141,6 @@ export function RvcCleanModeServer(
   return RvcCleanModeServerBase.set({
     config,
     supportedModes: initialState?.supportedModes ?? defaultModes,
-    currentMode: initialState?.currentMode ?? 0,
+    currentMode: initialState?.currentMode ?? 1,
   });
 }

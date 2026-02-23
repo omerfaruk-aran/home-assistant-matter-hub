@@ -13,6 +13,10 @@ import {
   type WindowCoveringConfig,
   WindowCoveringServer,
 } from "../../../../behaviors/window-covering-server.js";
+import {
+  adjustPositionForReading as adjustReading,
+  adjustPositionForWriting as adjustWriting,
+} from "./cover-position-utils.js";
 
 const logger = Logger.get("CoverWindowCoveringServer");
 
@@ -45,88 +49,24 @@ const usesMatterSemantics = (agent: Agent): boolean => {
 
 /**
  * Adjusts position when READING from HA to report to Matter controllers.
- * By default, inverts percentage (HA 80% open → Matter 20% = 80% closed).
- * With coverUseHomeAssistantPercentage flag, skips inversion for Alexa-friendly display.
- * With coverSwapOpenClose, FORCES inversion to fix Alexa open/close display.
+ * Delegates to the pure utility function for testability.
  */
 const adjustPositionForReading = (position: number, agent: Agent) => {
   const { featureFlags } = agent.env.get(BridgeDataProvider);
-  if (position == null) {
-    return null;
-  }
-  let percentValue = position;
-
-  // coverSwapOpenClose FORCES inversion for position reading (fixes Alexa display).
-  // This is handled separately because it inverts REGARDLESS of other flags.
-  // Regression fix: commit b88d9a1 incorrectly changed this to skip inversion.
-  if (featureFlags?.coverSwapOpenClose === true) {
-    percentValue = 100 - percentValue;
-    logger.debug(
-      `adjustPositionForReading: HA=${position}%, coverSwapOpenClose=true, result=${percentValue}% (forced inversion)`,
-    );
-    return percentValue;
-  }
-
-  // Skip inversion if:
-  // 1. User explicitly set coverDoNotInvertPercentage flag, OR
-  // 2. User set coverUseHomeAssistantPercentage for Alexa-friendly display, OR
-  // 3. Integration uses Matter-compatible semantics
-  const skipInversion =
-    featureFlags?.coverDoNotInvertPercentage === true ||
-    featureFlags?.coverUseHomeAssistantPercentage === true ||
-    usesMatterSemantics(agent);
-
-  logger.debug(
-    `adjustPositionForReading: HA=${position}%, flags={doNotInvert=${featureFlags?.coverDoNotInvertPercentage}, useHAPercent=${featureFlags?.coverUseHomeAssistantPercentage}}, skipInversion=${skipInversion}`,
-  );
-
-  if (!skipInversion) {
-    percentValue = 100 - percentValue;
-  }
-
-  logger.debug(
-    `adjustPositionForReading: result=${percentValue}% (inverted=${!skipInversion})`,
-  );
-
-  return percentValue;
+  const matterSem = usesMatterSemantics(agent);
+  const result = adjustReading(position, featureFlags, matterSem);
+  logger.debug(`adjustPositionForReading: HA=${position}%, result=${result}%`);
+  return result;
 };
 
 /**
  * Adjusts position when WRITING to HA from Matter controller commands.
- * By default, inverts percentage (Matter 80% closed → HA 20% open).
- * With coverUseHomeAssistantPercentage, also skips inversion so commands match display.
- * With coverSwapOpenClose, FORCES inversion to fix Alexa open/close commands.
+ * Delegates to the pure utility function for testability.
  */
 const adjustPositionForWriting = (position: number, agent: Agent) => {
   const { featureFlags } = agent.env.get(BridgeDataProvider);
-  if (position == null) {
-    return null;
-  }
-  let percentValue = position;
-
-  // coverSwapOpenClose FORCES inversion for position commands (fixes Alexa).
-  // Alexa sends position 100% for "close" which needs to become 0% in HA.
-  // Regression fix: commit b88d9a1 incorrectly changed this to skip inversion.
-  if (featureFlags?.coverSwapOpenClose === true) {
-    percentValue = 100 - percentValue;
-    logger.debug(
-      `adjustPositionForWriting: Matter=${position}%, coverSwapOpenClose=true, result=${percentValue}% (forced inversion)`,
-    );
-    return percentValue;
-  }
-
-  // Skip inversion for writing if:
-  // 1. User explicitly set coverDoNotInvertPercentage flag, OR
-  // 2. User set coverUseHomeAssistantPercentage (so commands match displayed %), OR
-  // 3. Integration uses Matter-compatible semantics
-  const skipInversion =
-    featureFlags?.coverDoNotInvertPercentage === true ||
-    featureFlags?.coverUseHomeAssistantPercentage === true ||
-    usesMatterSemantics(agent);
-  if (!skipInversion) {
-    percentValue = 100 - percentValue;
-  }
-  return percentValue;
+  const matterSem = usesMatterSemantics(agent);
+  return adjustWriting(position, featureFlags, matterSem);
 };
 
 /**

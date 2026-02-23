@@ -42,6 +42,10 @@ export class Bridge {
   // Key: entity_id, Value: JSON.stringify of entity.state
   private lastSyncedStates = new Map<string, string>();
 
+  // Session lifecycle diagnostic handler (non-destructive, logging only).
+  // biome-ignore lint/suspicious/noExplicitAny: matter.js internal types
+  private sessionDiagHandler?: (session: any, subscription: any) => void;
+
   get id() {
     return this.dataProvider.id;
   }
@@ -119,6 +123,17 @@ export class Bridge {
 
   async refreshDevices() {
     await this.endpointManager.refreshDevices();
+    // Prune stale entries from lastSyncedStates for entities that were removed
+    const currentEntityIds = new Set(
+      [...this.aggregator.parts].map(
+        (p) => (p as { entityId?: string }).entityId,
+      ),
+    );
+    for (const entityId of this.lastSyncedStates.keys()) {
+      if (!currentEntityIds.has(entityId)) {
+        this.lastSyncedStates.delete(entityId);
+      }
+    }
   }
 
   private setStatus(status: BridgeServerStatus) {
@@ -145,6 +160,7 @@ export class Bridge {
       await this.server.start();
       this.setStatus({ code: BridgeStatus.Running });
       this.startAutoForceSyncIfEnabled();
+      this.wireSessionDiagnostics();
       logMemoryUsage(this.log, "bridge running");
       diagnosticEventBus.emit("bridge_started", `Bridge started`, {
         bridgeId: this.id,
@@ -162,6 +178,7 @@ export class Bridge {
     code: BridgeStatus = BridgeStatus.Stopped,
     reason = "Manually stopped",
   ) {
+    this.unwireSessionDiagnostics();
     this.stopAutoForceSync();
     this.endpointManager.stopObserving();
     try {
@@ -201,6 +218,41 @@ export class Bridge {
     }, AUTO_FORCE_SYNC_INTERVAL_MS);
 
     this.log.info(`Force sync: every ${AUTO_FORCE_SYNC_INTERVAL_MS / 1000}s`);
+  }
+
+  private wireSessionDiagnostics() {
+    try {
+      const sessionManager = this.server.env.get(SessionManager);
+      this.sessionDiagHandler = (session: {
+        id: number;
+        peerNodeId: unknown;
+        subscriptions: { size: number };
+      }) => {
+        const sessions = [...sessionManager.sessions];
+        let totalSubs = 0;
+        for (const s of sessions) {
+          totalSubs += s.subscriptions.size;
+        }
+        this.log.info(
+          `Session ${session.id} (peer ${session.peerNodeId}): subscriptions=${session.subscriptions.size} | total: sessions=${sessions.length} subscriptions=${totalSubs}`,
+        );
+      };
+      sessionManager.subscriptionsChanged.on(this.sessionDiagHandler);
+    } catch {
+      // SessionManager not yet available
+    }
+  }
+
+  private unwireSessionDiagnostics() {
+    if (this.sessionDiagHandler) {
+      try {
+        const sessionManager = this.server.env.get(SessionManager);
+        sessionManager.subscriptionsChanged.off(this.sessionDiagHandler);
+      } catch {
+        // Already disposed
+      }
+      this.sessionDiagHandler = undefined;
+    }
   }
 
   private stopAutoForceSync() {

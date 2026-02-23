@@ -153,7 +153,6 @@ jobs:
           push: true
           channel: ${{ needs.release.outputs.release-channel }}
           dockerfile: ${{ matrix.dockerfile }}
-          node-version: ${{ needs.release.outputs.node-version }}
           package-version: ${{ needs.release.outputs.release-version }}
 
   publish-pages:

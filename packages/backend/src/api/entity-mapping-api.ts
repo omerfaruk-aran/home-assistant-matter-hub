@@ -36,6 +36,7 @@ export function entityMappingApi(
       filterLifeEntity: body.filterLifeEntity,
       cleaningModeEntity: body.cleaningModeEntity,
       humidityEntity: body.humidityEntity,
+      pressureEntity: body.pressureEntity,
       batteryEntity: body.batteryEntity,
       roomEntities: body.roomEntities,
       disableLockPin: body.disableLockPin,

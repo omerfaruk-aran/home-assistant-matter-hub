@@ -47,14 +47,13 @@ export const BridgeDetails = ({ bridge }: BridgeDetailsProps) => {
     <Grid container spacing={2}>
       {bridge.featureFlags?.vacuumOnOff && (
         <Grid size={{ xs: 12 }}>
-          <Alert severity="warning" icon={<WarningAmberIcon />}>
-            <AlertTitle>Vacuum OnOff Cluster Enabled</AlertTitle>
-            The <strong>vacuumOnOff</strong> feature flag adds a non-standard
-            OnOff cluster to robot vacuum endpoints. This may cause issues with{" "}
-            <strong>Apple Home</strong> (broken UI, "Updating" status) and{" "}
-            <strong>Google Home</strong> (unexpected cluster on device type
-            0x74). Only use this if you primarily control vacuums via{" "}
-            <strong>Alexa</strong>.
+          <Alert severity="info" icon={<WarningAmberIcon />}>
+            <AlertTitle>Vacuum OnOff Cluster Enabled (Alexa)</AlertTitle>
+            Alexa <strong>requires</strong> the OnOff cluster (PowerController)
+            to display robotic vacuums. Without it, the vacuum is commissioned
+            but never appears in the Alexa app. This may cause issues with{" "}
+            <strong>Apple Home</strong> and <strong>Google Home</strong> — only
+            use on Alexa-only vacuum bridges.
           </Alert>
         </Grid>
       )}

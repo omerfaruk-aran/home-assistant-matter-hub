@@ -170,6 +170,16 @@ const testEntities: Record<
     createEntity("alarm_control_panel.a1", "armed_away"),
   ],
   [HomeAssistantDomain.remote]: [createEntity("remote.r1", "on")],
+  [HomeAssistantDomain.select]: [
+    createEntity("select.mode1", "option_a", {
+      options: ["option_a", "option_b", "option_c"],
+    }),
+  ],
+  [HomeAssistantDomain.input_select]: [
+    createEntity("input_select.is1", "choice_1", {
+      options: ["choice_1", "choice_2", "choice_3"],
+    }),
+  ],
   [HomeAssistantDomain.water_heater]: [
     createEntity<WaterHeaterDeviceAttributes>("water_heater.wh1", "off", {
       min_temp: 30,

@@ -72,10 +72,20 @@ export class HomeAssistantActions extends Service {
         );
       },
     );
+    this.fireEvent("hamh_action", {
+      entity_id,
+      action,
+      data,
+      source: "matter_controller",
+    });
   }
 
   call(action: HomeAssistantAction, entityId: string) {
-    const key = `${entityId}-${action.action}`;
+    // Use the actual target entity for the debounce key so that actions
+    // targeting different entities (e.g. suction level vs cleaning mode)
+    // are debounced independently instead of being merged incorrectly.
+    const target = action.target ?? entityId;
+    const key = `${target}-${action.action}`;
     this.debounceContext.get(key, 100)({ ...action, entityId });
   }
 
@@ -182,6 +192,20 @@ export class HomeAssistantActions extends Service {
       circuitBreakerOpen: this.circuitBreaker.isOpen,
       lastSuccessMs: Date.now() - this.lastSuccessTime,
     };
+  }
+
+  fireEvent(eventType: string, eventData?: Record<string, unknown>): void {
+    const connection = this.client.connection;
+    connection
+      .sendMessagePromise({
+        type: "fire_event",
+        event_type: eventType,
+        event_data: eventData,
+      })
+      .catch((error) => {
+        const errorMsg = this.formatError(error);
+        this.log.warn(`Failed to fire event '${eventType}': ${errorMsg}`);
+      });
   }
 
   override async dispose(): Promise<void> {

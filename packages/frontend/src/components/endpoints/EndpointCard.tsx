@@ -5,18 +5,20 @@ import BatteryFullIcon from "@mui/icons-material/BatteryFull";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import EditIcon from "@mui/icons-material/Edit";
 import ErrorIcon from "@mui/icons-material/Error";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LinkIcon from "@mui/icons-material/Link";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
+import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { getEndpointName } from "./EndpointName";
 
 interface BasicInfo {
@@ -131,6 +133,23 @@ interface PowerSourceState {
   batChargeState?: number;
 }
 
+const formatClusterValue = (value: unknown): string => {
+  if (value === null || value === undefined) return "null";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string")
+    return value.length > 80 ? `${value.slice(0, 80)}…` : value;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    return `[${value.length} items]`;
+  }
+  if (typeof value === "object") {
+    const keys = Object.keys(value);
+    return keys.length === 0 ? "{}" : `{${keys.length} keys}`;
+  }
+  return String(value);
+};
+
 export interface EndpointCardProps {
   endpoint: EndpointData;
   bridgeName?: string;
@@ -203,6 +222,8 @@ export const EndpointCard = ({
   // batChargeState: 0=Unknown, 1=IsCharging, 2=IsAtFullCharge, 3=IsNotCharging
   const isCharging =
     powerSource?.batChargeState === 1 || powerSource?.batChargeState === 2;
+
+  const [expanded, setExpanded] = useState(false);
 
   const clusters = useMemo(() => {
     return Object.keys(endpoint.state).filter(
@@ -517,19 +538,37 @@ export const EndpointCard = ({
 
         {/* Clusters */}
         <Box>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: "block", mb: 0.5 }}
+          <Box
+            display="flex"
+            alignItems="center"
+            sx={{ cursor: "pointer" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
           >
-            Clusters ({clusters.length})
-          </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ flexGrow: 1 }}
+            >
+              Clusters ({clusters.length})
+            </Typography>
+            <ExpandMoreIcon
+              sx={{
+                fontSize: 16,
+                color: "text.secondary",
+                transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s",
+              }}
+            />
+          </Box>
           <Stack
             direction="row"
             spacing={0.5}
-            sx={{ flexWrap: "wrap", gap: 0.5 }}
+            sx={{ flexWrap: "wrap", gap: 0.5, mt: 0.5 }}
           >
-            {clusters.slice(0, 5).map((cluster) => (
+            {clusters.slice(0, expanded ? undefined : 5).map((cluster) => (
               <Chip
                 key={cluster}
                 label={cluster}
@@ -538,7 +577,7 @@ export const EndpointCard = ({
                 sx={{ fontSize: "0.7rem", height: 22 }}
               />
             ))}
-            {clusters.length > 5 && (
+            {!expanded && clusters.length > 5 && (
               <Chip
                 label={`+${clusters.length - 5} more`}
                 size="small"
@@ -548,6 +587,87 @@ export const EndpointCard = ({
             )}
           </Stack>
         </Box>
+
+        {/* Expanded: Cluster state details + HA entity info */}
+        <Collapse in={expanded}>
+          <Divider sx={{ my: 1 }} />
+
+          {/* HA Entity Info */}
+          {entityId && (
+            <Box sx={{ mb: 1 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mb: 0.5 }}
+              >
+                Home Assistant Entity
+              </Typography>
+              <Typography
+                variant="body2"
+                fontFamily="monospace"
+                fontSize="0.75rem"
+              >
+                State: {haState ?? "unknown"}
+              </Typography>
+              <Typography
+                variant="body2"
+                fontFamily="monospace"
+                fontSize="0.75rem"
+              >
+                Device Type: {endpoint.type.name} ({endpoint.type.id})
+              </Typography>
+              <Typography
+                variant="body2"
+                fontFamily="monospace"
+                fontSize="0.75rem"
+              >
+                Endpoint: {endpoint.endpoint ?? "N/A"}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Cluster State Details */}
+          {clusters.map((cluster) => {
+            const clusterState = (endpoint.state as Record<string, unknown>)[
+              cluster
+            ];
+            if (
+              !clusterState ||
+              typeof clusterState !== "object" ||
+              Object.keys(clusterState as object).length === 0
+            ) {
+              return null;
+            }
+            const entries = Object.entries(
+              clusterState as Record<string, unknown>,
+            ).filter(([k]) => !k.startsWith("__") && k !== "config");
+            if (entries.length === 0) return null;
+            return (
+              <Box key={cluster} sx={{ mb: 1 }}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  fontWeight={600}
+                  sx={{ display: "block", mb: 0.25 }}
+                >
+                  {cluster}
+                </Typography>
+                {entries.map(([key, value]) => (
+                  <Typography
+                    key={key}
+                    variant="body2"
+                    fontFamily="monospace"
+                    fontSize="0.7rem"
+                    color="text.secondary"
+                    noWrap
+                  >
+                    {key}: {formatClusterValue(value)}
+                  </Typography>
+                ))}
+              </Box>
+            );
+          })}
+        </Collapse>
       </CardContent>
     </Card>
   );

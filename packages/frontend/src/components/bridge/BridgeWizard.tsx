@@ -162,7 +162,16 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       const includes = template.filter.include;
       if (includes.length > 0) {
         setUseWildcard(false);
-        setEntityPattern(includes.map((m) => m.value).join(", "));
+        if (template.featureFlags?.serverMode) {
+          const patterns = includes.map((m) =>
+            m.type === HomeAssistantMatcherType.Domain
+              ? `${m.value}.*`
+              : m.value,
+          );
+          setEntityPattern(patterns.join(", "));
+        } else {
+          setEntityPattern(includes.map((m) => m.value).join(", "));
+        }
       }
       const excludes = template.filter.exclude;
       setExcludePattern(excludes.map((m) => m.value).join(", "));
@@ -197,7 +206,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       let includeMatchers: HomeAssistantMatcher[];
       let excludeMatchers: HomeAssistantMatcher[];
 
-      if (selectedTemplate) {
+      if (selectedTemplate && !currentBridge.serverMode) {
         // Use template filters directly
         includeMatchers = [...selectedTemplate.filter.include];
         excludeMatchers = [...selectedTemplate.filter.exclude];
@@ -394,6 +403,13 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
           ? `Filter is pre-configured from the "${selectedTemplate.name}" template. You can adjust it below.`
           : "Configure which entities should be included in this bridge."}
       </Typography>
+      {currentBridge.serverMode && (
+        <Alert severity="warning" sx={{ mt: 1, mb: 1 }}>
+          Server Mode requires exactly <strong>one</strong> entity. Change the
+          filter to match only your device (e.g., <code>vacuum.my_vacuum</code>
+          ).
+        </Alert>
+      )}
       {!selectedTemplate && (
         <FormControlLabel
           control={
@@ -408,12 +424,14 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       <TextField
         fullWidth
         label={
-          useWildcard && !selectedTemplate
-            ? "Include Pattern"
-            : "Entity Filters"
+          currentBridge.serverMode
+            ? "Entity ID"
+            : useWildcard && !selectedTemplate
+              ? "Include Pattern"
+              : "Entity Filters"
         }
         value={
-          selectedTemplate
+          selectedTemplate && !currentBridge.serverMode
             ? selectedTemplate.filter.include
                 .map((m) => `${m.type}:${m.value}`)
                 .join(", ")
@@ -427,13 +445,15 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
             : "light.living_room, switch.kitchen"
         }
         helperText={
-          selectedTemplate
-            ? "Pre-configured by template. Edit in the full editor after creation."
-            : useWildcard
-              ? "Use * for all, or patterns like light.*, switch.*"
-              : "Enter specific entity IDs separated by commas"
+          currentBridge.serverMode
+            ? "Server Mode supports only ONE device. Enter the exact entity ID (e.g., vacuum.my_vacuum)."
+            : selectedTemplate
+              ? "Pre-configured by template. Edit in the full editor after creation."
+              : useWildcard
+                ? "Use * for all, or patterns like light.*, switch.*"
+                : "Enter specific entity IDs separated by commas"
         }
-        disabled={!!selectedTemplate}
+        disabled={!!selectedTemplate && !currentBridge.serverMode}
       />
       {!selectedTemplate && (
         <TextField

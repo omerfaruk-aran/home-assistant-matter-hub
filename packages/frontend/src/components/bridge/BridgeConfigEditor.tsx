@@ -13,7 +13,7 @@ import Grid from "@mui/material/Grid";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { navigation } from "../../routes.tsx";
 import { FormEditor } from "../misc/editors/FormEditor";
 import { JsonEditor } from "../misc/editors/JsonEditor";
@@ -86,6 +86,51 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
     }));
   }, []);
 
+  const warnings = useMemo(() => {
+    const cfg = config as Partial<BridgeConfig> | undefined;
+    const flags = cfg?.featureFlags;
+    const result: { severity: "warning" | "error"; message: string }[] = [];
+
+    if (flags?.vacuumOnOff) {
+      result.push({
+        severity: "warning",
+        message:
+          "Vacuum OnOff is enabled. This adds a non-standard cluster to the RVC device type " +
+          "which may break Apple Home (shows 'Updating') and Google Home. Only use with Alexa.",
+      });
+    }
+
+    if (flags?.serverMode) {
+      result.push({
+        severity: "warning",
+        message:
+          "Server Mode is enabled. Only ONE device should be in this bridge. " +
+          "Multiple devices will cause errors.",
+      });
+    }
+
+    if (flags?.serverMode && flags?.vacuumOnOff) {
+      result.push({
+        severity: "warning",
+        message:
+          "Server Mode + Vacuum OnOff: This combination is required for Alexa " +
+          "(Alexa needs OnOff/PowerController on vacuums). " +
+          "If you also use Apple Home, the OnOff cluster may break its vacuum UI.",
+      });
+    }
+
+    if (flags?.autoForceSync && flags?.autoComposedDevices) {
+      result.push({
+        severity: "warning",
+        message:
+          "Auto Force Sync with Auto Composed Devices increases network traffic. " +
+          "Composed devices have more clusters, so each sync cycle sends more data.",
+      });
+    }
+
+    return result;
+  }, [config]);
+
   const saveAction = async () => {
     if (!isValid) {
       return;
@@ -112,6 +157,12 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
         If you experience connectivity issues, consider splitting your devices
         across multiple bridges.
       </Alert>
+
+      {warnings.map((w) => (
+        <Alert key={w.message} severity={w.severity} variant="outlined">
+          {w.message}
+        </Alert>
+      ))}
 
       <Stack spacing={2}>
         <Box display="flex" justifyContent={"flex-end"}>

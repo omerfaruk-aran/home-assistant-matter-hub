@@ -1,4 +1,5 @@
 import type { HomeAssistantEntityInformation } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import { DoorLockServer as Base } from "@matter/main/behaviors";
 import { DoorLock } from "@matter/main/clusters";
 import { StatusCode, StatusResponseError } from "@matter/main/types";
@@ -8,6 +9,8 @@ import { HomeAssistantEntityBehavior } from "./home-assistant-entity-behavior.js
 import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
 
 import LockState = DoorLock.LockState;
+
+const logger = Logger.get("LockServer");
 
 export interface LockServerConfig {
   getLockState: ValueGetter<LockState>;
@@ -224,8 +227,8 @@ class LockServerWithPinBase extends PinCredentialBase {
 
     // Log the lock request for debugging
     const hasPinProvided = !!request.pinCode;
-    console.log(
-      `[LockServer] lockDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}`,
+    logger.debug(
+      `lockDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}`,
     );
 
     // Lock does NOT require PIN validation - anyone can lock the door
@@ -245,14 +248,16 @@ class LockServerWithPinBase extends PinCredentialBase {
 
     // Log the unlock request for debugging
     const hasPinProvided = !!request.pinCode;
-    console.log(
-      `[LockServer] unlockDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}, requirePin: ${this.state.requirePinForRemoteOperation}`,
+    logger.debug(
+      `unlockDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}, requirePin: ${this.state.requirePinForRemoteOperation}`,
     );
 
     // Validate provided PIN against stored hashed PIN
     if (this.state.requirePinForRemoteOperation) {
       if (!request.pinCode) {
-        console.log(`[LockServer] unlockDoor REJECTED - no PIN provided`);
+        logger.info(
+          `unlockDoor REJECTED for ${homeAssistant.entityId} - no PIN provided`,
+        );
         throw new StatusResponseError(
           "PIN code required for remote unlock",
           StatusCode.Failure,
@@ -260,10 +265,12 @@ class LockServerWithPinBase extends PinCredentialBase {
       }
       const providedPin = new TextDecoder().decode(request.pinCode);
       if (!this.verifyStoredPin(homeAssistant.entityId, providedPin)) {
-        console.log(`[LockServer] unlockDoor REJECTED - invalid PIN`);
+        logger.info(
+          `unlockDoor REJECTED for ${homeAssistant.entityId} - invalid PIN`,
+        );
         throw new StatusResponseError("Invalid PIN code", StatusCode.Failure);
       }
-      console.log(`[LockServer] unlockDoor PIN verified successfully`);
+      logger.debug(`unlockDoor PIN verified for ${homeAssistant.entityId}`);
       // Pass the provided PIN to Home Assistant (for locks that require it)
       action.data = { ...action.data, code: providedPin };
     }
@@ -486,8 +493,8 @@ class LockServerWithPinAndUnboltBase extends PinCredentialUnboltBase {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
     const action = this.state.config.lock(void 0, this.agent);
     const hasPinProvided = !!request.pinCode;
-    console.log(
-      `[LockServer] lockDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}`,
+    logger.debug(
+      `lockDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}`,
     );
     if (request.pinCode) {
       const providedPin = new TextDecoder().decode(request.pinCode);
@@ -505,12 +512,14 @@ class LockServerWithPinAndUnboltBase extends PinCredentialUnboltBase {
       ? unlatchConfig(void 0, this.agent)
       : this.state.config.unlock(void 0, this.agent);
     const hasPinProvided = !!request.pinCode;
-    console.log(
-      `[LockServer] unlockDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}, requirePin: ${this.state.requirePinForRemoteOperation}, usingUnlatch: ${!!unlatchConfig}`,
+    logger.debug(
+      `unlockDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}, requirePin: ${this.state.requirePinForRemoteOperation}, usingUnlatch: ${!!unlatchConfig}`,
     );
     if (this.state.requirePinForRemoteOperation) {
       if (!request.pinCode) {
-        console.log(`[LockServer] unlockDoor REJECTED - no PIN provided`);
+        logger.info(
+          `unlockDoor REJECTED for ${homeAssistant.entityId} - no PIN provided`,
+        );
         throw new StatusResponseError(
           "PIN code required for remote unlock",
           StatusCode.Failure,
@@ -520,10 +529,12 @@ class LockServerWithPinAndUnboltBase extends PinCredentialUnboltBase {
       if (
         !verifyStoredPinHelper(this.env, homeAssistant.entityId, providedPin)
       ) {
-        console.log(`[LockServer] unlockDoor REJECTED - invalid PIN`);
+        logger.info(
+          `unlockDoor REJECTED for ${homeAssistant.entityId} - invalid PIN`,
+        );
         throw new StatusResponseError("Invalid PIN code", StatusCode.Failure);
       }
-      console.log(`[LockServer] unlockDoor PIN verified successfully`);
+      logger.debug(`unlockDoor PIN verified for ${homeAssistant.entityId}`);
       action.data = { ...action.data, code: providedPin };
     }
     homeAssistant.callAction(action);
@@ -540,12 +551,14 @@ class LockServerWithPinAndUnboltBase extends PinCredentialUnboltBase {
     }
     const action = unlatchConfig(void 0, this.agent);
     const hasPinProvided = !!request.pinCode;
-    console.log(
-      `[LockServer] unboltDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}, requirePin: ${this.state.requirePinForRemoteOperation}`,
+    logger.debug(
+      `unboltDoor called for ${homeAssistant.entityId}, PIN provided: ${hasPinProvided}, requirePin: ${this.state.requirePinForRemoteOperation}`,
     );
     if (this.state.requirePinForRemoteOperation) {
       if (!request.pinCode) {
-        console.log(`[LockServer] unboltDoor REJECTED - no PIN provided`);
+        logger.info(
+          `unboltDoor REJECTED for ${homeAssistant.entityId} - no PIN provided`,
+        );
         throw new StatusResponseError(
           "PIN code required for remote unlatch",
           StatusCode.Failure,
@@ -555,10 +568,12 @@ class LockServerWithPinAndUnboltBase extends PinCredentialUnboltBase {
       if (
         !verifyStoredPinHelper(this.env, homeAssistant.entityId, providedPin)
       ) {
-        console.log(`[LockServer] unboltDoor REJECTED - invalid PIN`);
+        logger.info(
+          `unboltDoor REJECTED for ${homeAssistant.entityId} - invalid PIN`,
+        );
         throw new StatusResponseError("Invalid PIN code", StatusCode.Failure);
       }
-      console.log(`[LockServer] unboltDoor PIN verified successfully`);
+      logger.debug(`unboltDoor PIN verified for ${homeAssistant.entityId}`);
       action.data = { ...action.data, code: providedPin };
     }
     homeAssistant.callAction(action);

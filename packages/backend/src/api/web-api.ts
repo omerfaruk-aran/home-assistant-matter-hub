@@ -9,6 +9,7 @@ import type { BridgeService } from "../services/bridges/bridge-service.js";
 import { DiagnosticService } from "../services/diagnostics/diagnostic-service.js";
 import type { HomeAssistantClient } from "../services/home-assistant/home-assistant-client.js";
 import type { HomeAssistantRegistry } from "../services/home-assistant/home-assistant-registry.js";
+import type { AppSettingsStorage } from "../services/storage/app-settings-storage.js";
 import type { BridgeStorage } from "../services/storage/bridge-storage.js";
 import type { EntityMappingStorage } from "../services/storage/entity-mapping-storage.js";
 import type { LockCredentialStorage } from "../services/storage/lock-credential-storage.js";
@@ -25,6 +26,7 @@ import { logsApi } from "./logs-api.js";
 import { matterApi } from "./matter-api.js";
 import { metricsApi } from "./metrics-api.js";
 import { supportIngress, supportProxyLocation } from "./proxy-support.js";
+import { settingsApi } from "./settings-api.js";
 import { systemApi } from "./system-api.js";
 import { webUi } from "./web-ui.js";
 import { WebSocketApi } from "./websocket-api.js";
@@ -59,6 +61,7 @@ export class WebApi extends Service {
     private readonly bridgeStorage: BridgeStorage,
     private readonly mappingStorage: EntityMappingStorage,
     private readonly lockCredentialStorage: LockCredentialStorage,
+    private readonly settingsStorage: AppSettingsStorage,
     private readonly props: WebApiProps,
   ) {
     super("WebApi");
@@ -96,6 +99,7 @@ export class WebApi extends Service {
       .use("/bridge-icons", bridgeIconApi(this.props.storageLocation))
       .use("/entity-mappings", entityMappingApi(this.mappingStorage))
       .use("/lock-credentials", lockCredentialApi(this.lockCredentialStorage))
+      .use("/settings", settingsApi(this.settingsStorage, this.props.auth))
       .use(
         "/backup",
         backupApi(
@@ -133,15 +137,11 @@ export class WebApi extends Service {
       supportProxyLocation,
     ];
 
+    middlewares.push(this.createDynamicAuthMiddleware());
     if (this.props.auth) {
-      middlewares.push(
-        basicAuth({
-          users: { [this.props.auth.username]: this.props.auth.password },
-          challenge: true,
-          realm: "Home Assistant Matter Hub",
-        }),
-      );
-      this.log.info("Basic authentication enabled");
+      this.log.info("Basic authentication enabled (environment variables)");
+    } else if (this.settingsStorage.auth) {
+      this.log.info("Basic authentication enabled (stored settings)");
     }
     if (this.props.whitelist && this.props.whitelist.length > 0) {
       middlewares.push(
@@ -174,6 +174,20 @@ export class WebApi extends Service {
         }
       });
     });
+  }
+
+  private createDynamicAuthMiddleware(): express.RequestHandler {
+    return (req, res, next) => {
+      const auth = this.props.auth ?? this.settingsStorage.auth;
+      if (!auth) {
+        return next();
+      }
+      return basicAuth({
+        users: { [auth.username]: auth.password },
+        challenge: true,
+        realm: "Home Assistant Matter Hub",
+      })(req, res, next);
+    };
   }
 
   async start() {

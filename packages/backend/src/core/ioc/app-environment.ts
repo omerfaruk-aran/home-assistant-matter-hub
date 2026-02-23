@@ -6,6 +6,7 @@ import { HomeAssistantActions } from "../../services/home-assistant/home-assista
 import { HomeAssistantClient } from "../../services/home-assistant/home-assistant-client.js";
 import { HomeAssistantConfig } from "../../services/home-assistant/home-assistant-config.js";
 import { HomeAssistantRegistry } from "../../services/home-assistant/home-assistant-registry.js";
+import { AppSettingsStorage } from "../../services/storage/app-settings-storage.js";
 import { AppStorage } from "../../services/storage/app-storage.js";
 import { BridgeStorage } from "../../services/storage/bridge-storage.js";
 import { EntityMappingStorage } from "../../services/storage/entity-mapping-storage.js";
@@ -52,6 +53,10 @@ export class AppEnvironment extends EnvironmentBase {
       LockCredentialStorage,
       new LockCredentialStorage(await this.load(AppStorage)),
     );
+    this.set(
+      AppSettingsStorage,
+      new AppSettingsStorage(await this.load(AppStorage)),
+    );
 
     this.set(
       HomeAssistantClient,
@@ -93,6 +98,7 @@ export class AppEnvironment extends EnvironmentBase {
         await this.load(BridgeStorage),
         await this.load(EntityMappingStorage),
         await this.load(LockCredentialStorage),
+        await this.load(AppSettingsStorage),
         this.options.webApi,
       ),
     );

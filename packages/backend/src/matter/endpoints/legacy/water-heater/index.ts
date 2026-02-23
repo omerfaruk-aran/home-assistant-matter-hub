@@ -1,4 +1,5 @@
 import type { WaterHeaterDeviceAttributes } from "@home-assistant-matter-hub/common";
+import { Logger } from "@matter/general";
 import type { EndpointType } from "@matter/main";
 import { ThermostatDevice } from "@matter/main/devices";
 import { BasicInformationServer } from "../../../behaviors/basic-information-server.js";
@@ -6,6 +7,8 @@ import { HomeAssistantEntityBehavior } from "../../../behaviors/home-assistant-e
 import { IdentifyServer } from "../../../behaviors/identify-server.js";
 import { ThermostatUiConfigServer } from "../../../behaviors/thermostat-ui-config-server.js";
 import { WaterHeaterThermostatServer } from "./behaviors/water-heater-thermostat-server.js";
+
+const logger = Logger.get("WaterHeaterDevice");
 
 const WaterHeaterDeviceType = ThermostatDevice.with(
   BasicInformationServer,
@@ -34,10 +37,8 @@ export function WaterHeaterDevice(
   const attributes = homeAssistantEntity.entity.state
     .attributes as WaterHeaterDeviceAttributes;
 
-  // Log for debugging
-  console.log(
-    `[WaterHeater] Creating device for ${homeAssistantEntity.entity.entity_id}`,
-    `min_temp=${attributes.min_temp}, max_temp=${attributes.max_temp}`,
+  logger.debug(
+    `Creating device for ${homeAssistantEntity.entity.entity_id}, min_temp=${attributes.min_temp}, max_temp=${attributes.max_temp}`,
   );
 
   // Water heaters (kettles, boilers) typically operate above 50°C.
