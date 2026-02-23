@@ -62,6 +62,14 @@ export class ServerModeServerNode extends ServerNode {
     await this.add(endpoint);
   }
 
+  /**
+   * Clear the device reference after the endpoint has been deleted externally.
+   * Must be called before addDevice() when replacing the device endpoint.
+   */
+  clearDevice(): void {
+    this.deviceEndpoint = undefined;
+  }
+
   async factoryReset(): Promise<void> {
     await this.cancel();
     await this.erase();

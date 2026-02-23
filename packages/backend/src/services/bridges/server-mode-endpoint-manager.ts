@@ -134,14 +134,19 @@ export class ServerModeEndpointManager extends Service {
       return;
     }
 
-    // Recreate endpoint if the mapping changed (e.g. device type override)
+    // Recreate endpoint if the entity or mapping changed
     const currentFp = this.computeMappingFingerprint(mapping);
     if (this.deviceEndpoint) {
-      if (currentFp === this.mappingFingerprint) {
+      const entityChanged = this.deviceEndpoint.entityId !== entityId;
+      if (!entityChanged && currentFp === this.mappingFingerprint) {
         this.log.debug(`Device endpoint already exists for ${entityId}`);
         return;
       }
-      this.log.info(`Mapping changed for ${entityId}, recreating endpoint`);
+      this.log.info(
+        entityChanged
+          ? `Entity changed from ${this.deviceEndpoint.entityId} to ${entityId}, recreating endpoint`
+          : `Mapping changed for ${entityId}, recreating endpoint`,
+      );
       try {
         await this.deviceEndpoint.delete();
       } catch (e) {
@@ -150,6 +155,7 @@ export class ServerModeEndpointManager extends Service {
           e,
         );
       }
+      this.serverNode.clearDevice();
       this.deviceEndpoint = undefined;
       this.mappingFingerprint = "";
     }
