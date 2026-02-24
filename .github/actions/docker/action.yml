@@ -34,18 +34,23 @@ runs:
 
         if [ "$DOCKER_TYPE" = "standalone" ]; then
           DOCKER_IMAGE="${DOCKER_IMAGE_BASENAME}"
+          # Standalone includes arm/v7 for legacy 32-bit ARM devices
+          PLATFORMS="linux/amd64,linux/arm64,linux/arm/v7"
         else
           DOCKER_IMAGE="${DOCKER_IMAGE_BASENAME}-$DOCKER_TYPE"
+          # Addon: only amd64+arm64 (HA is dropping armv7)
+          PLATFORMS="linux/amd64,linux/arm64"
         fi
         
         echo "dockertag=$DOCKER_IMAGE" >> "$GITHUB_OUTPUT" 
         echo "context=$CONTEXT" >> "$GITHUB_OUTPUT"
+        echo "platforms=$PLATFORMS" >> "$GITHUB_OUTPUT"
 
     - name: Build Docker image
       uses: docker/build-push-action@v6
       with:
         push: ${{inputs.push}}
-        platforms: linux/amd64,linux/arm64
+        platforms: ${{ steps.meta.outputs.platforms }}
         context: ${{ steps.meta.outputs.context }}
         file: ${{inputs.dockerfile}}
         build-args: |
