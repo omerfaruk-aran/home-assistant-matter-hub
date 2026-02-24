@@ -64,7 +64,7 @@ export class HomeAssistantActions extends Service {
     const skipTarget = calls[0].target === false;
     const entity_id = skipTarget
       ? undefined
-      : (calls[0].target || calls[0].entityId);
+      : calls[0].target || calls[0].entityId;
     const action = calls[0].action;
     const data = Object.assign({}, ...calls.map((c) => c.data));
     const [domain, actionName] = action.split(".");
