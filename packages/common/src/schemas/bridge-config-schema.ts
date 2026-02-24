@@ -227,11 +227,10 @@ const featureFlagSchema: JSONSchema7 = {
         "Add an OnOff cluster to robot vacuum endpoints. " +
         "Alexa REQUIRES this (PowerController) to show robotic vacuums in the app. " +
         "Without it, Alexa commissions the device but never displays it. " +
+        "In Server Mode this is enabled automatically — only check this for bridge mode. " +
         "WARNING: OnOff is NOT part of the Matter RVC device type specification. " +
-        "Enabling this may break Apple Home (shows 'Updating') and Google Home. " +
-        "Use with Server Mode for Alexa-only vacuum bridges.",
+        "Enabling this may break Apple Home (shows 'Updating') and Google Home.",
       type: "boolean",
-      default: false,
     },
   },
   additionalProperties: false,
