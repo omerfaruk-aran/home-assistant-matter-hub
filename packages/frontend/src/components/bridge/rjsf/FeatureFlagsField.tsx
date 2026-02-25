@@ -11,14 +11,21 @@ import type { JSONSchema7 } from "json-schema";
 import { useCallback } from "react";
 
 export function FeatureFlagsField(props: FieldProps) {
-  const { schema, formData = {}, onChange, disabled, readonly } = props;
+  const {
+    schema,
+    formData = {},
+    onChange,
+    disabled,
+    readonly,
+    fieldPathId,
+  } = props;
   const properties = (schema.properties ?? {}) as Record<string, JSONSchema7>;
 
   const handleToggle = useCallback(
     (key: string, checked: boolean) => {
-      onChange({ ...formData, [key]: checked }, []);
+      onChange({ ...formData, [key]: checked }, fieldPathId.path);
     },
-    [formData, onChange],
+    [formData, onChange, fieldPathId],
   );
 
   return (
