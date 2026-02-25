@@ -8,6 +8,7 @@ import { CommissioningServer } from "@matter/main/node";
 import { SessionManager } from "@matter/main/protocol";
 import type { LoggerService } from "../../core/app/logger.js";
 import { BridgeServerNode } from "../../matter/endpoints/bridge-server-node.js";
+import { ensureCommissioningConfig } from "../../utils/ensure-commissioning-config.js";
 import { logMemoryUsage } from "../../utils/log-memory.js";
 import { diagnosticEventBus } from "../diagnostics/diagnostic-event-bus.js";
 import type {
@@ -157,6 +158,7 @@ export class Bridge {
         `after refreshDevices (${this.aggregator.parts.size} endpoints)`,
       );
       this.endpointManager.startObserving();
+      ensureCommissioningConfig(this.server);
       await this.server.start();
       this.setStatus({ code: BridgeStatus.Running });
       this.startAutoForceSyncIfEnabled();
