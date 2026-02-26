@@ -319,20 +319,25 @@ export class ComposedSensorEndpoint extends Endpoint {
     const state = states[entityId];
     if (!state) return;
 
+    // Use endpoint-specific key: the parent and temp sub-endpoint share the
+    // same entityId, so a plain entityId key causes the sub-endpoint update
+    // to be de-duped after the parent already consumed the slot.
+    const key = endpoint === this ? `_parent_:${entityId}` : entityId;
+
     const stateJson = JSON.stringify({
       s: state.state,
       a: state.attributes,
     });
-    if (this.lastStates.get(entityId) === stateJson) return;
-    this.lastStates.set(entityId, stateJson);
+    if (this.lastStates.get(key) === stateJson) return;
+    this.lastStates.set(key, stateJson);
 
-    let debouncedFn = this.debouncedUpdates.get(entityId);
+    let debouncedFn = this.debouncedUpdates.get(key);
     if (!debouncedFn) {
       debouncedFn = debounce(
         (ep: Endpoint, s: HomeAssistantEntityState) => this.flushUpdate(ep, s),
         50,
       );
-      this.debouncedUpdates.set(entityId, debouncedFn);
+      this.debouncedUpdates.set(key, debouncedFn);
     }
     debouncedFn(endpoint, state);
   }
