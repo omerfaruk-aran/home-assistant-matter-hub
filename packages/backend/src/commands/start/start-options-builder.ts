@@ -67,7 +67,7 @@ export function startOptionsBuilder(yargs: Argv): Argv<StartOptions> {
       type: "number",
       description:
         "The refresh rate (in seconds) to detect new devices & entities or their configurations",
-      default: 30,
+      default: 60,
     })
     .option("http-auth-username", {
       type: "string",
