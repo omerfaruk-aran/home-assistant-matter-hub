@@ -216,8 +216,12 @@ const ServerModeRecommendation = ({
   const shouldShow = useMemo(() => {
     if (!devices) return false;
     if (bridge.featureFlags?.serverMode) return false;
-    return hasVacuumEndpoint(devices);
-  }, [devices, bridge.featureFlags?.serverMode]);
+    if (!hasVacuumEndpoint(devices)) return false;
+    const fabrics = bridge.commissioning?.fabrics ?? [];
+    if (fabrics.length === 0) return true;
+    const appleAlexaVendors = new Set([4937, 4631, 4448]);
+    return fabrics.some((f) => appleAlexaVendors.has(f.rootVendorId));
+  }, [devices, bridge.featureFlags?.serverMode, bridge.commissioning?.fabrics]);
 
   const isSingleDevice = useMemo(() => {
     if (!devices) return false;
