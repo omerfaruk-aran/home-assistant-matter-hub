@@ -20,11 +20,12 @@ import { Endpoint, type EndpointType } from "@matter/main";
 import { FixedLabelServer } from "@matter/main/behaviors";
 import type { FanControl } from "@matter/main/clusters";
 import {
-  AirPurifierDevice,
   HumiditySensorDevice,
   TemperatureSensorDevice,
   ThermostatDevice,
 } from "@matter/main/devices";
+import { BridgedNodeEndpoint } from "@matter/main/endpoints";
+import { DeviceTypeId } from "@matter/main/types";
 import debounce from "debounce";
 import type { BridgeRegistry } from "../../../services/bridges/bridge-registry.js";
 import { EntityStateProvider } from "../../../services/bridges/entity-state-provider.js";
@@ -297,13 +298,14 @@ export interface ComposedAirPurifierConfig {
 // --- Main class ---
 
 /**
- * A composed air purifier endpoint where the parent IS the AirPurifierDevice
- * (device type 0x002D) per Matter spec §9.4.4. Sensors and thermostat are
- * sub-endpoints. This ensures Apple Home shows a single Air Purifier tile
- * instead of separate tiles for each sub-device.
+ * A composed air purifier endpoint. The parent is a BridgedNodeEndpoint
+ * with BOTH BridgedNode (0x0013) and AirPurifierDevice (0x002D) in its
+ * deviceTypeList (Matter spec §9.4.4). BridgedNode is required for Apple
+ * Home to identify the root of the bridged composed device. AirPurifier
+ * tells controllers to render it as an air purifier.
  *
  * Structure:
- *   AirPurifierDevice (parent - fan control + basic info + optional battery)
+ *   BridgedNode + AirPurifier (parent - fan control + basic info + optional battery)
  *     ├── TemperatureSensorDevice (sub-endpoint, if mapped)
  *     ├── HumiditySensorDevice (sub-endpoint, if mapped)
  *     └── ThermostatDevice (sub-endpoint, if mapped)
@@ -357,10 +359,12 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       features.add("Wind");
     }
 
-    // Build parent type: AirPurifierDevice IS the parent (Matter spec §9.4.4).
-    // Sensors and thermostat are sub-endpoints, but the air purifier itself
-    // lives on the parent so Apple Home shows a single Air Purifier tile.
-    let parentType = AirPurifierDevice.with(
+    // Build parent type: BridgedNodeEndpoint with AirPurifierDevice type
+    // in the deviceTypeList (Matter spec §9.4.4). A bridged composed device
+    // root MUST have BridgedNode (0x0013) so controllers can identify the
+    // root endpoint. We also add AirPurifierDevice (0x002D) so Apple Home
+    // renders it as an air purifier tile.
+    let parentType = BridgedNodeEndpoint.with(
       BasicInformationServer,
       IdentifyServer,
       HomeAssistantEntityBehavior,
@@ -463,8 +467,16 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
       }
     }
 
-    // Create parent endpoint with sub-endpoints as parts
+    // Create parent endpoint with sub-endpoints as parts.
+    // Pre-set deviceTypeList with BOTH BridgedNode + AirPurifierDevice so
+    // Apple Home identifies the root AND renders the air purifier tile.
     const parentTypeWithState = parentType.set({
+      descriptor: {
+        deviceTypeList: [
+          { deviceType: DeviceTypeId(0x0013), revision: 3 },
+          { deviceType: DeviceTypeId(0x002d), revision: 2 },
+        ],
+      },
       homeAssistantEntity: {
         entity: primaryPayload,
         customName: config.customName,
@@ -512,7 +524,7 @@ export class ComposedAirPurifierEndpoint extends Endpoint {
   }
 
   async updateStates(states: HomeAssistantStates): Promise<void> {
-    // Update parent (AirPurifier fan control + BasicInfo reachable state, battery, etc.)
+    // Update parent (fan control + BasicInfo reachable state, battery, etc.)
     this.scheduleUpdate(this, this.entityId, states);
 
     // Update sub-endpoints with their own entity states
