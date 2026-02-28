@@ -35,7 +35,8 @@
         "assets": [
           { "path": "CHANGELOG.md", "label": "Release Changelog" },
           { "path": "CHANGELOG_FULL.md", "label": "Full Changelog" }
-        ]
+        ],
+        "successComment": false
       }
     ],
     [
