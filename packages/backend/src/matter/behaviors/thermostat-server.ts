@@ -219,13 +219,15 @@ function thermostatPreInitialize(self: any): void {
   }
 
   // Set initial controlSequenceOfOperation based on enabled features.
-  // Will be updated from HA entity's actual hvac_modes in update().
+  // CoolingAndHeating is only safe for AutoMode devices (HEAT+COOL+AUTO features).
+  // Non-AutoMode devices with both features use HeatingOnly as safe initial value;
+  // update() will set the correct dynamic value via internal override (#28).
   self.state.controlSequenceOfOperation =
-    self.features.cooling && self.features.heating
+    self.features.cooling && self.features.heating && self.features.autoMode
       ? Thermostat.ControlSequenceOfOperation.CoolingAndHeating
-      : self.features.cooling
-        ? Thermostat.ControlSequenceOfOperation.CoolingOnly
-        : Thermostat.ControlSequenceOfOperation.HeatingOnly;
+      : self.features.heating
+        ? Thermostat.ControlSequenceOfOperation.HeatingOnly
+        : Thermostat.ControlSequenceOfOperation.CoolingOnly;
 }
 
 /**

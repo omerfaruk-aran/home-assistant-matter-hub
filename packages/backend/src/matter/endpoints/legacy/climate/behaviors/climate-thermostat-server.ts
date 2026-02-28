@@ -221,7 +221,36 @@ const config: ThermostatServerConfig = {
         m === ClimateHvacMode.auto,
     );
     if (hasCooling && hasHeating) {
-      return Thermostat.ControlSequenceOfOperation.CoolingAndHeating;
+      // CoolingAndHeating only for devices with AutoMode (heat_cool + explicit
+      // heat or cool). Devices like SmartIR ACs with auto+cool but no explicit
+      // heat get dynamic CoolingOnly/HeatingOnly to avoid conformance errors
+      // and match the Matter spec for non-independent-switching devices (#28).
+      const hasAutoMode =
+        modes.includes(ClimateHvacMode.heat_cool) &&
+        (modes.includes(ClimateHvacMode.heat) ||
+          modes.includes(ClimateHvacMode.cool));
+      if (hasAutoMode) {
+        return Thermostat.ControlSequenceOfOperation.CoolingAndHeating;
+      }
+      // Explicit heat+cool without heat_cool: also safe for CoolingAndHeating
+      if (
+        modes.includes(ClimateHvacMode.heat) &&
+        modes.includes(ClimateHvacMode.cool)
+      ) {
+        return Thermostat.ControlSequenceOfOperation.CoolingAndHeating;
+      }
+      // Non-explicit: determine from current mode/action
+      const hvacMode = entity.state as ClimateHvacMode;
+      if (hvacMode === ClimateHvacMode.cool) {
+        return Thermostat.ControlSequenceOfOperation.CoolingOnly;
+      }
+      if (hvacMode === ClimateHvacMode.heat) {
+        return Thermostat.ControlSequenceOfOperation.HeatingOnly;
+      }
+      const direction = getHeatCoolOnlyDirection(entity, agent);
+      return direction === "cooling"
+        ? Thermostat.ControlSequenceOfOperation.CoolingOnly
+        : Thermostat.ControlSequenceOfOperation.HeatingOnly;
     }
     if (hasCooling) {
       return Thermostat.ControlSequenceOfOperation.CoolingOnly;
