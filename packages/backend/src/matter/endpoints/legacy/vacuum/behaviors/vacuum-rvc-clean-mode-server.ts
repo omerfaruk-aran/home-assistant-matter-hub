@@ -72,7 +72,7 @@ function buildSupportedModes(
   fanSpeedList?: string[],
   mopIntensityList?: string[],
   cleaningModeOptions?: string[],
-  customFanSpeedTags?: Record<string, string>
+  customFanSpeedTags?: Record<string, number>
 ): RvcCleanMode.ModeOption[] {
   const cleanTypes = resolveCleanTypes(cleaningModeOptions);
   const modes: RvcCleanMode.ModeOption[] = [
@@ -199,18 +199,9 @@ const FAN_TAG_PATTERNS: Array<{ pattern: RegExp; tag: number }> = [
   },
 ];
 
-function resolveCustomTag(tagString?: string): number | undefined {
-  if (tagString === "quiet") return RvcCleanMode.ModeTag.Quiet;
-  if (tagString === "auto") return RvcCleanMode.ModeTag.Auto;
-  if (tagString === "max") return RvcCleanMode.ModeTag.Max;
-  if (tagString === "deep_clean") return RvcCleanMode.ModeTag.DeepClean;
-  return undefined;
-}
-
-function getFanSpeedTag(name: string, customTags?: Record<string, string>): number | undefined {
+function getFanSpeedTag(name: string, customTags?: Record<string, number>): number | undefined {
   if (customTags && customTags[name]) {
-    const customTagId = resolveCustomTag(customTags[name]);
-    if (customTagId) return customTagId;
+    return customTags[name];
   }
 
   const s = name.toLowerCase().trim();
@@ -224,7 +215,7 @@ function formatFanSpeedLabel(name: string): string {
   return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function buildFanSpeedModes(fanSpeedList: string[], customTags?: Record<string, string>): RvcCleanMode.ModeOption[] {
+function buildFanSpeedModes(fanSpeedList: string[], customTags?: Record<string, number>): RvcCleanMode.ModeOption[] {
   // Assign intensity tags to ALL matching speeds so Apple Home
   // shows every recognized speed. Multiple speeds can share the
   // same tag — Apple Home distinguishes them by label.
@@ -477,7 +468,7 @@ function buildCleaningModeAction(
 function matchFanSpeedOption(
   name: string,
   availableOptions: string[] | undefined,
-  customTags?: Record<string, string>,
+  customTags?: Record<string, number>,
 ): string | undefined {
   if (!availableOptions || availableOptions.length === 0) return undefined;
   const s = name.toLowerCase();
@@ -545,7 +536,7 @@ function createCleanModeConfig(
   fanSpeedList?: string[],
   mopIntensityList?: string[],
   cleaningModeOptions?: string[],
-  customFanSpeedTags?: Record<string, string>
+  customFanSpeedTags?: Record<string, number>
 
 ) {
   const hasCleanTypes = !!cleaningModeOptions && cleaningModeOptions.length > 0;
@@ -826,7 +817,7 @@ export function createVacuumRvcCleanModeServer(
   fanSpeedList?: string[],
   mopIntensityList?: string[],
   cleaningModeOptions?: string[],
-  customFanSpeedTags?: Record<string, string>
+  customFanSpeedTags?: Record<string, number>
 
 ): ReturnType<typeof RvcCleanModeServer> {
   const supportedModes = buildSupportedModes(

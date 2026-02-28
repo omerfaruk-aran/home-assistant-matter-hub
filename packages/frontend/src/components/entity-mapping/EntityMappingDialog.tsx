@@ -1,7 +1,8 @@
-import type {
+import {
   CustomServiceArea,
   EntityMappingConfig,
   MatterDeviceType,
+  RvcCleanModeTag,
 } from "@home-assistant-matter-hub/common";
 import {
   domainToDefaultMatterTypes,
@@ -27,7 +28,7 @@ import Select from "@mui/material/Select";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { EntityAutocomplete } from "./EntityAutocomplete.tsx";
 
 interface RelatedButton {
@@ -77,7 +78,18 @@ export function EntityMappingDialog({
   const [loadingButtons, setLoadingButtons] = useState(false);
 
   const isNewMapping = !entityId;
-  const [customFanSpeedTagsList, setCustomFanSpeedTagsList] = useState<{option: string, tag: string}[]>([]);
+  const [customFanSpeedTagsList, setCustomFanSpeedTagsList] = useState<{option: string, tag: number}[]>([]);
+
+  const availableModeTags = useMemo(() => {
+    return Object.entries(RvcCleanModeTag)
+      .filter(([key, value]) => 
+        typeof value === "number" &&
+        value !== RvcCleanModeTag.Vacuum &&
+        value !== RvcCleanModeTag.Mop &&
+        value !== RvcCleanModeTag.VacuumThenMop
+      )
+      .map(([key, value]) => ({ label: key, value: value as number }));
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -99,7 +111,7 @@ export function EntityMappingDialog({
       setCustomServiceAreas(currentMapping?.customServiceAreas || []);
       setAvailableButtons([]);
       setCustomFanSpeedTagsList(
-        Object.entries(currentMapping?.customFanSpeedTags || {}).map(([option, tag]) => ({ option, tag }))
+        Object.entries(currentMapping?.customFanSpeedTags || {}).map(([option, tag]) => ({ option, tag: tag as number }))
       );
     }
   }, [open, entityId, currentMapping]);
@@ -139,7 +151,7 @@ export function EntityMappingDialog({
         acc[curr.option.trim()] = curr.tag;
       }
       return acc;
-    }, {} as Record<string, string>);
+    }, {} as Record<string, number>);
     onSave({
       entityId: editEntityId.trim(),
       matterDeviceType: matterDeviceType || undefined,
@@ -342,10 +354,11 @@ export function EntityMappingDialog({
                       setCustomFanSpeedTagsList(updated);
                     }}
                   >
-                    <MenuItem value="quiet">Quiet</MenuItem>
-                    <MenuItem value="auto">Auto</MenuItem>
-                    <MenuItem value="max">Max</MenuItem>
-                    <MenuItem value="deep_clean">Deep Clean</MenuItem>
+                    {availableModeTags.map((tag) => (
+                      <MenuItem key={tag.value} value={tag.value}>
+                        {tag.label}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
                 <IconButton size="small" color="error" onClick={() => {
@@ -358,7 +371,7 @@ export function EntityMappingDialog({
             <Button
               size="small"
               startIcon={<AddCircleOutlineIcon />}
-              onClick={() => setCustomFanSpeedTagsList([...customFanSpeedTagsList, { option: "", tag: "auto" }])}
+              onClick={() => setCustomFanSpeedTagsList([...customFanSpeedTagsList, { option: "", tag: RvcCleanModeTag.Auto }])}
             >
               Add Tag MApping
             </Button>
