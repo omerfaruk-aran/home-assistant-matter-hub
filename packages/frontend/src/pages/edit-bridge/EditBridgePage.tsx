@@ -28,11 +28,11 @@ export const EditBridgePage = () => {
     return {
       name: bridge.name,
       port: bridge.port,
-      countryCode: bridge.countryCode,
       filter: bridge.filter,
-      featureFlags: bridge.featureFlags,
-      icon: bridge.icon,
-      priority: bridge.priority,
+      ...(bridge.countryCode != null && { countryCode: bridge.countryCode }),
+      ...(bridge.featureFlags != null && { featureFlags: bridge.featureFlags }),
+      ...(bridge.icon != null && { icon: bridge.icon }),
+      ...(bridge.priority != null && { priority: bridge.priority }),
     };
   }, [isLoading, bridge]);
 

@@ -75,18 +75,24 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
   const onChange = (data: object | undefined, isValid: boolean) => {
     // Preserve the icon field when FormEditor/JsonEditor updates
     // since icon is managed separately by BridgeIconUpload
-    setConfig((prev) => ({
-      ...data,
-      icon: (prev as BridgeConfig)?.icon,
-    }));
+    const prevIcon = (prev: object | undefined) => (prev as BridgeConfig)?.icon;
+    setConfig((prev) => {
+      const icon = prevIcon(prev);
+      return icon != null ? { ...data, icon } : { ...data };
+    });
     setIsValid(isValid);
   };
 
   const handleIconChange = useCallback((icon: BridgeIconType | undefined) => {
-    setConfig((prev) => ({
-      ...prev,
-      icon,
-    }));
+    setConfig((prev) => {
+      if (icon != null) {
+        return { ...prev, icon };
+      }
+      const { icon: _, ...rest } = (prev ?? {}) as BridgeConfig & {
+        icon?: BridgeIconType;
+      };
+      return rest;
+    });
   }, []);
 
   const warnings = useMemo(() => {
