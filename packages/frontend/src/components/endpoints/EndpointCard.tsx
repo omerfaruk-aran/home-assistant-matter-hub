@@ -18,6 +18,7 @@ import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import { useTheme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -104,20 +105,34 @@ const getDeviceIcon = (deviceType: string): string => {
   return "📱";
 };
 
-const getDeviceColor = (deviceType: string): string => {
+const getDeviceColor = (deviceType: string, isDark: boolean): string => {
   const type = deviceType.toLowerCase();
-  if (type.includes("light")) return "#FFD700";
-  if (type.includes("switch") || type.includes("plugin")) return "#4CAF50";
-  if (type.includes("lock")) return "#2196F3";
-  if (type.includes("thermostat")) return "#FF5722";
-  if (type.includes("temperature")) return "#FF5722";
-  if (type.includes("humidity")) return "#03A9F4";
-  if (type.includes("sensor")) return "#9C27B0";
-  if (type.includes("fan")) return "#00BCD4";
-  if (type.includes("cover") || type.includes("window")) return "#795548";
-  if (type.includes("contact")) return "#607D8B";
-  if (type.includes("occupancy")) return "#E91E63";
-  return "#757575";
+  if (isDark) {
+    if (type.includes("light")) return "#FFE082";
+    if (type.includes("switch") || type.includes("plugin")) return "#81C784";
+    if (type.includes("lock")) return "#64B5F6";
+    if (type.includes("thermostat")) return "#FF8A65";
+    if (type.includes("temperature")) return "#FF8A65";
+    if (type.includes("humidity")) return "#4FC3F7";
+    if (type.includes("sensor")) return "#CE93D8";
+    if (type.includes("fan")) return "#4DD0E1";
+    if (type.includes("cover") || type.includes("window")) return "#A1887F";
+    if (type.includes("contact")) return "#90A4AE";
+    if (type.includes("occupancy")) return "#F48FB1";
+    return "#BDBDBD";
+  }
+  if (type.includes("light")) return "#F9A825";
+  if (type.includes("switch") || type.includes("plugin")) return "#388E3C";
+  if (type.includes("lock")) return "#1976D2";
+  if (type.includes("thermostat")) return "#E64A19";
+  if (type.includes("temperature")) return "#E64A19";
+  if (type.includes("humidity")) return "#0288D1";
+  if (type.includes("sensor")) return "#7B1FA2";
+  if (type.includes("fan")) return "#00838F";
+  if (type.includes("cover") || type.includes("window")) return "#5D4037";
+  if (type.includes("contact")) return "#455A64";
+  if (type.includes("occupancy")) return "#C2185B";
+  return "#616161";
 };
 
 interface HomeAssistantEntityState {
@@ -177,6 +192,8 @@ export const EndpointCard = ({
   imageInfo,
   onImageChanged,
 }: EndpointCardProps) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const name = getEndpointName(endpoint.state) ?? endpoint.id.local;
   const deviceType = endpoint.type.name;
 
@@ -471,7 +488,7 @@ export const EndpointCard = ({
               width: 56,
               height: 56,
               borderRadius: 2,
-              backgroundColor: `${getDeviceColor(deviceType)}20`,
+              backgroundColor: `${getDeviceColor(deviceType, isDark)}20`,
               overflow: "hidden",
               flexShrink: 0,
             }}
@@ -580,8 +597,8 @@ export const EndpointCard = ({
                 label={deviceType}
                 size="small"
                 sx={{
-                  backgroundColor: `${getDeviceColor(deviceType)}20`,
-                  color: getDeviceColor(deviceType),
+                  backgroundColor: `${getDeviceColor(deviceType, isDark)}20`,
+                  color: getDeviceColor(deviceType, isDark),
                   fontWeight: 500,
                 }}
               />

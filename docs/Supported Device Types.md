@@ -6,26 +6,27 @@ This document provides comprehensive information about all device types supporte
 
 ## Quick Reference
 
-| Home Assistant Domain | Matter Device Type | Apple Home | Google Home | Alexa |
-|-----------------------|-------------------|:----------:|:-----------:|:-----:|
-| `light` | Light (various) | | | |
-| `switch` | On/Off Plug-in Unit | | | |
-| `lock` | Door Lock | | | |
-| `cover` | Window Covering | | | |
-| `climate` | Thermostat | | | |
-| `fan` | Fan | | | |
-| `sensor` | Various Sensors | | | |
-| `binary_sensor` | Various Sensors | | | |
-| `media_player` | Speaker | | | |
-| `valve` | Water Valve | | | |
-| `vacuum` | Robotic Vacuum | | | |
-| `water_heater` | Thermostat (Heating) | | | |
-| `select`, `input_select` | Mode Select | | | |
-| `alarm_control_panel` | Mode Select | | | |
-| `event` | Generic Switch | | | |
-| `humidifier` | On/Off Plug-in Unit | | | |
+| Home Assistant Domain | Matter Device Type |
+|-----------------------|-------------------|
+| `light` | Light (OnOff / Dimmable / Color Temperature / Extended Color) |
+| `switch`, `input_boolean` | On/Off Plug-in Unit |
+| `lock` | Door Lock |
+| `cover` | Window Covering |
+| `climate` | Thermostat |
+| `fan` | Fan |
+| `sensor` | Temperature / Humidity / Pressure / Flow / Illuminance / Air Quality |
+| `binary_sensor` | Contact / Occupancy / Smoke/CO / OnOff Sensor |
+| `media_player` | Speaker |
+| `valve` | Water Valve |
+| `vacuum` | Robotic Vacuum Cleaner |
+| `water_heater` | Thermostat (Heating) |
+| `select`, `input_select` | Mode Select |
+| `alarm_control_panel` | Mode Select |
+| `event` | Generic Switch |
+| `humidifier` | On/Off Plug-in Unit |
 
-**Legend:** | Full Support | | Partial/Limited | | Not Supported
+> [!NOTE]
+> Controller compatibility varies by device type and firmware version. Not all controllers support all Matter device types. Check the official documentation below for current support status.
 
 ---
 

@@ -113,11 +113,7 @@ Bridge server nodes are configured using `createBridgeServerConfig`, which sets 
 
 ## REST API
 
-Exposed via Express (`matterApi`):
-- `/bridges` (GET, POST): List/create bridges
-- `/bridges/:bridgeId` (GET, PUT, DELETE): Get/update/delete bridge
-- `/bridges/:bridgeId/devices` (GET): List devices for a bridge
-- `/bridges/:bridgeId/actions/factory-reset` (POST): Factory reset bridge
+The backend exposes a comprehensive REST API via Express for bridge management, entity mappings, diagnostics, backups, and more. For the full list of endpoints, request/response formats, and WebSocket message types, see the [API Reference](../Guides/API%20Reference.md).
 
 ---
 

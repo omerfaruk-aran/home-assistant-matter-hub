@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { Logger } from "@matter/general";
 import {
   type Connection,
   type Context,
@@ -8,6 +9,8 @@ import {
 } from "home-assistant-js-websocket";
 import type { Store } from "home-assistant-js-websocket/dist/store.js";
 import { atLeastHaVersion } from "home-assistant-js-websocket/dist/util.js";
+
+const logger = Logger.get("SubscribeEntities");
 
 // COPIED FROM home-assistant-js-websocket/lib/entities.ts
 
@@ -79,7 +82,7 @@ function processEvent(store: Store<HassEntities>, updates: StatesUpdates) {
       let entityState = state[entityId];
 
       if (!entityState) {
-        console.warn("Received state update for unknown entity", entityId);
+        logger.warn("Received state update for unknown entity", entityId);
         continue;
       }
 

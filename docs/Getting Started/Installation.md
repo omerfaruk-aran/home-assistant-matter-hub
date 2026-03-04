@@ -117,7 +117,7 @@ home-assistant-matter-hub start \
 ```
 
 The application will store its data in `$HOME/.home-assistant-matter-hub`. You can configure the storage path by
-using the `--storage-location=/path/to/storage` option or `HAMH_STORAGE_STORAGE` environment variable.
+using the `--storage-location=/path/to/storage` option or `HAMH_STORAGE_LOCATION` environment variable.
 
 See 2.3 for more configuration options.
 

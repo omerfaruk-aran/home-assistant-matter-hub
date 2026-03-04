@@ -16,10 +16,11 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select, { type SelectChangeEvent } from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
+import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface LogEntry {
   timestamp: string;
@@ -33,13 +34,6 @@ interface LogViewerProps {
   onClose: () => void;
 }
 
-const levelColors = {
-  error: "#d32f2f",
-  warn: "#ed6c02",
-  info: "#0288d1",
-  debug: "#7b1fa2",
-};
-
 const levelIcons = {
   error: ErrorIcon,
   warn: WarningIcon,
@@ -48,6 +42,16 @@ const levelIcons = {
 };
 
 export const LogViewer = ({ open, onClose }: LogViewerProps) => {
+  const theme = useTheme();
+  const levelColors = useMemo(
+    () => ({
+      error: theme.palette.error.main,
+      warn: theme.palette.warning.main,
+      info: theme.palette.info.main,
+      debug: theme.palette.secondary.main,
+    }),
+    [theme],
+  );
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [level, setLevel] = useState<string[]>("error,warn,info".split(","));
@@ -244,7 +248,10 @@ export const LogViewer = ({ open, onClose }: LogViewerProps) => {
                       sx={{
                         backgroundColor:
                           levelColors[log.level as keyof typeof levelColors],
-                        color: "white",
+                        color: theme.palette.getContrastText(
+                          levelColors[log.level as keyof typeof levelColors] ??
+                            theme.palette.grey[500],
+                        ),
                         fontSize: "0.7rem",
                         height: 20,
                       }}

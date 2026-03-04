@@ -1,5 +1,11 @@
 # Using a reverse proxy
 
+## WebSocket Support
+
+HAMH uses WebSocket connections for real-time bridge status updates and live diagnostics. Your reverse proxy **must** forward WebSocket upgrade requests, otherwise the UI will not receive live updates.
+
+All nginx examples below include the required WebSocket headers.
+
 ## Running on its own domain
 
 If you run the application on its own domain (e.g. `matter.example.org`), there is no special configuration needed.
@@ -8,6 +14,9 @@ For `nginx` you could use a config as easy as this:
 ```nginx
 location / {
     proxy_pass http://192.168.178.23:8482/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
 }
 ```
 
@@ -29,6 +38,9 @@ location /hamh/ {
     # otherwise nginx will not remove the "hamh" prefix
     proxy_pass http://192.168.178.23:8482/;
     proxy_set_header x-ingress-path hamh;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
 }
 ```
 
@@ -43,5 +55,8 @@ location /hamh/ {
     # the missing trailing slash will configure nginx to NOT remove the prefix
     proxy_pass http://192.168.178.23:8482;
     proxy_set_header x-forwarded-prefix hamh;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
 }
 ```

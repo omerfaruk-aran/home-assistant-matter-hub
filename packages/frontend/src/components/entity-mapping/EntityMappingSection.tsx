@@ -5,6 +5,7 @@ import type {
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import SettingsIcon from "@mui/icons-material/Settings";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
@@ -33,6 +34,7 @@ interface EntityMappingSectionProps {
 export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
   const [mappings, setMappings] = useState<EntityMappingResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntity, setEditingEntity] = useState<{
     entityId: string;
@@ -44,8 +46,9 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
     try {
       const data = await fetchEntityMappings(bridgeId);
       setMappings(data);
+      setError(null);
     } catch {
-      console.error("Failed to load entity mappings");
+      setError("Failed to load entity mappings");
     } finally {
       setLoading(false);
     }
@@ -75,7 +78,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
         await deleteEntityMapping(bridgeId, entityId);
         await loadMappings();
       } catch {
-        console.error("Failed to delete entity mapping");
+        setError("Failed to delete entity mapping");
       }
     },
     [bridgeId, loadMappings],
@@ -90,7 +93,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
         setEditingEntity(null);
         await loadMappings();
       } catch {
-        console.error("Failed to save entity mapping");
+        setError("Failed to save entity mapping");
       }
     },
     [bridgeId, loadMappings],
@@ -121,6 +124,12 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
             Add Mapping
           </Button>
         </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
         {loading && <Typography color="text.secondary">Loading...</Typography>}
 

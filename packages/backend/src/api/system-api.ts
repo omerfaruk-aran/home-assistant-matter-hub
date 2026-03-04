@@ -2,9 +2,11 @@ import { exec } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
 import v8 from "node:v8";
+import { Logger } from "@matter/general";
 import express from "express";
 
 const execAsync = promisify(exec);
+const logger = Logger.get("SystemApi");
 
 export interface NetworkInterface {
   name: string;
@@ -127,7 +129,7 @@ export function systemApi(version: string): express.Router {
 
       res.json(systemInfo);
     } catch (error) {
-      console.error("Failed to get system info:", error);
+      logger.error("Failed to get system info:", error);
       res.status(500).json({ error: "Failed to get system info" });
     }
   });
@@ -189,7 +191,7 @@ async function getStorageInfo(): Promise<{
       return await getUnixStorageInfo(pathToCheck);
     }
   } catch (error) {
-    console.error("Failed to get storage info:", error);
+    logger.error("Failed to get storage info:", error);
     return { total: 0, used: 0, free: 0 };
   }
 }

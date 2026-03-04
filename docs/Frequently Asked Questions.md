@@ -110,7 +110,7 @@ Configure these in your Bridge Settings → Feature Flags. See [#107](https://gi
 
 ## Battery shows as a separate device instead of being part of the sensor
 
-HAMH has **Auto Battery Mapping** enabled by default. It automatically finds battery sensors on the same HA device and combines them with the primary sensor (temperature, climate, fan, vacuum). If it still shows separately:
+HAMH has **Auto Battery Mapping** which automatically finds battery sensors on the same HA device and combines them with the primary sensor (temperature, climate, fan, vacuum). This feature is **disabled by default**. If batteries show separately:
 
 1. Check that the battery entity belongs to the same HA *device* as the primary entity
 2. Make sure `autoBatteryMapping` is enabled in your Bridge Settings → Feature Flags
