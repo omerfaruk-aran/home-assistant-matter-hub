@@ -289,7 +289,7 @@ export const DashboardPage = () => {
 
   const fetchHealth = useCallback(async () => {
     try {
-      const res = await fetch("/api/health/detailed");
+      const res = await fetch("api/health/detailed");
       if (res.ok) {
         setHealth(await res.json());
       }
