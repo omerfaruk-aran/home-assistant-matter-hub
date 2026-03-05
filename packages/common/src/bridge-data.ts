@@ -25,7 +25,7 @@ interface AllBridgeFeatureFlags {
    * Auto Humidity Mapping: Automatically combine humidity sensors with temperature sensors
    * from the same Home Assistant device. When enabled, humidity sensors will be merged into
    * temperature sensors to create combined TemperatureHumiditySensor devices.
-   * Default: true (enabled)
+   * Default: false (disabled)
    */
   readonly autoHumidityMapping: boolean;
   /**

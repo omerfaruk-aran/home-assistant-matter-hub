@@ -205,7 +205,7 @@ Fixed in v2.0.27. Devices with only `heat_cool` mode (no explicit `heat` or `coo
 
 ## What's the difference between Stable and Alpha?
 
-- **Stable** (v2.0.28): Production-ready, recommended for daily use
+- **Stable** (v2.0.29): Production-ready, recommended for daily use
 - **Alpha**: New features for testing, may contain bugs
 
 See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for details on alpha features.
@@ -223,7 +223,7 @@ When reporting Alpha issues, include:
 Since v2.0.24, thermostats support **auto-resume** — when off and you set a temperature (even the same one), it automatically turns on. This works with all voice assistants.
 
 If not working:
-- Update to v2.0.28+
+- Update to v2.0.29+
 - Only works for single-temp mode (not range/auto)
 - Thermostat must be in "Off" state
 

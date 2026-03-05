@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.28 | Production-ready, recommended for most users |
+| **Stable** | `main` | v2.0.29 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -52,9 +52,18 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.0.28)</strong> - Click to expand</summary>
+<summary><strong>📦 Stable Features (v2.0.29)</strong> - Click to expand</summary>
 
-**New in v2.0.28:**
+**New in v2.0.29:**
+
+| Feature | Description |
+|---------|-------------|
+| **💡 Light currentLevel Fix** | Retain light currentLevel when off to prevent Apple Home 100% brightness on turn-on ([#225](https://github.com/RiDDiX/home-assistant-matter-hub/issues/225)) |
+| **🖥️ Bridge Config Save Fix** | Decouple save button from RJSF schema validation errors — save works even with optional field warnings ([#232](https://github.com/RiDDiX/home-assistant-matter-hub/issues/232)) |
+| **🌀 Fan Device Feature Fix** | Correct FanDeviceFeature TURN_ON/TURN_OFF enum values to match Home Assistant |
+| **🌡️ Humidity Auto-Mapping Fix** | Correct autoHumidityMapping schema default to match runtime behavior |
+
+**Previously in v2.0.28:**
 
 | Feature | Description |
 |---------|-------------|
@@ -66,30 +75,13 @@ of port forwarding etc.
 | **💡 Light Brightness Fix** | Prevent brightness reset on turn-on by setting onLevel to null ([#225](https://github.com/RiDDiX/home-assistant-matter-hub/issues/225)) |
 | **🌀 Fan Speed Fixes** | speedMax cap raised from 10 to 100 (Matter spec max), retain speed when off ([#225](https://github.com/RiDDiX/home-assistant-matter-hub/issues/225)) |
 | **🌡️ Composed Air Purifier Fix** | Flatten to single endpoint for correct Apple Home primary tile ([#218](https://github.com/RiDDiX/home-assistant-matter-hub/issues/218)) |
-| **🤖 Dreame Multi-Floor Fix** | Switch floor map before vacuum_clean_segment for multi-floor rooms |
-| **🤖 Custom Service Areas Fix** | Register as RvcRunMode room modes for Apple Home zone dispatch |
-| **⚡ Optimistic State Updates** | Level and color control commands respond immediately |
-| **�️ Frontend Improvements** | Error boundary, 404 page, WCAG contrast, theme-aware UI, HA ingress compatibility |
-
-**Previously in v2.0.27:**
-
-| Feature | Description |
-|---------|-------------|
-| **🤖 Native Valetudo Support** | Auto-detect Valetudo select entities, map segments, use `segment_cleanup` via MQTT for room cleaning ([#205](https://github.com/RiDDiX/home-assistant-matter-hub/issues/205)) |
-| **🤖 Custom Service Areas** | Define custom room/zone names for generic zone-based robots without native room support ([#177](https://github.com/RiDDiX/home-assistant-matter-hub/issues/177)) |
-| **🚨 Alarm Control Panel** | `alarm_control_panel` entities exposed as Matter ModeSelect — arm/disarm modes available in controllers ([#209](https://github.com/RiDDiX/home-assistant-matter-hub/issues/209)) |
-| **🌡️ Composed Air Purifier** | Air purifiers with thermostat/humidity sensors create real Matter Composed Devices (spec 9.4.4) |
-| **🏢 Vendor Brand Icons** | 20+ new manufacturer icons (Razer, Roborock, iRobot, Signify, and more) |
-| **� linux/arm/v7 Docker** | Added ARM v7 platform for standalone Docker image |
-| **🌡️ Thermostat Fixes** | heat_cool-only zones, SmartIR AC conformance fix ([#207](https://github.com/RiDDiX/home-assistant-matter-hub/issues/207), [#28](https://github.com/RiDDiX/home-assistant-matter-hub/issues/28)) |
-| **🔧 Air Purifier Fix** | Added Rocking (oscillation) and Wind feature support, removed incorrect Lighting feature |
 
 </details>
 
 <details>
 <summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
-**Alpha is currently in sync with Stable (v2.0.28).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
+**Alpha is currently in sync with Stable (v2.0.29).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 </details>
 
@@ -114,6 +106,9 @@ of port forwarding etc.
 
 <details>
 <summary><strong>📜 Previous Stable Versions</strong> - Click to expand</summary>
+
+### v2.0.28
+Device Image Support, Custom Fan Speed Mapping, TV Source Selection, Reverse Proxy Base Path, On/Off-Only Fans, Light Brightness Fix, Fan Speed Fixes, Composed Air Purifier Fix, Dreame Multi-Floor Fix, Optimistic State Updates, Frontend Improvements
 
 ### v2.0.27
 Valetudo support, Custom Service Areas, ServiceArea Maps, Vacuum Identify/Locate/Charging, Alarm Control Panel, Composed Air Purifier, Dashboard Controls, Vendor Brand Icons, Thermostat fixes, Air Purifier oscillation/wind

@@ -189,7 +189,7 @@ const featureFlagSchema: JSONSchema7 = {
         "Automatically combine humidity sensors with temperature sensors from the same Home Assistant device. " +
         "When enabled, humidity sensors will be merged into temperature sensors to create combined TemperatureHumiditySensor devices.",
       type: "boolean",
-      default: true,
+      default: false,
     },
 
     autoPressureMapping: {
