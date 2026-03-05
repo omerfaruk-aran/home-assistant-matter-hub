@@ -53,28 +53,23 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 ## What's New
 
 <details>
-<summary><strong>📦 Stable (v2.0.29) - Current</strong></summary>
+<summary><strong>📦 Stable (v2.0.30) - Current</strong></summary>
 
-**New in v2.0.29:**
+**New in v2.0.30:**
 
 | Feature | Description |
 |---------|-------------|
-| **� Light currentLevel Fix** | Retain light currentLevel when off to prevent Apple Home 100% brightness on turn-on ([#225](https://github.com/RiDDiX/home-assistant-matter-hub/issues/225)) |
-| **🖥️ Bridge Config Save Fix** | Decouple save button from RJSF schema validation errors ([#232](https://github.com/RiDDiX/home-assistant-matter-hub/issues/232)) |
+| **🔗 Mapped Entity Propagation Fix** | Propagate mapped entity changes (battery, humidity, etc.) to Matter endpoints — fixes stale sensor readings |
+| **🖥️ API Error Surfacing** | Surface API errors instead of silently swallowing them ([#232](https://github.com/RiDDiX/home-assistant-matter-hub/issues/232)) |
+
+**Previously in v2.0.29:**
+
+| Feature | Description |
+|---------|-------------|
+| **💡 Light currentLevel Fix** | Retain light currentLevel when off to prevent Apple Home 100% brightness on turn-on ([#225](https://github.com/RiDDiX/home-assistant-matter-hub/issues/225)) |
+| **�️ Bridge Config Save Fix** | Decouple save button from RJSF schema validation errors ([#232](https://github.com/RiDDiX/home-assistant-matter-hub/issues/232)) |
 | **🌀 Fan Device Feature Fix** | Correct FanDeviceFeature TURN_ON/TURN_OFF enum values to match Home Assistant |
 | **🌡️ Humidity Auto-Mapping Fix** | Correct autoHumidityMapping schema default to match runtime behavior |
-
-**Previously in v2.0.28:**
-
-| Feature | Description |
-|---------|-------------|
-| **�️ Device Image Support** | Device cards show images from Zigbee2MQTT or custom uploads ([#221](https://github.com/RiDDiX/home-assistant-matter-hub/issues/221)) |
-| **🌀 Custom Fan Speed Mapping** | Define custom fan speed levels with named presets ([#226](https://github.com/RiDDiX/home-assistant-matter-hub/pull/226)) |
-| **📺 TV Source Selection** | MediaInput cluster added to VideoPlayerDevice for input switching ([#231](https://github.com/RiDDiX/home-assistant-matter-hub/issues/231)) |
-| **🔀 Reverse Proxy Base Path** | `--http-base-path` option for subfolder reverse proxy support ([#228](https://github.com/RiDDiX/home-assistant-matter-hub/issues/228)) |
-| **🌀 On/Off-Only Fans** | Fans without speed control correctly use OnOffPlugInUnit ([#229](https://github.com/RiDDiX/home-assistant-matter-hub/issues/229)) |
-| **💡 Light Brightness Fix** | Prevent brightness reset on turn-on by setting onLevel to null ([#225](https://github.com/RiDDiX/home-assistant-matter-hub/issues/225)) |
-| **🌡️ Composed Air Purifier Fix** | Flatten to single endpoint for correct Apple Home primary tile ([#218](https://github.com/RiDDiX/home-assistant-matter-hub/issues/218)) |
 
 </details>
 
@@ -87,6 +82,9 @@ All previously alpha-only features have been promoted to stable. New alpha featu
 
 <details>
 <summary><strong>📋 Previous Versions</strong></summary>
+
+### v2.0.29
+Light currentLevel Fix, Bridge Config Save Fix, Fan Device Feature Fix, Humidity Auto-Mapping Fix
 
 ### v2.0.28
 Device Image Support, Custom Fan Speed Mapping, TV Source Selection, Reverse Proxy Base Path, On/Off-Only Fans, Light Brightness Fix, Fan Speed Fixes, Composed Air Purifier Fix, Dreame Multi-Floor Fix, Optimistic State Updates, Frontend Improvements
