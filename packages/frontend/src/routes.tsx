@@ -1,5 +1,6 @@
 import type { RouteObject } from "react-router";
 import { AppPage } from "./pages/AppPage.tsx";
+import { AreaBridgeSetupPage } from "./pages/area-setup/AreaBridgeSetupPage.tsx";
 import { BridgeDetailsPage } from "./pages/bridge-details/BridgeDetailsPage.tsx";
 import { BridgesPage } from "./pages/bridges/BridgesPage.tsx";
 import { DashboardPage } from "./pages/dashboard/DashboardPage.tsx";
@@ -20,6 +21,7 @@ export const navigation = {
   bridges: "/bridges",
   bridge: (bridgeId: string) => `/bridges/${bridgeId}`,
   createBridge: "/bridges/create",
+  areaSetup: "/bridges/area-setup",
   editBridge: (bridgeId: string) => `/bridges/${bridgeId}/edit`,
   devices: "/devices",
   networkMap: "/network-map",
@@ -48,6 +50,7 @@ export const routes: RouteObject[] = [
       },
       { path: navigation.bridges, element: <BridgesPage /> },
       { path: navigation.createBridge, element: <CreateBridgePage /> },
+      { path: navigation.areaSetup, element: <AreaBridgeSetupPage /> },
       { path: navigation.bridge(":bridgeId"), element: <BridgeDetailsPage /> },
       { path: navigation.editBridge(":bridgeId"), element: <EditBridgePage /> },
       { path: navigation.devices, element: <DevicesPage /> },

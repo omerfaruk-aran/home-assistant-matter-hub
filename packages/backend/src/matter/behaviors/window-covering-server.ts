@@ -243,16 +243,15 @@ export class WindowCoveringServerBase extends FeaturedBase {
       `handleMovement: type=${MovementType[type]}, direction=${MovementDirection[direction]}, target=${targetPercent100ths}, currentLift=${currentLift}, currentTilt=${currentTilt}, absolutePosition=${this.features.absolutePosition}`,
     );
 
+    // Boundary targets (0=open, 10000=closed per Matter spec) are routed
+    // directly to open/close handlers regardless of the direction computed
+    // by matter.js. The direction computation relies on currentPosition which
+    // can be in HA semantics (non-inverted) when coverUseHomeAssistantPercentage
+    // is enabled, causing matter.js to derive the wrong direction.
     if (type === MovementType.Lift) {
-      if (
-        direction === MovementDirection.Open &&
-        (targetPercent100ths == null || targetPercent100ths === 0)
-      ) {
+      if (targetPercent100ths === 0) {
         this.handleLiftOpen();
-      } else if (
-        direction === MovementDirection.Close &&
-        (targetPercent100ths == null || targetPercent100ths === 10000)
-      ) {
+      } else if (targetPercent100ths === 10000) {
         this.handleLiftClose();
       } else if (
         targetPercent100ths != null &&
@@ -265,15 +264,9 @@ export class WindowCoveringServerBase extends FeaturedBase {
         this.handleLiftClose();
       }
     } else if (type === MovementType.Tilt) {
-      if (
-        direction === MovementDirection.Open &&
-        (targetPercent100ths == null || targetPercent100ths === 0)
-      ) {
+      if (targetPercent100ths === 0) {
         this.handleTiltOpen();
-      } else if (
-        direction === MovementDirection.Close &&
-        (targetPercent100ths == null || targetPercent100ths === 10000)
-      ) {
+      } else if (targetPercent100ths === 10000) {
         this.handleTiltClose();
       } else if (
         targetPercent100ths != null &&

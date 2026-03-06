@@ -351,6 +351,91 @@ export function matterApi(
     res.status(200).json(areas);
   });
 
+  router.get("/areas/summary", async (_, res) => {
+    if (!haRegistry) {
+      res.status(503).json({ error: "Home Assistant registry not available" });
+      return;
+    }
+
+    const supportedDomains = new Set([
+      "light",
+      "switch",
+      "sensor",
+      "binary_sensor",
+      "climate",
+      "cover",
+      "fan",
+      "lock",
+      "media_player",
+      "vacuum",
+      "valve",
+      "humidifier",
+      "water_heater",
+      "select",
+      "input_select",
+      "input_boolean",
+      "alarm_control_panel",
+      "event",
+      "automation",
+      "script",
+      "scene",
+    ]);
+
+    const entities = Object.values(haRegistry.entities);
+    const devices = haRegistry.devices;
+    const states = haRegistry.states;
+
+    const areaSummary = new Map<
+      string,
+      { name: string; entityCount: number; domains: Record<string, number> }
+    >();
+
+    for (const [areaId, areaName] of haRegistry.areas) {
+      areaSummary.set(areaId, { name: areaName, entityCount: 0, domains: {} });
+    }
+
+    for (const entity of entities) {
+      if (entity.disabled_by != null) continue;
+
+      const domain = entity.entity_id.split(".")[0];
+      if (!supportedDomains.has(domain)) continue;
+
+      const state = states[entity.entity_id];
+      if (!state || state.state === "unavailable") continue;
+
+      let areaId: string | undefined;
+      const entityAreaId = entity.area_id;
+      if (entityAreaId && haRegistry.areas.has(entityAreaId)) {
+        areaId = entityAreaId;
+      } else {
+        const device = entity.device_id ? devices[entity.device_id] : undefined;
+        const deviceAreaId = device?.area_id as string | undefined;
+        if (deviceAreaId && haRegistry.areas.has(deviceAreaId)) {
+          areaId = deviceAreaId;
+        }
+      }
+
+      if (!areaId) continue;
+
+      const summary = areaSummary.get(areaId);
+      if (summary) {
+        summary.entityCount++;
+        summary.domains[domain] = (summary.domains[domain] || 0) + 1;
+      }
+    }
+
+    const result = [...areaSummary.entries()]
+      .map(([area_id, data]) => ({
+        area_id,
+        name: data.name,
+        entityCount: data.entityCount,
+        domains: data.domains,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    res.status(200).json(result);
+  });
+
   router.get("/filter-values", async (_, res) => {
     if (!haRegistry) {
       res.status(503).json({ error: "Home Assistant registry not available" });

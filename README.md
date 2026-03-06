@@ -37,7 +37,7 @@ of port forwarding etc.
 
 | Channel | Branch | Current Version | Description |
 |---------|--------|-----------------|-------------|
-| **Stable** | `main` | v2.0.30 | Production-ready, recommended for most users |
+| **Stable** | `main` | v2.0.31 | Production-ready, recommended for most users |
 | **Alpha** | `alpha` | v2.1.0-alpha.x | Pre-release with new features, for early adopters |
 | **Testing** | `testing` | v4.1.0-testing.x | ⚠️ **Highly unstable!** Experimental features, may break |
 
@@ -52,30 +52,31 @@ of port forwarding etc.
 ## 🎉 What's New
 
 <details>
-<summary><strong>📦 Stable Features (v2.0.30)</strong> - Click to expand</summary>
+<summary><strong>📦 Stable Features (v2.0.31)</strong> - Click to expand</summary>
 
-**New in v2.0.30:**
+**New in v2.0.31:**
 
 | Feature | Description |
 |---------|-------------|
-| **� Mapped Entity Propagation Fix** | Propagate mapped entity changes (battery, humidity, etc.) to Matter endpoints — fixes stale sensor readings |
+| **🎮 Controller Profiles & Area Setup** | New bridge wizard with controller-specific profiles (Apple Home, Google Home, Alexa) and area-based bridge setup |
+| **🌀 Fan Speed/Preset Fix** | Fix fan speed and preset control not working from Matter controllers ([#233](https://github.com/RiDDiX/home-assistant-matter-hub/issues/233)) |
+| **💡 Optimistic State Fix** | Prevent stale HA state from reverting optimistic brightness/color updates ([#230](https://github.com/RiDDiX/home-assistant-matter-hub/issues/230)) |
+| **🪟 Cover Target Fix** | Route boundary cover targets to open/close regardless of direction ([#240](https://github.com/RiDDiX/home-assistant-matter-hub/issues/240)) |
+| **�️ Humidity Auto-Mapping Default** | Make autoHumidityMapping default-enabled like autoPressureMapping |
+
+**Previously in v2.0.30:**
+
+| Feature | Description |
+|---------|-------------|
+| **🔗 Mapped Entity Propagation Fix** | Propagate mapped entity changes (battery, humidity, etc.) to Matter endpoints — fixes stale sensor readings |
 | **🖥️ API Error Surfacing** | Surface API errors instead of silently swallowing them ([#232](https://github.com/RiDDiX/home-assistant-matter-hub/issues/232)) |
-
-**Previously in v2.0.29:**
-
-| Feature | Description |
-|---------|-------------|
-| **� Light currentLevel Fix** | Retain light currentLevel when off to prevent Apple Home 100% brightness on turn-on ([#225](https://github.com/RiDDiX/home-assistant-matter-hub/issues/225)) |
-| **�️ Bridge Config Save Fix** | Decouple save button from RJSF schema validation errors ([#232](https://github.com/RiDDiX/home-assistant-matter-hub/issues/232)) |
-| **🌀 Fan Device Feature Fix** | Correct FanDeviceFeature TURN_ON/TURN_OFF enum values to match Home Assistant |
-| **🌡️ Humidity Auto-Mapping Fix** | Correct autoHumidityMapping schema default to match runtime behavior |
 
 </details>
 
 <details>
 <summary><strong>🧪 Alpha Features (v2.1.0-alpha.x)</strong> - Click to expand</summary>
 
-**Alpha is currently in sync with Stable (v2.0.30).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
+**Alpha is currently in sync with Stable (v2.0.31).** All alpha features have been promoted to stable. New alpha features will appear here as development continues.
 
 </details>
 
@@ -100,6 +101,9 @@ of port forwarding etc.
 
 <details>
 <summary><strong>📜 Previous Stable Versions</strong> - Click to expand</summary>
+
+### v2.0.30
+Mapped Entity Propagation Fix, API Error Surfacing
 
 ### v2.0.29
 Light currentLevel Fix, Bridge Config Save Fix, Fan Device Feature Fix, Humidity Auto-Mapping Fix

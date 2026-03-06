@@ -273,14 +273,9 @@ export class FanControlServerBase extends FeaturedBase {
     if (speed == null) {
       return;
     }
-    // Use asLocalActor to avoid access control issues when accessing state
     this.agent.asLocalActor(() => {
-      const percentSetting = Math.floor((speed / this.state.speedMax) * 100);
-      this.targetPercentSettingChanged(
-        percentSetting,
-        this.state.percentSetting,
-        context,
-      );
+      const percentage = Math.floor((speed / this.state.speedMax) * 100);
+      this.applyPercentageAction(percentage);
     });
   }
 
@@ -292,23 +287,18 @@ export class FanControlServerBase extends FeaturedBase {
     if (transactionIsOffline(context)) {
       return;
     }
-    // Use asLocalActor to avoid access control issues when accessing state
     this.agent.asLocalActor(() => {
       const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
       if (!homeAssistant.isAvailable) {
         return;
       }
       const targetFanMode = FanMode.create(fanMode, this.state.fanModeSequence);
-      const config = this.state.config;
       if (targetFanMode.mode === FanControl.FanMode.Auto) {
-        homeAssistant.callAction(config.setAutoMode(void 0, this.agent));
-      } else {
-        const percentage = targetFanMode.speedPercent();
-        this.targetPercentSettingChanged(
-          percentage,
-          this.state.percentSetting,
-          context,
+        homeAssistant.callAction(
+          this.state.config.setAutoMode(void 0, this.agent),
         );
+      } else {
+        this.applyPercentageAction(targetFanMode.speedPercent());
       }
     });
   }
@@ -324,57 +314,57 @@ export class FanControlServerBase extends FeaturedBase {
     if (percentage == null) {
       return;
     }
-    // Use asLocalActor to avoid access control issues when accessing state
     this.agent.asLocalActor(() => {
-      const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
-      if (!homeAssistant.isAvailable) {
-        return;
-      }
-      const config = this.state.config;
-      const supportsPercentage = config.supportsPercentage(
+      this.applyPercentageAction(percentage);
+    });
+  }
+
+  private applyPercentageAction(percentage: number) {
+    const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+    if (!homeAssistant.isAvailable) {
+      return;
+    }
+    const config = this.state.config;
+    const supportsPercentage = config.supportsPercentage(
+      homeAssistant.entity.state,
+      this.agent,
+    );
+
+    if (percentage === 0) {
+      homeAssistant.callAction(config.turnOff(void 0, this.agent));
+    } else if (supportsPercentage) {
+      const stepSize = config.getStepSize(
         homeAssistant.entity.state,
         this.agent,
       );
+      const roundedPercentage =
+        stepSize && stepSize > 0
+          ? Math.round(percentage / stepSize) * stepSize
+          : percentage;
+      const clampedPercentage = Math.max(
+        stepSize ?? 1,
+        Math.min(100, roundedPercentage),
+      );
 
-      if (percentage === 0) {
-        homeAssistant.callAction(config.turnOff(void 0, this.agent));
-      } else if (supportsPercentage) {
-        // Fan supports percentage - use percentage control
-        const stepSize = config.getStepSize(
-          homeAssistant.entity.state,
-          this.agent,
-        );
-        const roundedPercentage =
-          stepSize && stepSize > 0
-            ? Math.round(percentage / stepSize) * stepSize
-            : percentage;
-        const clampedPercentage = Math.max(
-          stepSize ?? 1,
-          Math.min(100, roundedPercentage),
-        );
+      homeAssistant.callAction(config.turnOn(clampedPercentage, this.agent));
+    } else {
+      const presetModes =
+        config.getPresetModes(homeAssistant.entity.state, this.agent) ?? [];
+      const speedPresets = presetModes.filter(
+        (m) => m.toLowerCase() !== "auto",
+      );
 
-        homeAssistant.callAction(config.turnOn(clampedPercentage, this.agent));
-      } else {
-        // Fan only supports preset modes - map percentage to preset
-        const presetModes =
-          config.getPresetModes(homeAssistant.entity.state, this.agent) ?? [];
-        const speedPresets = presetModes.filter(
-          (m) => m.toLowerCase() !== "auto",
+      if (speedPresets.length > 0) {
+        const presetIndex = Math.min(
+          Math.floor((percentage / 100) * speedPresets.length),
+          speedPresets.length - 1,
         );
-
-        if (speedPresets.length > 0) {
-          // Map percentage to preset index
-          const presetIndex = Math.min(
-            Math.floor((percentage / 100) * speedPresets.length),
-            speedPresets.length - 1,
-          );
-          const targetPreset = speedPresets[presetIndex];
-          homeAssistant.callAction(
-            config.setPresetMode(targetPreset, this.agent),
-          );
-        }
+        const targetPreset = speedPresets[presetIndex];
+        homeAssistant.callAction(
+          config.setPresetMode(targetPreset, this.agent),
+        );
       }
-    });
+    }
   }
 
   private targetAirflowDirectionChanged(

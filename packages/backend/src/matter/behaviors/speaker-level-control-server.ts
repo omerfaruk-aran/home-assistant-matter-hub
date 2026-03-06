@@ -8,6 +8,9 @@ import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
 
 const logger = Logger.get("SpeakerLevelControlServer");
 
+const optimisticLevelTimestamps = new Map<string, number>();
+const OPTIMISTIC_LEVEL_COOLDOWN_MS = 2000;
+
 export interface SpeakerLevelControlConfig {
   getValuePercent: ValueGetter<number | null>;
   moveToLevelPercent: ValueSetter<number>;
@@ -83,12 +86,18 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
       `[${entityId}] Volume update: HA=${currentLevelPercent != null ? Math.round(currentLevelPercent * 100) : "null"}% -> currentLevel=${currentLevel}`,
     );
 
-    // Only set Matter attributes - do NOT set custom fields like currentLevelPercent
-    // as Matter.js might expose them and confuse controllers
+    const lastOptimistic = optimisticLevelTimestamps.get(entity.entity_id);
+    const inCooldown =
+      lastOptimistic != null &&
+      Date.now() - lastOptimistic < OPTIMISTIC_LEVEL_COOLDOWN_MS;
+    if (inCooldown && currentLevel != null) {
+      currentLevel = null;
+    }
+
     applyPatchState(this.state, {
       minLevel: minLevel,
       maxLevel: maxLevel,
-      currentLevel: currentLevel,
+      ...(currentLevel != null ? { currentLevel: currentLevel } : {}),
     });
   }
 
@@ -141,8 +150,8 @@ export class SpeakerLevelControlServerBase extends FeaturedBase {
     if (levelPercent === current) {
       return;
     }
-    // Update currentLevel immediately so controllers get instant feedback.
     this.state.currentLevel = level;
+    optimisticLevelTimestamps.set(entityId, Date.now());
     homeAssistant.callAction(
       config.moveToLevelPercent(levelPercent, this.agent),
     );

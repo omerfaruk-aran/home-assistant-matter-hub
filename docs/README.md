@@ -53,35 +53,39 @@ Home, ...) are not placed in the same network segment. Please make sure to revie
 ## What's New
 
 <details>
-<summary><strong>📦 Stable (v2.0.30) - Current</strong></summary>
+<summary><strong>📦 Stable (v2.0.31) - Current</strong></summary>
 
-**New in v2.0.30:**
+**New in v2.0.31:**
+
+| Feature | Description |
+|---------|-------------|
+| **🎮 Controller Profiles & Area Setup** | New bridge wizard with controller-specific profiles (Apple Home, Google Home, Alexa) and area-based bridge setup |
+| **🌀 Fan Speed/Preset Fix** | Fix fan speed and preset control not working from Matter controllers ([#233](https://github.com/RiDDiX/home-assistant-matter-hub/issues/233)) |
+| **💡 Optimistic State Fix** | Prevent stale HA state from reverting optimistic brightness/color updates ([#230](https://github.com/RiDDiX/home-assistant-matter-hub/issues/230)) |
+| **🪟 Cover Target Fix** | Route boundary cover targets to open/close regardless of direction ([#240](https://github.com/RiDDiX/home-assistant-matter-hub/issues/240)) |
+| **�️ Humidity Auto-Mapping Default** | Make autoHumidityMapping default-enabled like autoPressureMapping |
+
+**Previously in v2.0.30:**
 
 | Feature | Description |
 |---------|-------------|
 | **🔗 Mapped Entity Propagation Fix** | Propagate mapped entity changes (battery, humidity, etc.) to Matter endpoints — fixes stale sensor readings |
 | **🖥️ API Error Surfacing** | Surface API errors instead of silently swallowing them ([#232](https://github.com/RiDDiX/home-assistant-matter-hub/issues/232)) |
 
-**Previously in v2.0.29:**
-
-| Feature | Description |
-|---------|-------------|
-| **💡 Light currentLevel Fix** | Retain light currentLevel when off to prevent Apple Home 100% brightness on turn-on ([#225](https://github.com/RiDDiX/home-assistant-matter-hub/issues/225)) |
-| **�️ Bridge Config Save Fix** | Decouple save button from RJSF schema validation errors ([#232](https://github.com/RiDDiX/home-assistant-matter-hub/issues/232)) |
-| **🌀 Fan Device Feature Fix** | Correct FanDeviceFeature TURN_ON/TURN_OFF enum values to match Home Assistant |
-| **🌡️ Humidity Auto-Mapping Fix** | Correct autoHumidityMapping schema default to match runtime behavior |
-
 </details>
 
 <details>
 <summary><strong>🧪 Alpha (v2.1.0-alpha.x)</strong></summary>
 
-All previously alpha-only features have been promoted to stable. New alpha features will appear here as development continues. See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for installation instructions.
+**Alpha is currently in sync with Stable (v2.0.31).** All alpha features have been promoted to stable. New alpha features will appear here as development continues. See the [Alpha Features Guide](./Guides/Alpha%20Features.md) for installation instructions.
 
 </details>
 
 <details>
 <summary><strong>📋 Previous Versions</strong></summary>
+
+### v2.0.30
+Mapped Entity Propagation Fix, API Error Surfacing
 
 ### v2.0.29
 Light currentLevel Fix, Bridge Config Save Fix, Fan Device Feature Fix, Humidity Auto-Mapping Fix

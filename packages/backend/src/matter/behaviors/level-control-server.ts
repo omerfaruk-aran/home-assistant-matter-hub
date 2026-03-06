@@ -10,6 +10,12 @@ import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
 // Track when lights were turned on to detect Alexa's brightness reset pattern
 const lastTurnOnTimestamps = new Map<string, number>();
 
+// Track optimistic level writes to prevent stale HA state from overwriting them.
+// After a controller command, the HA state update with the OLD brightness can
+// arrive before HA processes the new command, causing the UI to revert.
+const optimisticLevelTimestamps = new Map<string, number>();
+const OPTIMISTIC_LEVEL_COOLDOWN_MS = 2000;
+
 /**
  * Called by OnOffServer when a light is turned on via Matter command.
  * Used to detect Alexa's brightness reset pattern.
@@ -84,12 +90,16 @@ export class LevelControlServerBase extends FeaturedBase {
       currentLevel = Math.min(Math.max(minLevel, currentLevel), maxLevel);
     }
 
-    // Only set Matter attributes - do NOT set custom fields like currentLevelPercent
-    // as Matter.js might expose them and confuse controllers.
-    // Only update currentLevel if we have a valid value to prevent overwriting
-    // the default set in initialize() when the light is OFF.
-    // NOTE: Do NOT set onLevel here - it causes "Behaviors have errors" during initialization.
-    // Let Matter.js/controllers manage onLevel.
+    // Skip currentLevel during optimistic cooldown to prevent stale HA state
+    // from reverting the value set by a controller command.
+    const lastOptimistic = optimisticLevelTimestamps.get(entity.entity_id);
+    const inCooldown =
+      lastOptimistic != null &&
+      Date.now() - lastOptimistic < OPTIMISTIC_LEVEL_COOLDOWN_MS;
+    if (inCooldown && currentLevel != null) {
+      currentLevel = null;
+    }
+
     applyPatchState(this.state, {
       minLevel: minLevel,
       maxLevel: maxLevel,
@@ -175,8 +185,8 @@ export class LevelControlServerBase extends FeaturedBase {
     // Update currentLevel immediately so controllers get instant feedback
     // in the command response. Without this, Apple Home reads the stale
     // currentLevel before the HA state update arrives and reverts the UI.
-    // Matches the optimistic update pattern already used in OnOffServer.
     this.state.currentLevel = level;
+    optimisticLevelTimestamps.set(entityId, Date.now());
     homeAssistant.callAction(action);
   }
 }

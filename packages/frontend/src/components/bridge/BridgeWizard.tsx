@@ -2,7 +2,9 @@ import {
   type BridgeFeatureFlags,
   type BridgeIconType,
   type BridgeTemplate,
+  type ControllerProfile,
   type CreateBridgeRequest,
+  controllerProfiles,
   type HomeAssistantMatcher,
   HomeAssistantMatcherType,
 } from "@home-assistant-matter-hub/common";
@@ -10,6 +12,7 @@ import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckIcon from "@mui/icons-material/Check";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DevicesIcon from "@mui/icons-material/Devices";
 import SettingsIcon from "@mui/icons-material/Settings";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
@@ -17,6 +20,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
+import CardActionArea from "@mui/material/CardActionArea";
 import CardContent from "@mui/material/CardContent";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
@@ -26,6 +30,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import Grid from "@mui/material/Grid";
 import Step from "@mui/material/Step";
 import StepLabel from "@mui/material/StepLabel";
 import Stepper from "@mui/material/Stepper";
@@ -55,8 +60,16 @@ interface WizardBridge {
   };
 }
 
+const controllerIcons: Record<string, string> = {
+  apple_home: "🍏",
+  google_home: "🏠",
+  alexa: "🔵",
+  multi_controller: "🔀",
+};
+
 const steps = [
   "Template",
+  "Controller",
   "Bridge Info",
   "Entity Filter",
   "Feature Flags",
@@ -114,6 +127,9 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
   const [entityPattern, setEntityPattern] = useState("*");
   const [excludePattern, setExcludePattern] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [selectedController, setSelectedController] = useState<
+    ControllerProfile | undefined
+  >();
 
   const fetchNextPort = useCallback(async () => {
     try {
@@ -144,6 +160,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       setEntityPattern("*");
       setExcludePattern("");
       setError(null);
+      setSelectedController(undefined);
     }
   }, [open, fetchNextPort, nextPort]);
 
@@ -190,19 +207,36 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
     }
   }, []);
 
+  const applyController = useCallback((profile: ControllerProfile | null) => {
+    setSelectedController(profile ?? undefined);
+    if (profile) {
+      setCurrentBridge((prev) => ({
+        ...prev,
+        featureFlags: {
+          ...prev.featureFlags,
+          ...profile.featureFlags,
+        },
+      }));
+    }
+  }, []);
+
   const handleNext = () => {
     if (activeStep === 0) {
       // Template step — just proceed
       setError(null);
     }
     if (activeStep === 1) {
+      // Controller step — just proceed
+      setError(null);
+    }
+    if (activeStep === 2) {
       if (!currentBridge.name.trim()) {
         setError("Please enter a bridge name");
         return;
       }
       setError(null);
     }
-    if (activeStep === 2) {
+    if (activeStep === 3) {
       let includeMatchers: HomeAssistantMatcher[];
       let excludeMatchers: HomeAssistantMatcher[];
 
@@ -253,6 +287,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
     const newPort = nextPort + bridges.length + 1;
     setBridges((prev) => [...prev, currentBridge]);
     setSelectedTemplate(undefined);
+    setSelectedController(undefined);
     setCurrentBridge({
       name: "",
       port: newPort,
@@ -311,6 +346,92 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
           onSelect={applyTemplate}
         />
       </Box>
+    </Box>
+  );
+
+  const renderControllerStep = () => (
+    <Box sx={{ mt: 2 }}>
+      <Typography variant="body1" gutterBottom>
+        Which Matter controller will you use? This optimizes feature flags for
+        your controller.
+      </Typography>
+      <Grid container spacing={1.5} sx={{ mt: 1 }}>
+        {controllerProfiles.map((profile) => {
+          const isSelected = selectedController?.id === profile.id;
+          return (
+            <Grid key={profile.id} size={{ xs: 12, sm: 6 }}>
+              <Card
+                variant="outlined"
+                sx={{
+                  borderColor: isSelected ? "primary.main" : "divider",
+                  borderWidth: isSelected ? 2 : 1,
+                  bgcolor: isSelected ? "action.selected" : "background.paper",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <CardActionArea
+                  onClick={() => applyController(isSelected ? null : profile)}
+                  sx={{
+                    p: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    justifyContent: "flex-start",
+                  }}
+                >
+                  <CardContent
+                    sx={{ p: 1.5, "&:last-child": { pb: 1.5 }, width: "100%" }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                      <Typography fontSize={20}>
+                        {controllerIcons[profile.id] ?? "\uD83C\uDFE0"}
+                      </Typography>
+                      <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
+                        {profile.name}
+                      </Typography>
+                      {isSelected && (
+                        <CheckCircleIcon
+                          color="primary"
+                          sx={{ fontSize: 18 }}
+                        />
+                      )}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {profile.description}
+                    </Typography>
+                    {isSelected && (
+                      <Box display="flex" gap={0.5} flexWrap="wrap" mt={0.5}>
+                        {Object.entries(profile.featureFlags)
+                          .filter(([, v]) => v)
+                          .map(([k]) => (
+                            <Chip
+                              key={k}
+                              label={k
+                                .replace(/^auto/, "")
+                                .replace(/([A-Z])/g, " $1")
+                                .trim()}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: "0.6rem", height: 18 }}
+                            />
+                          ))}
+                      </Box>
+                    )}
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            </Grid>
+          );
+        })}
+      </Grid>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ mt: 2, display: "block" }}
+      >
+        You can always adjust feature flags in the next steps or after bridge
+        creation.
+      </Typography>
     </Box>
   );
 
@@ -608,10 +729,11 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
           ))}
         </Stepper>
         {activeStep === 0 && renderTemplateStep()}
-        {activeStep === 1 && renderStep0()}
-        {activeStep === 2 && renderStep1()}
-        {activeStep === 3 && renderFeatureFlagsStep()}
-        {activeStep === 4 && renderStep2()}
+        {activeStep === 1 && renderControllerStep()}
+        {activeStep === 2 && renderStep0()}
+        {activeStep === 3 && renderStep1()}
+        {activeStep === 4 && renderFeatureFlagsStep()}
+        {activeStep === 5 && renderStep2()}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={loading}>
@@ -634,7 +756,11 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
             endIcon={<ArrowForwardIcon />}
             disabled={loading}
           >
-            {activeStep === 0 && !selectedTemplate ? "Skip Template" : "Next"}
+            {activeStep === 0 && !selectedTemplate
+              ? "Skip Template"
+              : activeStep === 1 && !selectedController
+                ? "Skip"
+                : "Next"}
           </Button>
         )}
         {activeStep === steps.length - 1 && (

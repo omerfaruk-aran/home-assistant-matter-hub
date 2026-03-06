@@ -12,6 +12,10 @@ import type { ValueGetter, ValueSetter } from "./utils/cluster-config.js";
 
 const logger = Logger.get("ColorControlServer");
 
+// Track optimistic color writes to prevent stale HA state from overwriting them.
+const optimisticColorTimestamps = new Map<string, number>();
+const OPTIMISTIC_COLOR_COOLDOWN_MS = 2000;
+
 export type ColorControlMode =
   | ColorControl.ColorMode.CurrentHueAndCurrentSaturation
   | ColorControl.ColorMode.ColorTemperatureMireds;
@@ -133,6 +137,13 @@ export class ColorControlServerBase extends FeaturedBase {
       config.getCurrentMode(entity.state, this.agent),
     );
 
+    // Skip color attribute updates during optimistic cooldown to prevent stale
+    // HA state from reverting values set by a controller command.
+    const lastOptimistic = optimisticColorTimestamps.get(entity.entity_id);
+    const inCooldown =
+      lastOptimistic != null &&
+      Date.now() - lastOptimistic < OPTIMISTIC_COLOR_COOLDOWN_MS;
+
     // CRITICAL: For ColorTemperature, we must set boundaries FIRST, then values.
     // Matter.js validates that colorTemperatureMireds and startUpColorTemperatureMireds
     // are within [colorTempPhysicalMinMireds, colorTempPhysicalMaxMireds].
@@ -174,14 +185,14 @@ export class ColorControlServerBase extends FeaturedBase {
       applyPatchState(this.state, {
         coupleColorTempToLevelMinMireds: minMireds,
         startUpColorTemperatureMireds: startUpMireds,
-        colorTemperatureMireds: effectiveMireds,
+        ...(inCooldown ? {} : { colorTemperatureMireds: effectiveMireds }),
       });
     }
 
     // Set colorMode and hueSaturation attributes
     applyPatchState(this.state, {
-      colorMode: newColorMode,
-      ...(this.features.hueSaturation
+      ...(inCooldown ? {} : { colorMode: newColorMode }),
+      ...(this.features.hueSaturation && !inCooldown
         ? {
             currentHue: hue,
             currentSaturation: saturation,
@@ -212,12 +223,11 @@ export class ColorControlServerBase extends FeaturedBase {
 
     const action = this.state.config.setTemperature(targetKelvin, this.agent);
     this.applyTransition(action);
-    // Update state immediately so controllers get instant feedback
-    // in the command response, matching the OnOffServer pattern.
     applyPatchState(this.state, {
       colorTemperatureMireds: targetMireds,
       colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
     });
+    optimisticColorTimestamps.set(homeAssistant.entityId, Date.now());
     homeAssistant.callAction(action);
   }
 
@@ -254,13 +264,12 @@ export class ColorControlServerBase extends FeaturedBase {
     const color = ColorConverter.fromMatterHS(targetHue, targetSaturation);
     const action = this.state.config.setColor(color, this.agent);
     this.applyTransition(action);
-    // Update state immediately so controllers get instant feedback
-    // in the command response, matching the OnOffServer pattern.
     applyPatchState(this.state, {
       currentHue: targetHue,
       currentSaturation: targetSaturation,
       colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
     });
+    optimisticColorTimestamps.set(homeAssistant.entityId, Date.now());
     homeAssistant.callAction(action);
   }
 

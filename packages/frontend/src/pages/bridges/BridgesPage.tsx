@@ -2,6 +2,7 @@ import {
   Add,
   AutoFixHigh,
   Download,
+  Map as MapIcon,
   PlayArrow,
   RestartAlt,
   Stop,
@@ -186,6 +187,14 @@ export const BridgesPage = () => {
                 disabled={bridges.length === 0}
               >
                 Export All
+              </Button>
+              <Button
+                component={Link}
+                to={navigation.areaSetup}
+                startIcon={<MapIcon />}
+                variant="outlined"
+              >
+                Area Setup
               </Button>
               <Button
                 onClick={() => setWizardOpen(true)}
