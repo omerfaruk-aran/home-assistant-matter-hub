@@ -429,25 +429,13 @@ Thank you to everyone who helps improve this project by reporting issues!
 
 ### 💖 Sponsors
 
-> **Donations are completely voluntary!** I'm incredibly grateful to everyone who has supported this project - it wasn't necessary, but it truly means a lot. This project exists because of passion for open source, not money. ❤️
+> **Donations are completely voluntary!** This project exists because of passion for open source, not money. Thank you to everyone who has supported it — it truly means a lot! ❤️
 
-| Sponsor | |
-|---------|---|
-| [@thorsten-gehrig](https://github.com/thorsten-gehrig) | 🥇 **First Sponsor!** Thank you for believing in this project! |
-| [@SH1FT-W](https://github.com/SH1FT-W) | 💎 Thank you for your generous support! |
-| [@ilGaspa](https://github.com/ilGaspa) | 💎 Thank you for your generous support! |
-| [@linux4life798](https://github.com/linux4life798) | 💎 Thank you for your generous support! |
-| [@torandreroland](https://github.com/torandreroland) | 💎 Thank you for your generous support! |
-| [@ralondo](https://github.com/ralondo) | 💎 Thank you for your generous support! |
-| [@bexxter85-ux](https://github.com/bexxter85-ux) | 💎 Thank you for your generous support! |
-| [@dinariox](https://github.com/dinariox) | 💎 Thank you for your generous support! |
-| StefanS | 💎 Thank you for your generous support! |
-| Manny B. | 💎 Thank you for your generous support! |
-| [@JRCondat](https://github.com/JRCondat) | 💎 Thank you for your generous support! |
-| Bonjon | 💎 Thank you for your generous support! |
-| TobiR | 💎 Thank you for your generous support! |
-| [@d3rby91](https://github.com/d3rby91) | 💎 Thank you for your generous support! |
-| *Anonymous supporters* | 🙏 Thank you to those who prefer not to be named - your support is equally appreciated! |
+🥇 **First Sponsor:** [@thorsten-gehrig](https://github.com/thorsten-gehrig)
+
+💎 [@SH1FT-W](https://github.com/SH1FT-W) · [@ilGaspa](https://github.com/ilGaspa) · [@linux4life798](https://github.com/linux4life798) · [@torandreroland](https://github.com/torandreroland) · [@ralondo](https://github.com/ralondo) · [@bexxter85-ux](https://github.com/bexxter85-ux) · [@dinariox](https://github.com/dinariox) · [@JRCondat](https://github.com/JRCondat) · [@d3rby91](https://github.com/d3rby91) · [@nicoodeimos](https://github.com/nicoodeimos) · [@ustari28](https://github.com/ustari28) · Markus Müller ([@Dingosworld](https://github.com/Dingosworld)) · StefanS · Manny B. · Bonjon · TobiR · Franz Huber · Michele Larese de Prata
+
+🙏 *...and anonymous supporters who prefer not to be named.*
 
 ### 🌟 Original Author
 
