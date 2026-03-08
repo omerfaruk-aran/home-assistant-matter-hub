@@ -429,7 +429,14 @@ Thank you to everyone who helps improve this project by reporting issues!
 
 🥇 **First Sponsor:** [@thorsten-gehrig](https://github.com/thorsten-gehrig)
 
-💎 [@SH1FT-W](https://github.com/SH1FT-W) · [@ilGaspa](https://github.com/ilGaspa) · [@linux4life798](https://github.com/linux4life798) · [@torandreroland](https://github.com/torandreroland) · [@ralondo](https://github.com/ralondo) · [@bexxter85-ux](https://github.com/bexxter85-ux) · [@dinariox](https://github.com/dinariox) · [@JRCondat](https://github.com/JRCondat) · [@d3rby91](https://github.com/d3rby91) · [@nicoodeimos](https://github.com/nicoodeimos) · [@ustari28](https://github.com/ustari28) · Markus Müller ([@Dingosworld](https://github.com/Dingosworld)) · StefanS · Manny B. · Bonjon · TobiR · Franz Huber · Michele Larese de Prata
+| | | |
+|---|---|---|
+| 💎 [@SH1FT-W](https://github.com/SH1FT-W) | 💎 [@ilGaspa](https://github.com/ilGaspa) | 💎 [@linux4life798](https://github.com/linux4life798) |
+| 💎 [@torandreroland](https://github.com/torandreroland) | 💎 [@ralondo](https://github.com/ralondo) | 💎 [@bexxter85-ux](https://github.com/bexxter85-ux) |
+| 💎 [@dinariox](https://github.com/dinariox) | 💎 [@JRCondat](https://github.com/JRCondat) | 💎 [@d3rby91](https://github.com/d3rby91) |
+| 💎 [@nicoodeimos](https://github.com/nicoodeimos) | 💎 [@ustari28](https://github.com/ustari28) | 💎 Markus Müller ([@Dingosworld](https://github.com/Dingosworld)) |
+| 💎 StefanS | 💎 Manny B. | 💎 Bonjon |
+| 💎 TobiR | 💎 Franz Huber | 💎 Michele Larese de Prata |
 
 🙏 *...and anonymous supporters who prefer not to be named.*
 
