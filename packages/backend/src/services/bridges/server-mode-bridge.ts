@@ -272,13 +272,32 @@ export class ServerModeBridge {
       };
       sessionManager.subscriptionsChanged.on(this.sessionDiagHandler);
 
-      this.sessionAddedHandler = (session: {
+      this.sessionAddedHandler = (newSession: {
         id: number;
         peerNodeId: unknown;
+        fabric?: { fabricIndex: unknown };
       }) => {
         this.log.info(
-          `Session opened: id=${session.id} peer=${session.peerNodeId}`,
+          `Session opened: id=${newSession.id} peer=${newSession.peerNodeId}`,
         );
+        // Clean up stale sessions from the same peer that have lost all
+        // subscriptions. matter.js 0.16.10 CaseServer does not close
+        // previous sessions when establishing a new CASE session, causing
+        // unbounded session accumulation over time (#105).
+        for (const s of [...sessionManager.sessions]) {
+          if (
+            s !== newSession &&
+            !s.isClosing &&
+            s.peerNodeId === newSession.peerNodeId &&
+            s.fabric?.fabricIndex === newSession.fabric?.fabricIndex &&
+            s.subscriptions.size === 0
+          ) {
+            this.log.info(
+              `Closing stale session ${s.id} (peer ${s.peerNodeId}, 0 subs) — replaced by session ${newSession.id}`,
+            );
+            s.initiateForceClose().catch(() => {});
+          }
+        }
       };
       this.sessionDeletedHandler = (session: {
         id: number;
