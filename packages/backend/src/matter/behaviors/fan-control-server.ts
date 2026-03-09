@@ -204,10 +204,20 @@ export class FanControlServerBase extends FeaturedBase {
       }
     }
 
+    // Always set percentSetting and speedSetting: when the fan is off they
+    // MUST be 0. Retaining a non-zero percentSetting while onOff=false
+    // causes Apple Home to stay on "Turning off..." indefinitely (#219).
+    const isOff = percentage === 0;
+
     const fanModeSequence = this.getFanModeSequence();
-    const fanMode = config.isInAutoMode(entity.state, this.agent)
-      ? FanMode.create(FanControl.FanMode.Auto, fanModeSequence)
-      : FanMode.fromSpeedPercent(percentage, fanModeSequence);
+    // When the fan is off, fanMode MUST be Off regardless of preset_mode.
+    // HA fans (especially Dyson) keep preset_mode="Auto" even when off;
+    // setting fanMode=Auto + onOff=false causes Apple Home to show
+    // "Turning off..." indefinitely (#219).
+    const fanMode =
+      !isOff && config.isInAutoMode(entity.state, this.agent)
+        ? FanMode.create(FanControl.FanMode.Auto, fanModeSequence)
+        : FanMode.fromSpeedPercent(percentage, fanModeSequence);
 
     // Save last non-zero values; restored on controller-initiated turn-on
     // to prevent Apple Home defaulting to 100% (#225).
@@ -215,11 +225,6 @@ export class FanControlServerBase extends FeaturedBase {
       this.lastNonZeroPercent = percentage;
       this.lastNonZeroSpeed = speed;
     }
-
-    // Always set percentSetting and speedSetting: when the fan is off they
-    // MUST be 0. Retaining a non-zero percentSetting while onOff=false
-    // causes Apple Home to stay on "Turning off..." indefinitely (#219).
-    const isOff = percentage === 0;
 
     try {
       applyPatchState(this.state, {
