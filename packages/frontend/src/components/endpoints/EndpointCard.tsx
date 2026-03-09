@@ -22,6 +22,7 @@ import { useTheme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { DeviceImageInfo } from "../../api/device-images";
 import {
   deleteDeviceImage,
@@ -192,6 +193,7 @@ export const EndpointCard = ({
   imageInfo,
   onImageChanged,
 }: EndpointCardProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const name = getEndpointName(endpoint.state) ?? endpoint.id.local;
@@ -523,7 +525,7 @@ export const EndpointCard = ({
                     accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
                     style={{ display: "none" }}
                   />
-                  <Tooltip title="Upload device image">
+                  <Tooltip title={t("endpoints.uploadImage")}>
                     <IconButton
                       size="small"
                       onClick={handleUploadClick}
@@ -534,7 +536,7 @@ export const EndpointCard = ({
                     </IconButton>
                   </Tooltip>
                   {imageInfo?.source === "custom" && (
-                    <Tooltip title="Remove custom image">
+                    <Tooltip title={t("endpoints.removeImage")}>
                       <IconButton
                         size="small"
                         onClick={handleDeleteImage}
@@ -548,7 +550,7 @@ export const EndpointCard = ({
                 </>
               )}
               {onEditMapping && entityId && bridgeId && (
-                <Tooltip title="Edit Entity Mapping">
+                <Tooltip title={t("endpoints.editMapping")}>
                   <IconButton
                     size="small"
                     onClick={(e) => {
@@ -567,7 +569,9 @@ export const EndpointCard = ({
                   <WarningAmberIcon color="warning" fontSize="small" />
                 </Tooltip>
               ) : (
-                <Tooltip title={isReachable ? "Online" : "Offline"}>
+                <Tooltip
+                  title={isReachable ? t("common.online") : t("common.offline")}
+                >
                   {isReachable ? (
                     <CheckCircleIcon color="success" fontSize="small" />
                   ) : (
@@ -684,7 +688,7 @@ export const EndpointCard = ({
               color="text.secondary"
               sx={{ flexGrow: 1 }}
             >
-              Clusters ({clusters.length})
+              {t("endpoints.clusters")} ({clusters.length})
             </Typography>
             <ExpandMoreIcon
               sx={{
@@ -711,7 +715,7 @@ export const EndpointCard = ({
             ))}
             {!expanded && clusters.length > 5 && (
               <Chip
-                label={`+${clusters.length - 5} more`}
+                label={`+${clusters.length - 5}`}
                 size="small"
                 variant="outlined"
                 sx={{ fontSize: "0.7rem", height: 22 }}
@@ -732,14 +736,14 @@ export const EndpointCard = ({
                 color="text.secondary"
                 sx={{ display: "block", mb: 0.5 }}
               >
-                Home Assistant Entity
+                {t("endpoints.homeAssistantEntity")}
               </Typography>
               <Typography
                 variant="body2"
                 fontFamily="monospace"
                 fontSize="0.75rem"
               >
-                State: {haState ?? "unknown"}
+                {t("endpoints.haState")}: {haState ?? t("common.unknown")}
               </Typography>
               <Typography
                 variant="body2"

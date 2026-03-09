@@ -25,6 +25,7 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { DeviceImageInfo } from "../../api/device-images";
 import { resolveDeviceImages } from "../../api/device-images";
 import {
@@ -49,6 +50,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const PAGE_SIZE_KEY = "hamh-devices-page-size";
 
 export const DevicesPage = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { content: bridges, isLoading: bridgesLoading } = useBridges();
   const [searchTerm, setSearchTerm] = useState("");
@@ -290,19 +292,19 @@ export const DevicesPage = () => {
         );
         setSnackbar({
           open: true,
-          message: `Mapping saved for ${selectedEntityId}. Restart the bridge to apply changes.`,
+          message: t("mapping.saved", { entityId: selectedEntityId }),
           severity: "success",
         });
         setMappingDialogOpen(false);
       } catch (error) {
         setSnackbar({
           open: true,
-          message: `Failed to save mapping: ${error}`,
+          message: t("mapping.saveFailed", { error: String(error) }),
           severity: "error",
         });
       }
     },
-    [selectedMappingBridgeId, selectedEntityId],
+    [selectedMappingBridgeId, selectedEntityId, t],
   );
 
   if (isLoading) {
@@ -321,14 +323,14 @@ export const DevicesPage = () => {
         sx={{ display: "flex", alignItems: "center", gap: 2 }}
       >
         <DevicesIcon />
-        All Devices
+        {t("nav.devices")}
         <Button
           variant="outlined"
           startIcon={<RefreshIcon />}
           onClick={handleRefresh}
           sx={{ ml: "auto" }}
         >
-          Refresh
+          {t("common.refresh")}
         </Button>
       </Typography>
 
@@ -341,20 +343,20 @@ export const DevicesPage = () => {
             alignItems={{ md: "center" }}
           >
             <TextField
-              label="Search devices..."
+              label={t("devices.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               sx={{ flexGrow: 1 }}
             />
 
             <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel>Bridge</InputLabel>
+              <InputLabel>{t("devices.filterBridge")}</InputLabel>
               <Select
                 value={selectedBridge}
-                label="Bridge"
+                label={t("devices.filterBridge")}
                 onChange={(e) => setSelectedBridge(e.target.value)}
               >
-                <MenuItem value="">All Bridges</MenuItem>
+                <MenuItem value="">{t("devices.allBridges")}</MenuItem>
                 {sortedBridges.map((bridge) => (
                   <MenuItem key={bridge.id} value={bridge.id}>
                     {bridge.name}
@@ -364,13 +366,13 @@ export const DevicesPage = () => {
             </FormControl>
 
             <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel>Device Type</InputLabel>
+              <InputLabel>{t("devices.filterDeviceType")}</InputLabel>
               <Select
                 value={selectedType}
-                label="Device Type"
+                label={t("devices.filterDeviceType")}
                 onChange={(e) => setSelectedType(e.target.value)}
               >
-                <MenuItem value="">All Types</MenuItem>
+                <MenuItem value="">{t("devices.allTypes")}</MenuItem>
                 {deviceTypes.map((type) => (
                   <MenuItem key={type} value={type}>
                     {type}
@@ -380,22 +382,26 @@ export const DevicesPage = () => {
             </FormControl>
 
             <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Sort By</InputLabel>
+              <InputLabel>{t("devices.sortBy")}</InputLabel>
               <Select
                 value={sortBy}
-                label="Sort By"
+                label={t("devices.sortBy")}
                 onChange={(e) =>
                   setSortBy(e.target.value as "name" | "type" | "bridge")
                 }
               >
-                <MenuItem value="bridge">Bridge</MenuItem>
-                <MenuItem value="type">Device Type</MenuItem>
-                <MenuItem value="name">Name</MenuItem>
+                <MenuItem value="bridge">{t("devices.sortBridge")}</MenuItem>
+                <MenuItem value="type">{t("devices.sortType")}</MenuItem>
+                <MenuItem value="name">{t("devices.sortName")}</MenuItem>
               </Select>
             </FormControl>
 
             <Tooltip
-              title={sortDirection === "asc" ? "Ascending" : "Descending"}
+              title={
+                sortDirection === "asc"
+                  ? t("common.ascending")
+                  : t("common.descending")
+              }
             >
               <IconButton
                 onClick={() =>
@@ -479,7 +485,7 @@ export const DevicesPage = () => {
             }}
             displayEmpty
             renderValue={(value) => {
-              if (value === "all") return "All";
+              if (value === "all") return t("common.all");
               if (value === "") return String(itemsPerPage);
               return value;
             }}
@@ -491,12 +497,12 @@ export const DevicesPage = () => {
                 {opt}
               </MenuItem>
             ))}
-            <MenuItem value="all">All</MenuItem>
+            <MenuItem value="all">{t("common.all")}</MenuItem>
           </Select>
           <TextField
             size="small"
             type="number"
-            placeholder="Custom"
+            placeholder={t("common.custom")}
             value={customPageSize}
             onChange={(e) => setCustomPageSize(e.target.value)}
             onBlur={() => {
@@ -537,8 +543,11 @@ export const DevicesPage = () => {
           sx={{ whiteSpace: "nowrap" }}
         >
           {filteredDevices.length === devices.length
-            ? `${devices.length} device${devices.length !== 1 ? "s" : ""}`
-            : `${filteredDevices.length} of ${devices.length} devices`}
+            ? t("devices.deviceCount", { count: devices.length })
+            : t("devices.filteredCount", {
+                filtered: filteredDevices.length,
+                total: devices.length,
+              })}
         </Typography>
       </Box>
 

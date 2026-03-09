@@ -23,6 +23,7 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   deleteLockCredential,
   fetchLockCredentials,
@@ -49,6 +50,7 @@ const CredentialDialog = ({
   initialName = "",
   isEdit = false,
 }: CredentialDialogProps) => {
+  const { t } = useTranslation();
   const [entityId, setEntityId] = useState(initialEntityId);
   const [pinCode, setPinCode] = useState("");
   const [name, setName] = useState(initialName);
@@ -66,15 +68,15 @@ const CredentialDialog = ({
 
   const handleSave = async () => {
     if (!entityId.trim()) {
-      setError("Entity ID is required");
+      setError(t("lockCredentials.entityRequired"));
       return;
     }
     if (!pinCode || pinCode.length < 4 || pinCode.length > 8) {
-      setError("PIN must be 4-8 digits");
+      setError(t("lockCredentials.pinLength"));
       return;
     }
     if (!/^\d+$/.test(pinCode)) {
-      setError("PIN must contain only digits");
+      setError(t("lockCredentials.pinDigitsOnly"));
       return;
     }
 
@@ -83,7 +85,9 @@ const CredentialDialog = ({
       await onSave(entityId.trim(), pinCode, name.trim());
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(
+        err instanceof Error ? err.message : t("lockCredentials.saveFailed"),
+      );
     } finally {
       setSaving(false);
     }
@@ -92,22 +96,24 @@ const CredentialDialog = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {isEdit ? "Edit Lock Credential" : "Add Lock Credential"}
+        {isEdit
+          ? t("lockCredentials.editCredential")
+          : t("lockCredentials.addCredential")}
       </DialogTitle>
       <DialogContent>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
           <TextField
-            label="Lock Entity ID"
+            label={t("lockCredentials.lockEntityId")}
             placeholder="lock.front_door"
             value={entityId}
             onChange={(e) => setEntityId(e.target.value)}
             disabled={isEdit}
             fullWidth
-            helperText="The Home Assistant entity ID of the lock"
+            helperText={t("lockCredentials.lockEntityHelperText")}
           />
           <TextField
-            label="PIN Code"
+            label={t("lockCredentials.pinCode")}
             type="password"
             placeholder="1234"
             value={pinCode}
@@ -119,18 +125,18 @@ const CredentialDialog = ({
             inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
           />
           <TextField
-            label="Name (optional)"
-            placeholder="Front Door"
+            label={t("lockCredentials.nameOptional")}
+            placeholder={t("lockCredentials.namePlaceholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             fullWidth
-            helperText="Friendly name for this credential"
+            helperText={t("lockCredentials.nameHelperText")}
           />
         </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={saving}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           onClick={handleSave}
@@ -138,7 +144,7 @@ const CredentialDialog = ({
           disabled={saving}
           startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />}
         >
-          Save
+          {t("common.save")}
         </Button>
       </DialogActions>
     </Dialog>
@@ -146,6 +152,7 @@ const CredentialDialog = ({
 };
 
 export const LockCredentialsPage = () => {
+  const { t } = useTranslation();
   const [credentials, setCredentials] = useState<SanitizedCredential[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -161,12 +168,12 @@ export const LockCredentialsPage = () => {
       setError(null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to load credentials",
+        err instanceof Error ? err.message : t("lockCredentials.loadFailed"),
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadCredentials();
@@ -196,7 +203,9 @@ export const LockCredentialsPage = () => {
       await deleteLockCredential(entityId);
       await loadCredentials();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete");
+      setError(
+        err instanceof Error ? err.message : t("lockCredentials.deleteFailed"),
+      );
     }
   };
 
@@ -208,7 +217,9 @@ export const LockCredentialsPage = () => {
       );
       await loadCredentials();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update");
+      setError(
+        err instanceof Error ? err.message : t("lockCredentials.updateFailed"),
+      );
     }
   };
 
@@ -234,10 +245,10 @@ export const LockCredentialsPage = () => {
       >
         <Typography variant="h5" component="h1">
           <LockIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          Lock Credentials
+          {t("lockCredentials.title")}
         </Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
-          Add Credential
+          {t("lockCredentials.addCredential")}
         </Button>
       </Box>
 
@@ -319,7 +330,13 @@ export const LockCredentialsPage = () => {
                   }
                 />
                 <ListItemSecondaryAction>
-                  <Tooltip title={credential.enabled ? "Disable" : "Enable"}>
+                  <Tooltip
+                    title={
+                      credential.enabled
+                        ? t("lockCredentials.disable")
+                        : t("lockCredentials.enable")
+                    }
+                  >
                     <Switch
                       edge="end"
                       checked={credential.enabled}
@@ -329,7 +346,7 @@ export const LockCredentialsPage = () => {
                       }}
                     />
                   </Tooltip>
-                  <Tooltip title="Delete">
+                  <Tooltip title={t("common.delete")}>
                     <IconButton
                       edge="end"
                       onClick={(e) => {
@@ -358,9 +375,11 @@ export const LockCredentialsPage = () => {
       />
       <ConfirmDialog
         open={pendingDeleteEntity !== null}
-        title="Delete Credential"
-        message={`This will permanently delete the PIN credential for ${pendingDeleteEntity ?? "this entity"}. This cannot be undone.`}
-        confirmLabel="Delete"
+        title={t("lockCredentials.confirmDeleteTitle")}
+        message={t("lockCredentials.confirmDeleteMessage", {
+          entity: pendingDeleteEntity ?? "",
+        })}
+        confirmLabel={t("common.delete")}
         confirmColor="error"
         onConfirm={() => {
           if (pendingDeleteEntity) handleDelete(pendingDeleteEntity);

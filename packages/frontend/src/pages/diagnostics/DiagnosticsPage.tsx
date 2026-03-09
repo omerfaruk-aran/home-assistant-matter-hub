@@ -19,6 +19,7 @@ import { useTheme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useDiagnostics } from "../../hooks/useDiagnostics.ts";
 
 function contrastText(hex: string): string {
@@ -33,15 +34,26 @@ function contrastText(hex: string): string {
   return luminance > 0.4 ? "#000" : "#fff";
 }
 
-const eventTypeConfig: Record<string, { color: string; label: string }> = {
-  state_update: { color: "#4caf50", label: "State Update" },
-  command_received: { color: "#2196f3", label: "Command" },
-  entity_error: { color: "#f44336", label: "Error" },
-  session_opened: { color: "#ff9800", label: "Session Open" },
-  session_closed: { color: "#9e9e9e", label: "Session Close" },
-  subscription_changed: { color: "#9c27b0", label: "Subscription" },
-  bridge_started: { color: "#00bcd4", label: "Bridge Start" },
-  bridge_stopped: { color: "#795548", label: "Bridge Stop" },
+const eventTypeColors: Record<string, string> = {
+  state_update: "#4caf50",
+  command_received: "#2196f3",
+  entity_error: "#f44336",
+  session_opened: "#ff9800",
+  session_closed: "#9e9e9e",
+  subscription_changed: "#9c27b0",
+  bridge_started: "#00bcd4",
+  bridge_stopped: "#795548",
+};
+
+const eventTypeLabelKeys: Record<string, string> = {
+  state_update: "diagnostics.stateUpdate",
+  command_received: "diagnostics.command",
+  entity_error: "diagnostics.entityError",
+  session_opened: "diagnostics.sessionOpen",
+  session_closed: "diagnostics.sessionClose",
+  subscription_changed: "diagnostics.subscription",
+  bridge_started: "diagnostics.bridgeStart",
+  bridge_stopped: "diagnostics.bridgeStop",
 };
 
 function formatTime(ts: number): string {
@@ -53,7 +65,7 @@ function formatTime(ts: number): string {
   return `${hh}:${mm}:${ss}.${ms}`;
 }
 
-const allEventTypes = Object.keys(eventTypeConfig) as DiagnosticEventType[];
+const allEventTypes = Object.keys(eventTypeColors) as DiagnosticEventType[];
 
 export interface LiveEventLogProps {
   sortField?: "name" | "created";
@@ -64,6 +76,7 @@ export function LiveEventLog({
   sortField,
   sortDirection,
 }: LiveEventLogProps = {}) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { events, snapshot, connected, clearEvents } = useDiagnostics();
   const [enabledTypes, setEnabledTypes] = useState<Set<string>>(
@@ -115,7 +128,7 @@ export function LiveEventLog({
         >
           <Box display="flex" alignItems="center" gap={1}>
             <TimelineIcon />
-            <Typography variant="h6">Live Diagnostics</Typography>
+            <Typography variant="h6">{t("diagnostics.title")}</Typography>
             <Chip
               icon={
                 <FiberManualRecordIcon
@@ -127,13 +140,13 @@ export function LiveEventLog({
                   }}
                 />
               }
-              label={connected ? "Live" : "Offline"}
+              label={connected ? t("common.live") : t("common.offline")}
               size="small"
               variant="outlined"
             />
           </Box>
           <Stack direction="row" spacing={0.5} alignItems="center">
-            <Tooltip title="Filter event types">
+            <Tooltip title={t("diagnostics.filterEvents")}>
               <IconButton
                 size="small"
                 onClick={() => setShowFilters((v) => !v)}
@@ -142,7 +155,7 @@ export function LiveEventLog({
                 <FilterListIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Clear all events">
+            <Tooltip title={t("diagnostics.clearEvents")}>
               <IconButton size="small" onClick={clearEvents}>
                 <ClearAllIcon />
               </IconButton>
@@ -160,18 +173,18 @@ export function LiveEventLog({
           {allEventTypes.map((type) => {
             const count = typeCounts[type] ?? 0;
             if (count === 0 && !showFilters) return null;
-            const cfg = eventTypeConfig[type];
+            const color = eventTypeColors[type];
             return (
               <Chip
                 key={type}
-                label={`${cfg.label}: ${count}`}
+                label={`${t(eventTypeLabelKeys[type])}: ${count}`}
                 size="small"
                 sx={{
                   bgcolor: enabledTypes.has(type)
-                    ? cfg.color
+                    ? color
                     : "action.disabledBackground",
                   color: enabledTypes.has(type)
-                    ? contrastText(cfg.color)
+                    ? contrastText(color)
                     : "text.disabled",
                   fontSize: "0.7rem",
                   height: 22,
@@ -197,7 +210,7 @@ export function LiveEventLog({
           <Paper variant="outlined" sx={{ p: 1.5, mb: 2 }}>
             <Grid container spacing={0}>
               {allEventTypes.map((type) => {
-                const cfg = eventTypeConfig[type];
+                const color = eventTypeColors[type];
                 return (
                   <Grid size={{ xs: 6, sm: 4, md: 3 }} key={type}>
                     <FormControlLabel
@@ -207,13 +220,15 @@ export function LiveEventLog({
                           checked={enabledTypes.has(type)}
                           onChange={() => toggleType(type)}
                           sx={{
-                            color: cfg.color,
-                            "&.Mui-checked": { color: cfg.color },
+                            color: color,
+                            "&.Mui-checked": { color: color },
                           }}
                         />
                       }
                       label={
-                        <Typography variant="caption">{cfg.label}</Typography>
+                        <Typography variant="caption">
+                          {t(eventTypeLabelKeys[type])}
+                        </Typography>
                       }
                     />
                   </Grid>
@@ -314,11 +329,11 @@ export function LiveEventLog({
             >
               {events.length === 0
                 ? "Waiting for diagnostic events…"
-                : "No events match the current filters."}
+                : t("diagnostics.noEvents")}
             </Typography>
           ) : (
             filteredEvents.map((event) => {
-              const cfg = eventTypeConfig[event.type];
+              const evtColor = eventTypeColors[event.type];
               return (
                 <Box
                   key={event.id}
@@ -349,11 +364,15 @@ export function LiveEventLog({
                     {formatTime(event.timestamp)}
                   </Typography>
                   <Chip
-                    label={cfg?.label ?? event.type}
+                    label={
+                      eventTypeLabelKeys[event.type]
+                        ? t(eventTypeLabelKeys[event.type])
+                        : event.type
+                    }
                     size="small"
                     sx={{
-                      bgcolor: cfg?.color ?? "#757575",
-                      color: contrastText(cfg?.color ?? "#757575"),
+                      bgcolor: evtColor ?? "#757575",
+                      color: contrastText(evtColor ?? "#757575"),
                       fontSize: "0.62rem",
                       fontWeight: 600,
                       height: 18,

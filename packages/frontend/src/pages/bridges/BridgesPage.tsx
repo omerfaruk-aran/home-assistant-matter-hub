@@ -15,6 +15,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { exportAllBridges } from "../../api/bridge-export.js";
 import {
@@ -32,6 +33,7 @@ import { loadBridges } from "../../state/bridges/bridge-actions.ts";
 import { useAppDispatch } from "../../state/hooks.ts";
 
 export const BridgesPage = () => {
+  const { t } = useTranslation();
   const notifications = useNotifications();
 
   const dispatch = useAppDispatch();
@@ -47,11 +49,11 @@ export const BridgesPage = () => {
       await exportAllBridges();
     } catch (e) {
       notifications.show({
-        message: e instanceof Error ? e.message : "Export failed",
+        message: e instanceof Error ? e.message : t("bridge.exportFailed"),
         severity: "error",
       });
     }
-  }, [notifications]);
+  }, [notifications, t]);
 
   const handleImportClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -83,9 +85,9 @@ export const BridgesPage = () => {
       setBulkLoading(true);
       try {
         const labels = {
-          start: "Started",
-          stop: "Stopped",
-          restart: "Restarted",
+          start: t("bridge.actionStarted"),
+          stop: t("bridge.actionStopped"),
+          restart: t("bridge.actionRestarted"),
         };
         const fns = {
           start: startAllBridges,
@@ -94,30 +96,36 @@ export const BridgesPage = () => {
         };
         const result = await fns[action]();
         notifications.show({
-          message: `${labels[action]} ${result.count} bridge(s)`,
+          message: t("bridge.actionResult", {
+            label: labels[action],
+            count: result.count,
+          }),
           severity: "success",
         });
         dispatch(loadBridges());
       } catch (e) {
         notifications.show({
-          message: e instanceof Error ? e.message : `${action} failed`,
+          message:
+            e instanceof Error
+              ? e.message
+              : t("bridge.actionFailed", { action }),
           severity: "error",
         });
       } finally {
         setBulkLoading(false);
       }
     },
-    [notifications, dispatch],
+    [notifications, dispatch, t],
   );
 
   useEffect(() => {
     if (bridgeError) {
       notifications.show({
-        message: bridgeError.message ?? "Could not load bridges",
+        message: bridgeError.message ?? t("bridge.couldNotLoad"),
         severity: "error",
       });
     }
-  }, [bridgeError, notifications]);
+  }, [bridgeError, notifications, t]);
 
   return (
     <>
@@ -148,7 +156,7 @@ export const BridgesPage = () => {
                     color="success"
                     disabled={bulkLoading}
                   >
-                    Start All
+                    {t("common.startAll")}
                   </Button>
                   <Button
                     onClick={() => handleBulkAction("stop")}
@@ -158,7 +166,7 @@ export const BridgesPage = () => {
                     color="error"
                     disabled={bulkLoading}
                   >
-                    Stop All
+                    {t("common.stopAll")}
                   </Button>
                   <Button
                     onClick={() => handleBulkAction("restart")}
@@ -168,7 +176,7 @@ export const BridgesPage = () => {
                     color="warning"
                     disabled={bulkLoading}
                   >
-                    Restart All
+                    {t("common.restartAll")}
                   </Button>
                   <Divider orientation="vertical" flexItem />
                 </>
@@ -178,7 +186,7 @@ export const BridgesPage = () => {
                 startIcon={<Download />}
                 variant="outlined"
               >
-                Import
+                {t("common.import")}
               </Button>
               <Button
                 onClick={handleExport}
@@ -186,7 +194,7 @@ export const BridgesPage = () => {
                 variant="outlined"
                 disabled={bridges.length === 0}
               >
-                Export All
+                {t("common.exportAll")}
               </Button>
               <Button
                 component={Link}
@@ -194,14 +202,14 @@ export const BridgesPage = () => {
                 startIcon={<MapIcon />}
                 variant="outlined"
               >
-                Area Setup
+                {t("areaSetup.title")}
               </Button>
               <Button
                 onClick={() => setWizardOpen(true)}
                 startIcon={<AutoFixHigh />}
                 variant="outlined"
               >
-                Wizard
+                {t("bridgeWizard.title")}
               </Button>
               <Button
                 component={Link}
@@ -209,7 +217,7 @@ export const BridgesPage = () => {
                 endIcon={<Add />}
                 variant="outlined"
               >
-                Create new bridge
+                {t("dashboard.createBridge")}
               </Button>
               <input
                 type="file"

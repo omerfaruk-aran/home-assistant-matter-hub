@@ -1,6 +1,7 @@
 import type { BridgeConfig } from "@home-assistant-matter-hub/common";
 import Stack from "@mui/material/Stack";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 import { Breadcrumbs } from "../../components/breadcrumbs/Breadcrumbs.tsx";
 import { BridgeConfigEditor } from "../../components/bridge/BridgeConfigEditor.tsx";
@@ -13,6 +14,7 @@ import {
 import { navigation } from "../../routes.tsx";
 
 export const EditBridgePage = () => {
+  const { t } = useTranslation();
   const notifications = useNotifications();
   const navigate = useNavigate();
 
@@ -44,7 +46,7 @@ export const EditBridgePage = () => {
     await updateBridge({ ...config, id: bridgeId })
       .then(() =>
         notifications.show({
-          message: "Update completed",
+          message: t("bridge.updateSuccess"),
           severity: "success",
         }),
       )
@@ -55,19 +57,19 @@ export const EditBridgePage = () => {
   };
 
   if (isLoading || !usedPorts) {
-    return "Loading";
+    return t("common.loading");
   }
   if (!bridge || !bridgeConfig) {
-    return "Not found";
+    return t("notFound.title");
   }
 
   return (
     <Stack spacing={4}>
       <Breadcrumbs
         items={[
-          { name: "Bridges", to: navigation.bridges },
+          { name: t("nav.bridges"), to: navigation.bridges },
           { name: bridge.name, to: navigation.bridge(bridgeId) },
-          { name: "Edit", to: navigation.editBridge(bridgeId) },
+          { name: t("common.edit"), to: navigation.editBridge(bridgeId) },
         ]}
       />
 

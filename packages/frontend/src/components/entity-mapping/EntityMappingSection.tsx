@@ -32,6 +32,7 @@ import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   deleteEntityMapping,
   fetchEntityMappings,
@@ -49,6 +50,7 @@ interface EntityMappingSectionProps {
 }
 
 export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
+  const { t } = useTranslation();
   const [mappings, setMappings] = useState<EntityMappingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,11 +79,11 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
       setMappings(data);
       setError(null);
     } catch {
-      setError("Failed to load entity mappings");
+      setError(t("mapping.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [bridgeId]);
+  }, [bridgeId, t]);
 
   useEffect(() => {
     loadMappings();
@@ -107,10 +109,10 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
         await deleteEntityMapping(bridgeId, entityId);
         await loadMappings();
       } catch {
-        setError("Failed to delete entity mapping");
+        setError(t("mapping.deleteFailed"));
       }
     },
-    [bridgeId, loadMappings],
+    [bridgeId, loadMappings, t],
   );
 
   const handleSave = useCallback(
@@ -122,10 +124,10 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
         setEditingEntity(null);
         await loadMappings();
       } catch {
-        setError("Failed to save entity mapping");
+        setError(t("mapping.saveFailed", { error: "" }));
       }
     },
-    [bridgeId, loadMappings],
+    [bridgeId, loadMappings, t],
   );
 
   const handleClose = useCallback(() => {
@@ -279,7 +281,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
         >
           <Typography variant="h6">
             <SettingsIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-            Entity Mappings
+            {t("mapping.title")}
           </Typography>
           <Stack direction="row" spacing={1}>
             {mappingsList.length > 0 && (
@@ -289,7 +291,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
                 startIcon={<DownloadIcon />}
                 onClick={handleExportClick}
               >
-                Export
+                {t("common.export")}
               </Button>
             )}
             <Button
@@ -298,10 +300,10 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
               startIcon={<UploadIcon />}
               onClick={handleImportClick}
             >
-              Import
+              {t("common.import")}
             </Button>
             <Button variant="outlined" size="small" onClick={handleAddMapping}>
-              Add Mapping
+              {t("mapping.addMapping")}
             </Button>
           </Stack>
           <input
@@ -330,12 +332,15 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
           </Alert>
         )}
 
-        {loading && <Typography color="text.secondary">Loading...</Typography>}
+        {loading && (
+          <Typography color="text.secondary">
+            {t("common.loading")}...
+          </Typography>
+        )}
 
         {!loading && mappingsList.length === 0 && (
           <Typography color="text.secondary">
-            No custom entity mappings configured. Use mappings to override
-            Matter device types, set custom names, or disable specific entities.
+            {t("mapping.noMappings")}
           </Typography>
         )}
 
@@ -344,11 +349,11 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Entity ID</TableCell>
-                  <TableCell>Device Type</TableCell>
-                  <TableCell>Custom Name</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>{t("mapping.entityId")}</TableCell>
+                  <TableCell>{t("mapping.deviceType")}</TableCell>
+                  <TableCell>{t("mapping.customName")}</TableCell>
+                  <TableCell>{t("mapping.status")}</TableCell>
+                  <TableCell align="right">{t("common.actions")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -375,9 +380,17 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
                     </TableCell>
                     <TableCell>
                       {config.disabled ? (
-                        <Chip label="Disabled" color="error" size="small" />
+                        <Chip
+                          label={t("common.disabled")}
+                          color="error"
+                          size="small"
+                        />
                       ) : (
-                        <Chip label="Enabled" color="success" size="small" />
+                        <Chip
+                          label={t("common.enabled")}
+                          color="success"
+                          size="small"
+                        />
                       )}
                     </TableCell>
                     <TableCell align="right">
@@ -423,11 +436,11 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Export Mapping Profile</DialogTitle>
+        <DialogTitle>{t("mapping.exportProfile")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
-              label="Profile Name"
+              label={t("mapping.profileName")}
               size="small"
               fullWidth
               value={exportProfileName}
@@ -450,9 +463,9 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
                         onChange={toggleExportAll}
                       />
                     </TableCell>
-                    <TableCell>Entity ID</TableCell>
-                    <TableCell>Device Type</TableCell>
-                    <TableCell>Custom Name</TableCell>
+                    <TableCell>{t("mapping.entityId")}</TableCell>
+                    <TableCell>{t("mapping.deviceType")}</TableCell>
+                    <TableCell>{t("mapping.customName")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -492,14 +505,14 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleExportCancel}>Cancel</Button>
+          <Button onClick={handleExportCancel}>{t("common.cancel")}</Button>
           <Button
             variant="contained"
             onClick={handleExportConfirm}
             disabled={exportSelected.size === 0}
             startIcon={<DownloadIcon />}
           >
-            Export {exportSelected.size} Mapping(s)
+            {t("common.export")} {exportSelected.size}
           </Button>
         </DialogActions>
       </Dialog>
@@ -510,7 +523,7 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Import Mapping Profile</DialogTitle>
+        <DialogTitle>{t("mapping.importProfile")}</DialogTitle>
         <DialogContent>
           {importPreview && (
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -526,10 +539,10 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
                     <TableHead>
                       <TableRow>
                         <TableCell padding="checkbox" />
-                        <TableCell>Entity ID</TableCell>
-                        <TableCell>Match</TableCell>
-                        <TableCell>Device Type</TableCell>
-                        <TableCell>Existing</TableCell>
+                        <TableCell>{t("mapping.entityId")}</TableCell>
+                        <TableCell>{t("mapping.match")}</TableCell>
+                        <TableCell>{t("mapping.deviceType")}</TableCell>
+                        <TableCell>{t("mapping.existing")}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -569,14 +582,14 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
                           <TableCell>
                             {match.existingMapping ? (
                               <Chip
-                                label="Overwrite"
+                                label={t("common.overwrite")}
                                 size="small"
                                 color="warning"
                                 variant="outlined"
                               />
                             ) : (
                               <Chip
-                                label="New"
+                                label={t("common.new")}
                                 size="small"
                                 color="info"
                                 variant="outlined"
@@ -600,15 +613,15 @@ export function EntityMappingSection({ bridgeId }: EntityMappingSectionProps) {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleImportCancel}>Cancel</Button>
+          <Button onClick={handleImportCancel}>{t("common.cancel")}</Button>
           <Button
             variant="contained"
             onClick={handleImportApply}
             disabled={importing || importSelected.size === 0}
           >
             {importing
-              ? "Applying..."
-              : `Apply ${importSelected.size} Mapping(s)`}
+              ? t("mapping.applying")
+              : t("mapping.applyCount", { count: importSelected.size })}
           </Button>
         </DialogActions>
       </Dialog>

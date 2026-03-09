@@ -27,6 +27,7 @@ import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { EntityAutocomplete } from "./EntityAutocomplete.tsx";
 
 interface RelatedButton {
@@ -52,6 +53,7 @@ export function EntityMappingDialog({
   onSave,
   onClose,
 }: EntityMappingDialogProps) {
+  const { t } = useTranslation();
   const [editEntityId, setEditEntityId] = useState(entityId);
   const [matterDeviceType, setMatterDeviceType] = useState<
     MatterDeviceType | ""
@@ -242,7 +244,9 @@ export function EntityMappingDialog({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {isNewMapping ? "Add Entity Mapping" : `Edit: ${entityId}`}
+        {isNewMapping
+          ? t("mapping.addMapping")
+          : `${t("common.edit")}: ${entityId}`}
       </DialogTitle>
       <DialogContent>
         {isNewMapping && (
@@ -267,7 +271,7 @@ export function EntityMappingDialog({
             }
           >
             <MenuItem value="">
-              <em>Auto-detect (default)</em>
+              <em>{t("mapping.autoDetect")}</em>
             </MenuItem>
             {suggestedTypes.length > 0 && (
               <MenuItem disabled>— Suggested for {domain} —</MenuItem>
@@ -652,13 +656,13 @@ export function EntityMappingDialog({
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t("common.cancel")}</Button>
         <Button
           onClick={handleSave}
           variant="contained"
           disabled={!editEntityId.trim()}
         >
-          Save
+          {t("common.save")}
         </Button>
       </DialogActions>
     </Dialog>

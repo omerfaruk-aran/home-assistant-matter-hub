@@ -27,6 +27,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getEndpointName } from "../../components/endpoints/EndpointName.tsx";
 import { BridgeNode } from "../../components/network-map/nodes/BridgeNode.tsx";
 import { DeviceNode } from "../../components/network-map/nodes/DeviceNode.tsx";
@@ -287,6 +288,7 @@ function buildGraph(
 }
 
 export const NetworkMapPage = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { content: bridges, isLoading: bridgesLoading } = useBridges();
   const allDeviceStates = useAppSelector((state) => state.devices.byBridge);
@@ -456,10 +458,10 @@ export const NetworkMapPage = () => {
           sx={{ display: "flex", alignItems: "center", gap: 2 }}
         >
           <AccountTreeIcon />
-          Network Map
+          {t("networkMap.title")}
         </Typography>
         <Box sx={{ display: "flex", gap: 0.5 }}>
-          <Tooltip title="Undo last move">
+          <Tooltip title={t("networkMap.undoMove")}>
             <span>
               <IconButton
                 onClick={handleUndo}
@@ -470,17 +472,23 @@ export const NetworkMapPage = () => {
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="Reset layout">
+          <Tooltip title={t("networkMap.resetLayout")}>
             <IconButton onClick={handleResetLayout} color="primary">
               <RestartAltIcon />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Refresh data">
+          <Tooltip title={t("networkMap.refreshData")}>
             <IconButton onClick={handleRefresh} color="primary">
               <RefreshIcon />
             </IconButton>
           </Tooltip>
-          <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+          <Tooltip
+            title={
+              isFullscreen
+                ? t("networkMap.exitFullscreen")
+                : t("networkMap.fullscreen")
+            }
+          >
             <IconButton
               onClick={() => setIsFullscreen((f) => !f)}
               color="primary"
@@ -558,7 +566,7 @@ export const NetworkMapPage = () => {
         }}
       >
         <Typography variant="caption" color="text.secondary" fontWeight={600}>
-          Legend:
+          {t("networkMap.legend")}:
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <Box
@@ -570,7 +578,7 @@ export const NetworkMapPage = () => {
             }}
           />
           <Typography variant="caption" color="text.secondary">
-            Controller
+            {t("networkMap.controller")}
           </Typography>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -583,7 +591,7 @@ export const NetworkMapPage = () => {
             }}
           />
           <Typography variant="caption" color="text.secondary">
-            HAMH Hub
+            {t("networkMap.hub")}
           </Typography>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -597,7 +605,7 @@ export const NetworkMapPage = () => {
             }}
           />
           <Typography variant="caption" color="text.secondary">
-            Bridge
+            {t("networkMap.bridge")}
           </Typography>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -611,7 +619,7 @@ export const NetworkMapPage = () => {
             }}
           />
           <Typography variant="caption" color="text.secondary">
-            Device
+            {t("networkMap.device")}
           </Typography>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -625,7 +633,7 @@ export const NetworkMapPage = () => {
             }}
           />
           <Typography variant="caption" color="text.secondary">
-            Failed
+            {t("networkMap.failed")}
           </Typography>
         </Box>
       </Box>

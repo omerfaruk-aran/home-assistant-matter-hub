@@ -68,33 +68,37 @@ export const AppTopBar = () => {
     { label: t("nav.bridges"), icon: <HubIcon />, to: navigation.bridges },
     { label: t("nav.devices"), icon: <DevicesIcon />, to: navigation.devices },
     {
-      label: "Network Map",
+      label: t("nav.networkMap"),
       icon: <AccountTreeIcon />,
       to: navigation.networkMap,
     },
     {
-      label: "Startup Order",
+      label: t("nav.startupOrder"),
       icon: <RocketLaunchIcon />,
       to: navigation.startup,
     },
     {
-      label: "Lock Credentials",
+      label: t("nav.lockCredentials"),
       icon: <LockIcon />,
       to: navigation.lockCredentials,
     },
-    { label: "Filter Reference", icon: <LabelIcon />, to: navigation.labels },
+    {
+      label: t("nav.filterReference"),
+      icon: <LabelIcon />,
+      to: navigation.labels,
+    },
     {
       label: t("nav.settings"),
       icon: <SettingsIcon />,
       to: navigation.settings,
     },
     {
-      label: mode === "dark" ? "Light Mode" : "Dark Mode",
+      label: mode === "dark" ? t("nav.lightMode") : t("nav.darkMode"),
       icon: mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />,
       onClick: toggleColorMode,
     },
     {
-      label: "System Logs",
+      label: t("nav.systemLogs"),
       icon: <BugReportIcon />,
       onClick: () => setLogViewerOpen(true),
     },

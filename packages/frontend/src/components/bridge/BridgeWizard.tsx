@@ -39,6 +39,7 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { createBridge as apiCreateBridge } from "../../api/bridges.js";
 import { BridgeTemplateSelector } from "./BridgeTemplateSelector.js";
 
@@ -67,13 +68,13 @@ const controllerIcons: Record<string, string> = {
   multi_controller: "🔀",
 };
 
-const steps = [
-  "Template",
-  "Controller",
-  "Bridge Info",
-  "Entity Filter",
-  "Feature Flags",
-  "Review & Create",
+const stepKeys = [
+  "bridgeWizard.stepTemplate",
+  "bridgeWizard.stepController",
+  "bridgeWizard.stepBridgeInfo",
+  "bridgeWizard.stepEntityFilter",
+  "bridgeWizard.stepFeatureFlags",
+  "bridgeWizard.stepReview",
 ];
 
 interface FlagOption {
@@ -110,6 +111,7 @@ const wizardFlags: FlagOption[] = [
 ];
 
 export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
+  const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [nextPort, setNextPort] = useState(5540);
@@ -231,7 +233,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
     }
     if (activeStep === 2) {
       if (!currentBridge.name.trim()) {
-        setError("Please enter a bridge name");
+        setError(t("bridgeWizard.nameRequired"));
         return;
       }
       setError(null);
@@ -319,7 +321,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       await apiCreateBridge(request);
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create bridge");
+      setError(e instanceof Error ? e.message : t("bridgeWizard.createFailed"));
       return false;
     } finally {
       setLoading(false);
@@ -337,8 +339,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
   const renderTemplateStep = () => (
     <Box sx={{ mt: 2 }}>
       <Typography variant="body1" gutterBottom>
-        Choose a template to get started quickly, or skip to create a custom
-        bridge.
+        {t("bridgeWizard.templateDescription")}
       </Typography>
       <Box sx={{ mt: 2 }}>
         <BridgeTemplateSelector
@@ -352,8 +353,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
   const renderControllerStep = () => (
     <Box sx={{ mt: 2 }}>
       <Typography variant="body1" gutterBottom>
-        Which Matter controller will you use? This optimizes feature flags for
-        your controller.
+        {t("bridgeWizard.controllerDescription")}
       </Typography>
       <Grid container spacing={1.5} sx={{ mt: 1 }}>
         {controllerProfiles.map((profile) => {
@@ -429,8 +429,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
         color="text.secondary"
         sx={{ mt: 2, display: "block" }}
       >
-        You can always adjust feature flags in the next steps or after bridge
-        creation.
+        {t("bridgeWizard.controllerHint")}
       </Typography>
     </Box>
   );
@@ -439,12 +438,12 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
     <Box sx={{ mt: 2 }}>
       <Typography variant="body1" gutterBottom>
         {selectedTemplate
-          ? `Template "${selectedTemplate.name}" applied. Customize the name and port below.`
-          : "Give your bridge a name and port."}
+          ? t("bridgeWizard.templateApplied", { name: selectedTemplate.name })
+          : t("bridgeWizard.bridgeInfoDescription")}
       </Typography>
       <TextField
         fullWidth
-        label="Bridge Name"
+        label={t("bridgeWizard.bridgeName")}
         value={currentBridge.name}
         onChange={(e) =>
           setCurrentBridge((prev) => ({ ...prev, name: e.target.value }))
@@ -456,7 +455,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       />
       <TextField
         fullWidth
-        label="Port"
+        label={t("bridgeWizard.portLabel")}
         type="number"
         value={currentBridge.port}
         onChange={(e) =>
@@ -466,7 +465,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
           }))
         }
         margin="normal"
-        helperText="Automatically assigned to next available port"
+        helperText={t("bridgeWizard.portAutoAssign")}
       />
       <Tooltip
         title="Required for Robot Vacuums to work with Apple Home (Siri) and Alexa. Server Mode bridges support only ONE device."
@@ -486,7 +485,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
               checkedIcon={<SmartToyIcon color="primary" />}
             />
           }
-          label="Server Mode (for Robot Vacuums)"
+          label={t("bridgeWizard.serverModeLabel")}
           sx={{ mt: 1 }}
         />
       </Tooltip>
@@ -501,7 +500,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       {bridges.length > 0 && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="subtitle2" color="text.secondary">
-            Bridges to create ({bridges.length}):
+            {t("bridgeWizard.bridgesToCreate", { count: bridges.length })}:
           </Typography>
           <Box display="flex" gap={1} flexWrap="wrap" mt={1}>
             {bridges.map((b) => (
@@ -521,8 +520,10 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
     <Box sx={{ mt: 2 }}>
       <Typography variant="body1" gutterBottom>
         {selectedTemplate
-          ? `Filter is pre-configured from the "${selectedTemplate.name}" template. You can adjust it below.`
-          : "Configure which entities should be included in this bridge."}
+          ? t("bridgeWizard.filterPreConfiguredFrom", {
+              name: selectedTemplate.name,
+            })
+          : t("bridgeWizard.entityFilterDescription")}
       </Typography>
       {currentBridge.serverMode && (
         <Alert severity="warning" sx={{ mt: 1, mb: 1 }}>
@@ -539,7 +540,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
               onChange={(e) => setUseWildcard(e.target.checked)}
             />
           }
-          label="Include all entities (wildcard)"
+          label={t("bridgeWizard.includeAll")}
         />
       )}
       <TextField
@@ -579,12 +580,12 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       {!selectedTemplate && (
         <TextField
           fullWidth
-          label="Exclude Patterns (optional)"
+          label={t("bridgeWizard.excludePatterns")}
           value={excludePattern}
           onChange={(e) => setExcludePattern(e.target.value)}
           margin="normal"
           placeholder="sensor.*, binary_sensor.*"
-          helperText="Patterns to exclude, comma-separated"
+          helperText={t("bridgeWizard.excludeHelperText")}
         />
       )}
     </Box>
@@ -593,10 +594,10 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
   const renderFeatureFlagsStep = () => (
     <Box sx={{ mt: 2 }}>
       <Typography variant="body1" gutterBottom>
-        Feature flags control how devices are exposed to Matter controllers.
+        {t("bridgeWizard.featureFlagsDescription")}
         {selectedController
-          ? ` Recommended flags for ${selectedController.name} are pre-selected.`
-          : " Select the flags that match your setup."}
+          ? ` ${t("bridgeWizard.recommendedFlags", { name: selectedController.name })}`
+          : ` ${t("bridgeWizard.selectFlags")}`}
       </Typography>
       {wizardFlags.map((flag) => (
         <Box key={flag.key} sx={{ mt: 1 }}>
@@ -637,7 +638,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
     return (
       <Box sx={{ mt: 2 }}>
         <Typography variant="body1" gutterBottom>
-          Review your bridge configuration:
+          {t("bridgeWizard.reviewDescription")}
         </Typography>
         <Card variant="outlined" sx={{ mt: 2 }}>
           <CardContent>
@@ -646,7 +647,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
               <Typography variant="h6">{currentBridge.name}</Typography>
             </Box>
             <Typography variant="body2" color="text.secondary">
-              Port: {currentBridge.port}
+              {t("bridgeWizard.portLabel")}: {currentBridge.port}
             </Typography>
             {selectedTemplate && (
               <Chip
@@ -707,7 +708,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
         {bridges.length > 0 && (
           <Box sx={{ mt: 2 }}>
             <Typography variant="subtitle2">
-              {bridges.length} bridge(s) already created in this session
+              {t("bridgeWizard.bridgesCreated", { count: bridges.length })}
             </Typography>
           </Box>
         )}
@@ -720,14 +721,14 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={1}>
           <SettingsIcon />
-          <span>Bridge Setup Wizard</span>
+          <span>{t("bridgeWizard.title")}</span>
         </Box>
       </DialogTitle>
       <DialogContent>
         <Stepper activeStep={activeStep} sx={{ mt: 1 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
+          {stepKeys.map((key) => (
+            <Step key={key}>
+              <StepLabel>{t(key)}</StepLabel>
             </Step>
           ))}
         </Stepper>
@@ -740,7 +741,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={loading}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Box sx={{ flex: 1 }} />
         {activeStep > 0 && (
@@ -749,10 +750,10 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
             startIcon={<ArrowBackIcon />}
             disabled={loading}
           >
-            Back
+            {t("common.back")}
           </Button>
         )}
-        {activeStep < steps.length - 1 && (
+        {activeStep < stepKeys.length - 1 && (
           <Button
             variant="contained"
             onClick={handleNext}
@@ -760,13 +761,13 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
             disabled={loading}
           >
             {activeStep === 0 && !selectedTemplate
-              ? "Skip Template"
+              ? t("bridgeWizard.skipTemplate")
               : activeStep === 1 && !selectedController
-                ? "Skip"
-                : "Next"}
+                ? t("common.skip")
+                : t("common.next")}
           </Button>
         )}
-        {activeStep === steps.length - 1 && (
+        {activeStep === stepKeys.length - 1 && (
           <>
             <Button
               variant="outlined"
@@ -774,7 +775,7 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
               startIcon={<AddIcon />}
               disabled={loading}
             >
-              Add Another
+              {t("bridgeWizard.addAnother")}
             </Button>
             <Button
               variant="contained"
@@ -784,7 +785,9 @@ export function BridgeWizard({ open, onClose, onComplete }: BridgeWizardProps) {
               }
               disabled={loading}
             >
-              {loading ? "Creating..." : "Create Bridge"}
+              {loading
+                ? t("bridgeWizard.creating")
+                : t("bridgeWizard.createBridge")}
             </Button>
           </>
         )}

@@ -5,6 +5,7 @@ import Tooltip from "@mui/material/Tooltip";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { EndpointIcon } from "./EndpointIcon.tsx";
 import { EndpointName, getEndpointName } from "./EndpointName.tsx";
 
@@ -82,6 +83,7 @@ const EndpointTreeItem = (props: EndpointTreeItemProps) => {
 };
 
 const EndpointTreeItemLabel = (props: EndpointTreeItemProps) => {
+  const { t } = useTranslation();
   const isUnavailable = useMemo(() => {
     const state = props.endpoint.state as {
       homeAssistantEntity?: {
@@ -106,7 +108,7 @@ const EndpointTreeItemLabel = (props: EndpointTreeItemProps) => {
         <EndpointName endpoint={props.endpoint} />
       </Box>
       {isUnavailable && (
-        <Tooltip title="Entity unavailable">
+        <Tooltip title={t("endpoints.entityUnavailable")}>
           <WarningAmberIcon
             color="warning"
             sx={{ fontSize: 16, ml: 0.5, flexShrink: 0 }}

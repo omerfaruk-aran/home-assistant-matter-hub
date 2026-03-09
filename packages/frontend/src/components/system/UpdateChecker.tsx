@@ -11,6 +11,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface UpdateInfo {
   currentVersion: string;
@@ -23,6 +24,7 @@ interface UpdateInfo {
 }
 
 export const UpdateChecker = () => {
+  const { t } = useTranslation();
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,16 +37,16 @@ export const UpdateChecker = () => {
       if (res.ok) {
         setUpdateInfo(await res.json());
       } else if (res.status === 404) {
-        setError("Update check not available in this version");
+        setError(t("updateChecker.notAvailable"));
       } else {
-        setError("Failed to check for updates");
+        setError(t("updateChecker.checkFailed"));
       }
     } catch {
-      setError("Unable to reach server");
+      setError(t("updateChecker.unreachable"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     checkForUpdates();
@@ -53,11 +55,11 @@ export const UpdateChecker = () => {
   const getUpdateInstructions = (env: string): string => {
     switch (env) {
       case "Home Assistant Add-on":
-        return "Update via Settings → Add-ons in Home Assistant.";
+        return t("updateChecker.instructionAddon");
       case "Docker":
-        return "Pull the latest image and recreate your container.";
+        return t("updateChecker.instructionDocker");
       default:
-        return "Run: npm install -g home-assistant-matter-hub@latest";
+        return t("updateChecker.instructionNpm");
     }
   };
 
@@ -77,7 +79,7 @@ export const UpdateChecker = () => {
             sx={{ display: "flex", alignItems: "center", gap: 1 }}
           >
             <NewReleasesIcon />
-            Software Updates
+            {t("updateChecker.title")}
           </Typography>
           <Button
             size="small"
@@ -87,7 +89,7 @@ export const UpdateChecker = () => {
             onClick={checkForUpdates}
             disabled={loading}
           >
-            Check Now
+            {t("updateChecker.checkNow")}
           </Button>
         </Box>
 
@@ -106,7 +108,9 @@ export const UpdateChecker = () => {
                 justifyContent: "space-between",
               }}
             >
-              <Typography variant="body2">Current Version:</Typography>
+              <Typography variant="body2">
+                {t("updateChecker.currentVersion")}:
+              </Typography>
               <Chip
                 label={updateInfo.currentVersion}
                 size="small"
@@ -120,7 +124,9 @@ export const UpdateChecker = () => {
                 justifyContent: "space-between",
               }}
             >
-              <Typography variant="body2">Latest Version:</Typography>
+              <Typography variant="body2">
+                {t("updateChecker.latestVersion")}:
+              </Typography>
               <Chip
                 label={updateInfo.latestVersion}
                 size="small"
@@ -140,21 +146,19 @@ export const UpdateChecker = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Release Notes
+                    {t("updateChecker.releaseNotes")}
                   </Button>
                 }
               >
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Update available!
+                  {t("updateChecker.updateAvailable")}
                 </Typography>
                 <Typography variant="body2">
                   {getUpdateInstructions(updateInfo.environment)}
                 </Typography>
               </Alert>
             ) : (
-              <Alert severity="success">
-                You are running the latest version.
-              </Alert>
+              <Alert severity="success">{t("updateChecker.upToDate")}</Alert>
             )}
 
             {updateInfo.releaseNotes && updateInfo.updateAvailable && (

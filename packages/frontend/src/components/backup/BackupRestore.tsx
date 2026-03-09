@@ -23,6 +23,7 @@ import ListItemText from "@mui/material/ListItemText";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface BackupPreview {
   version: number;
@@ -48,6 +49,7 @@ interface RestoreResult {
 }
 
 export function BackupRestore() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -86,7 +88,7 @@ export function BackupRestore() {
       a.click();
       window.URL.revokeObjectURL(blobUrl);
       document.body.removeChild(a);
-      setSuccess("Backup downloaded successfully!");
+      setSuccess(t("backup.downloadSuccess"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
@@ -237,12 +239,11 @@ export function BackupRestore() {
       <CardContent>
         <Typography variant="h6" gutterBottom>
           <BackupIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          Backup & Restore
+          {t("backup.title")}
         </Typography>
 
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Create a full backup of your bridges and entity mappings, or restore
-          from a previous backup.
+          {t("backup.description")}
         </Typography>
 
         {error && (
@@ -274,15 +275,15 @@ export function BackupRestore() {
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <BackupIcon color="primary" />
                 <Typography variant="subtitle1" fontWeight="bold">
-                  Config Backup
+                  {t("backup.configBackup")}
                 </Typography>
               </Box>
               <Box sx={{ flexGrow: 1 }}>
                 <Typography variant="body2" color="text.secondary">
-                  Export bridge configurations and entity mappings.
+                  {t("backup.configBackupDesc")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Bridges will need to be re-commissioned after restore.
+                  {t("backup.configBackupNote")}
                 </Typography>
               </Box>
               <Button
@@ -299,7 +300,7 @@ export function BackupRestore() {
                 fullWidth
                 sx={{ mt: 2 }}
               >
-                Config Backup
+                {t("backup.configBackup")}
               </Button>
             </Paper>
           </Grid>
@@ -316,15 +317,15 @@ export function BackupRestore() {
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <SecurityIcon color="warning" />
                 <Typography variant="subtitle1" fontWeight="bold">
-                  Full Backup (with Identity)
+                  {t("backup.fullBackup")}
                 </Typography>
               </Box>
               <Box sx={{ flexGrow: 1 }}>
                 <Typography variant="body2" color="text.secondary">
-                  Includes Matter identity files (keypairs, fabric credentials).
+                  {t("backup.fullBackupDesc")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Preserves commissioning state across restores. DONT SHARE!
+                  {t("backup.fullBackupWarning")}
                 </Typography>
               </Box>
               <Button
@@ -342,7 +343,7 @@ export function BackupRestore() {
                 fullWidth
                 sx={{ mt: 2 }}
               >
-                Full Backup (with Identity)
+                {t("backup.fullBackup")}
               </Button>
             </Paper>
           </Grid>
@@ -359,13 +360,12 @@ export function BackupRestore() {
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <RestoreIcon color="info" />
                 <Typography variant="subtitle1" fontWeight="bold">
-                  Restore from Backup
+                  {t("backup.restoreFromBackup")}
                 </Typography>
               </Box>
               <Box sx={{ flexGrow: 1 }}>
                 <Typography variant="body2" color="text.secondary">
-                  Upload a previously created backup file to restore bridges and
-                  configurations.
+                  {t("backup.restoreDesc")}
                 </Typography>
               </Box>
               <Button
@@ -377,7 +377,7 @@ export function BackupRestore() {
                 fullWidth
                 sx={{ mt: 2 }}
               >
-                Restore from Backup
+                {t("backup.restoreFromBackup")}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -397,7 +397,7 @@ export function BackupRestore() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Restore Backup</DialogTitle>
+        <DialogTitle>{t("backup.restoreTitle")}</DialogTitle>
         <DialogContent>
           {preview && (
             <>
@@ -413,7 +413,7 @@ export function BackupRestore() {
               )}
 
               <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-                Select bridges to restore:
+                {t("backup.selectBridges")}:
               </Typography>
 
               <List dense>
@@ -462,7 +462,7 @@ export function BackupRestore() {
                       onChange={(e) => setOverwriteExisting(e.target.checked)}
                     />
                   }
-                  label="Overwrite existing bridges"
+                  label={t("backup.overwriteExisting")}
                 />
                 <FormControlLabel
                   control={
@@ -471,7 +471,7 @@ export function BackupRestore() {
                       onChange={(e) => setIncludeMappings(e.target.checked)}
                     />
                   }
-                  label="Include entity mappings"
+                  label={t("backup.includeMappings")}
                 />
                 {preview?.includesIdentity && (
                   <FormControlLabel
@@ -481,7 +481,7 @@ export function BackupRestore() {
                         onChange={(e) => setRestoreIdentity(e.target.checked)}
                       />
                     }
-                    label="Restore Matter identities (no re-commissioning needed)"
+                    label={t("backup.restoreIdentities")}
                   />
                 )}
               </Box>
@@ -489,7 +489,9 @@ export function BackupRestore() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDialogOpen(false)}>
+            {t("common.cancel")}
+          </Button>
           <Button
             variant="contained"
             onClick={handleRestore}
@@ -498,7 +500,7 @@ export function BackupRestore() {
               loading ? <CircularProgress size={20} color="inherit" /> : null
             }
           >
-            Restore
+            {t("backup.restore")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -509,19 +511,18 @@ export function BackupRestore() {
       >
         <DialogTitle>
           <RestartAltIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          Restart Required
+          {t("backup.restartRequired")}
         </DialogTitle>
         <DialogContent>
-          <Typography>
-            Bridges have been restored from backup. A restart is required for
-            the changes to take effect.
-          </Typography>
+          <Typography>{t("backup.restartMessage")}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            The application will restart and you may need to refresh this page.
+            {t("backup.restartNote")}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRestartDialogOpen(false)}>Later</Button>
+          <Button onClick={() => setRestartDialogOpen(false)}>
+            {t("common.later")}
+          </Button>
           <Button
             variant="contained"
             color="warning"
@@ -535,7 +536,7 @@ export function BackupRestore() {
               )
             }
           >
-            Restart Now
+            {t("backup.restartNow")}
           </Button>
         </DialogActions>
       </Dialog>

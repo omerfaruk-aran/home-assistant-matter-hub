@@ -23,6 +23,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { createBridge } from "../../api/bridges.js";
 import { Breadcrumbs } from "../../components/breadcrumbs/Breadcrumbs.tsx";
@@ -61,6 +62,7 @@ const domainIcons: Record<string, string> = {
 };
 
 export const AreaBridgeSetupPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const notifications = useNotifications();
   const dispatch = useAppDispatch();
@@ -87,7 +89,7 @@ export const AreaBridgeSetupPage = () => {
         }
       } catch {
         notifications.show({
-          message: "Failed to load areas",
+          message: t("areaSetup.loadFailed"),
           severity: "error",
         });
       } finally {
@@ -95,7 +97,7 @@ export const AreaBridgeSetupPage = () => {
       }
     };
     fetchAreas();
-  }, [notifications]);
+  }, [notifications, t]);
 
   const toggleArea = useCallback((areaId: string) => {
     setSelectedAreas((prev) => {
@@ -175,7 +177,7 @@ export const AreaBridgeSetupPage = () => {
         newResults.push({
           area: area.name,
           success: false,
-          error: e instanceof Error ? e.message : "Unknown error",
+          error: e instanceof Error ? e.message : t("areaSetup.unknownError"),
         });
       }
     }
@@ -188,16 +190,16 @@ export const AreaBridgeSetupPage = () => {
     const failed = newResults.filter((r) => !r.success).length;
     if (failed === 0) {
       notifications.show({
-        message: `Created ${succeeded} bridge(s) successfully`,
+        message: t("areaSetup.createdSuccess", { count: succeeded }),
         severity: "success",
       });
     } else {
       notifications.show({
-        message: `Created ${succeeded}, failed ${failed} bridge(s)`,
+        message: t("areaSetup.createdPartial", { succeeded, failed }),
         severity: "warning",
       });
     }
-  }, [selectedAreas, areas, selectedController, dispatch, notifications]);
+  }, [selectedAreas, areas, selectedController, dispatch, notifications, t]);
 
   if (loading) {
     return (
@@ -211,28 +213,24 @@ export const AreaBridgeSetupPage = () => {
     <Stack spacing={3}>
       <Breadcrumbs
         items={[
-          { name: "Bridges", to: navigation.bridges },
-          { name: "Area Setup", to: navigation.areaSetup },
+          { name: t("nav.bridges"), to: navigation.bridges },
+          { name: t("areaSetup.title"), to: navigation.areaSetup },
         ]}
       />
 
-      <Typography variant="h5">Area-based Bridge Setup</Typography>
+      <Typography variant="h5">{t("areaSetup.heading")}</Typography>
       <Typography variant="body2" color="text.secondary">
-        Automatically create one bridge per Home Assistant area. Each bridge
-        will include all supported entities from that area.
+        {t("areaSetup.description")}
       </Typography>
 
       {areas.length === 0 ? (
-        <Alert severity="info">
-          No areas with supported entities found in Home Assistant. Make sure
-          your devices are assigned to areas in HA.
-        </Alert>
+        <Alert severity="info">{t("areaSetup.noAreas")}</Alert>
       ) : (
         <>
           {/* Controller Selection */}
           <Box>
             <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-              1. Select Controller (optional)
+              {t("areaSetup.selectController")}
             </Typography>
             <Grid container spacing={1.5}>
               {controllerProfiles.map((profile) => {
@@ -292,14 +290,17 @@ export const AreaBridgeSetupPage = () => {
               mb={1}
             >
               <Typography variant="subtitle1" fontWeight={600}>
-                2. Select Areas ({selectedAreas.size} of {areas.length})
+                {t("areaSetup.selectAreas", {
+                  selected: selectedAreas.size,
+                  total: areas.length,
+                })}
               </Typography>
               <Box display="flex" gap={1}>
                 <Button size="small" onClick={selectAll}>
-                  Select All
+                  {t("common.all")}
                 </Button>
                 <Button size="small" onClick={selectNone}>
-                  Clear
+                  {t("areaSetup.clear")}
                 </Button>
               </Box>
             </Box>
@@ -397,7 +398,7 @@ export const AreaBridgeSetupPage = () => {
               startIcon={<ArrowBackIcon />}
               disabled={creating}
             >
-              Back
+              {t("common.back")}
             </Button>
             <Box sx={{ flex: 1 }} />
             <Button
@@ -409,8 +410,8 @@ export const AreaBridgeSetupPage = () => {
               disabled={selectedAreas.size === 0 || creating}
             >
               {creating
-                ? "Creating..."
-                : `Create ${selectedAreas.size} Bridge(s)`}
+                ? t("areaSetup.creating")
+                : t("areaSetup.createBridges", { count: selectedAreas.size })}
             </Button>
           </Box>
 
@@ -423,7 +424,7 @@ export const AreaBridgeSetupPage = () => {
           {results.length > 0 && (
             <Box>
               <Typography variant="subtitle2" gutterBottom>
-                Results
+                {t("areaSetup.results")}
               </Typography>
               {results.map((r) => (
                 <Alert
@@ -431,7 +432,7 @@ export const AreaBridgeSetupPage = () => {
                   severity={r.success ? "success" : "error"}
                   sx={{ mb: 0.5 }}
                 >
-                  {r.area}: {r.success ? "Created" : r.error}
+                  {r.area}: {r.success ? t("areaSetup.created") : r.error}
                 </Alert>
               ))}
               <Button
@@ -439,7 +440,7 @@ export const AreaBridgeSetupPage = () => {
                 onClick={() => navigate(navigation.bridges)}
                 sx={{ mt: 1 }}
               >
-                Go to Bridges
+                {t("areaSetup.goToBridges")}
               </Button>
             </Box>
           )}

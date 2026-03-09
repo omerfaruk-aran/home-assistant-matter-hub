@@ -10,6 +10,7 @@ import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { Link as RouterLink, useNavigate } from "react-router";
 import { ConfirmDialog } from "../../components/misc/ConfirmDialog.tsx";
 import { useNotifications } from "../../components/notifications/use-notifications.ts";
@@ -30,6 +31,7 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
 
   const navigate = useNavigate();
   const notification = useNotifications();
+  const { t } = useTranslation();
 
   const factoryReset = useResetBridge();
   const deleteBridge = useDeleteBridge();
@@ -65,7 +67,7 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
     await factoryReset(bridge)
       .then(() =>
         notification.show({
-          message: "Bridge Reset successfully",
+          message: t("bridge.resetSuccess"),
           severity: "success",
         }),
       )
@@ -81,7 +83,7 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
     await deleteBridge(bridge)
       .then(() =>
         notification.show({
-          message: "Bridge deleted successfully",
+          message: t("bridge.deleteSuccess"),
           severity: "success",
         }),
       )
@@ -104,14 +106,14 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Edit</ListItemText>
+          <ListItemText>{t("common.edit")}</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleForceSync}>
           <ListItemIcon>
             <SyncIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Force Sync</ListItemText>
+          <ListItemText>{t("bridge.forceSync")}</ListItemText>
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -122,7 +124,7 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
           <ListItemIcon>
             <ResetIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Factory Reset</ListItemText>
+          <ListItemText>{t("bridge.factoryReset")}</ListItemText>
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -133,24 +135,24 @@ export const BridgeMoreMenu = ({ bridge }: BridgeMoreMenuProps) => {
           <ListItemIcon>
             <DeleteIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Delete</ListItemText>
+          <ListItemText>{t("common.delete")}</ListItemText>
         </MenuItem>
       </Menu>
 
       <ConfirmDialog
         open={confirmAction === "reset"}
-        title="Factory Reset Bridge"
-        message="This will remove all pairing information and reset the bridge to its initial state. Connected controllers will lose access. This cannot be undone."
-        confirmLabel="Reset"
+        title={t("bridge.confirmResetTitle")}
+        message={t("bridge.confirmResetMessage")}
+        confirmLabel={t("common.reset")}
         confirmColor="warning"
         onConfirm={handleFactoryReset}
         onCancel={() => setConfirmAction(null)}
       />
       <ConfirmDialog
         open={confirmAction === "delete"}
-        title="Delete Bridge"
-        message="This will permanently delete the bridge, all its pairings, and entity mappings. Connected controllers will lose access. This cannot be undone."
-        confirmLabel="Delete"
+        title={t("bridge.confirmDeleteTitle")}
+        message={t("bridge.confirmDeleteMessage")}
+        confirmLabel={t("common.delete")}
         confirmColor="error"
         onConfirm={handleDelete}
         onCancel={() => setConfirmAction(null)}

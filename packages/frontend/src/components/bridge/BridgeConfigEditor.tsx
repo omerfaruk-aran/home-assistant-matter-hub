@@ -14,6 +14,7 @@ import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { navigation } from "../../routes.tsx";
 import { FormEditor } from "../misc/editors/FormEditor";
 import { JsonEditor } from "../misc/editors/JsonEditor";
@@ -38,6 +39,7 @@ export interface BridgeConfigEditorProps {
 }
 
 export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
+  const { t } = useTranslation();
   const [editorMode, setEditorMode] = useState<BridgeEditorMode>(
     BridgeEditorMode.FIELDS_EDITOR,
   );
@@ -179,8 +181,8 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
             onClick={() => toggleEditor()}
             title={
               editorMode === BridgeEditorMode.FIELDS_EDITOR
-                ? "JSON editor"
-                : "Form editor"
+                ? t("bridge.jsonEditor")
+                : t("bridge.formEditor")
             }
           >
             {editorMode === BridgeEditorMode.FIELDS_EDITOR ? (
@@ -234,7 +236,7 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
         <Card variant="outlined">
           <CardContent>
             <Typography variant="subtitle1" gutterBottom fontWeight={600}>
-              Bridge Icon
+              {t("bridge.iconLabel")}
             </Typography>
             <BridgeIconUpload
               bridgeId={props.bridgeId}
@@ -252,7 +254,7 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
               color="error"
               onClick={props.onCancel}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
           </Grid>
           <Grid
@@ -266,7 +268,7 @@ export const BridgeConfigEditor = (props: BridgeConfigEditorProps) => {
               disabled={!isValid}
               onClick={saveAction}
             >
-              Save
+              {t("common.save")}
             </Button>
           </Grid>
         </Grid>
