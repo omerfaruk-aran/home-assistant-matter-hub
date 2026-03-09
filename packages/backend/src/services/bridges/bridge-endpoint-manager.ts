@@ -166,6 +166,25 @@ export class BridgeEndpointManager extends Service {
           this.log.warn(`Failed to delete endpoint ${endpoint.entityId}:`, e);
         }
         this.mappingFingerprints.delete(endpoint.entityId);
+      } else if (
+        this.registry.isAutoComposedDevicesEnabled() &&
+        this.registry.isComposedSubEntityUsed(endpoint.entityId)
+      ) {
+        // Entity was consumed by a composed device (e.g., temp/hum sensor
+        // absorbed into an air purifier). Delete the standalone endpoint so
+        // the composed device is the only representation (#218).
+        this.log.info(
+          `Deleting standalone endpoint ${endpoint.entityId} — consumed by composed device`,
+        );
+        try {
+          await endpoint.delete();
+        } catch (e) {
+          this.log.warn(
+            `Failed to delete composed sub-entity endpoint ${endpoint.entityId}:`,
+            e,
+          );
+        }
+        this.mappingFingerprints.delete(endpoint.entityId);
       } else {
         // Check if the mapping changed since the endpoint was created.
         // If so, delete the old endpoint so it gets recreated with the new config.
