@@ -143,6 +143,27 @@ export async function startHandler(
     webApi.websocket.broadcastBridgeUpdate(bridgeId);
   };
 
+  // Register graceful shutdown handlers.
+  // When the process receives SIGTERM (Docker stop) or SIGINT (Ctrl+C),
+  // stop all bridges cleanly so matter.js persists fabric/subscription state.
+  let shuttingDown = false;
+  const gracefulShutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`Received ${signal}, shutting down gracefully...`);
+    try {
+      await Promise.race([
+        bridgeService.dispose(),
+        new Promise((resolve) => setTimeout(resolve, 10_000)),
+      ]);
+    } catch (e) {
+      console.warn("Error during graceful shutdown:", e);
+    }
+    process.exit(0);
+  };
+  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
   const initBridges = bridgeService.startAll();
   const initApi = webApi.start();
 
