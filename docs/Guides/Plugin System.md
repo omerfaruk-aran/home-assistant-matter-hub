@@ -1,6 +1,6 @@
 # Plugin System
 
-Home Assistant Matter Hub supports plugins that register additional Matter devices on the bridge. Plugins can provide virtual devices, integrate third-party services, or bridge Matterbridge-compatible platforms.
+Home Assistant Matter Hub supports plugins that register additional Matter devices on the bridge. Plugins can provide virtual devices or integrate third-party services.
 
 ## Installing a Plugin
 
@@ -42,8 +42,7 @@ A plugin is an npm package that exports a class implementing the `MatterHubPlugi
 ```
 my-plugin/
   package.json
-  src/
-    index.ts
+  index.js
 ```
 
 **package.json:**
@@ -52,14 +51,14 @@ my-plugin/
 {
   "name": "hamh-plugin-my-plugin",
   "version": "1.0.0",
-  "main": "dist/index.js",
+  "main": "index.js",
   "type": "module"
 }
 ```
 
-**src/index.ts:**
+**index.js:**
 
-```typescript
+```javascript
 export default class MyPlugin {
   readonly name = "hamh-plugin-my-plugin";
   readonly version = "1.0.0";
@@ -189,10 +188,6 @@ async onConfigChanged(config) {
   this.pollingInterval = config.pollingInterval ?? 30000;
 }
 ```
-
-## Matterbridge Compatibility
-
-HAMH includes an adapter for [Matterbridge](https://github.com/Luligu/matterbridge) DynamicPlatform plugins. The adapter translates Matterbridge's device registration into HAMH's plugin system. Device type codes and cluster IDs are mapped automatically.
 
 ## Error Handling
 
