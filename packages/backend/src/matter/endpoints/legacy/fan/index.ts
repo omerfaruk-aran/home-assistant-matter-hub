@@ -25,7 +25,7 @@ const FanPowerSourceServer = PowerSourceServer({
     const batteryEntity = homeAssistant.state.mapping?.batteryEntity;
     if (batteryEntity) {
       const stateProvider = agent.env.get(EntityStateProvider);
-      const battery = stateProvider.getNumericState(batteryEntity);
+      const battery = stateProvider.getBatteryPercent(batteryEntity);
       if (battery != null) {
         return Math.max(0, Math.min(100, battery));
       }

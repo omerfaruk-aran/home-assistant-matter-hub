@@ -77,6 +77,7 @@ export class BridgeRegistry {
     const entities = values(this.registry.entities);
     const sameDevice = entities.filter((e) => e.device_id === deviceId);
 
+    // Prefer numeric sensor.* battery entities (percentage values)
     for (const entity of sameDevice) {
       if (!entity.entity_id.startsWith("sensor.")) continue;
 
@@ -87,11 +88,26 @@ export class BridgeRegistry {
 
       const attrs = state.attributes as SensorDeviceAttributes;
       if (attrs.device_class === SensorDeviceClass.battery) {
-        // Cache the result
         this._batteryEntityCache.set(deviceId, entity.entity_id);
         return entity.entity_id;
       }
     }
+
+    // Fallback: binary_sensor.* with device_class=battery (on/off for LOW_BAT).
+    // Old Homematic classic sensors only expose a binary LOW_BAT entity.
+    for (const entity of sameDevice) {
+      if (!entity.entity_id.startsWith("binary_sensor.")) continue;
+
+      const state = this.registry.states[entity.entity_id];
+      if (!state) continue;
+
+      const attrs = state.attributes as { device_class?: string };
+      if (attrs.device_class === "battery") {
+        this._batteryEntityCache.set(deviceId, entity.entity_id);
+        return entity.entity_id;
+      }
+    }
+
     // Cache the negative result
     this._batteryEntityCache.set(deviceId, null);
     return undefined;
@@ -705,12 +721,19 @@ export class BridgeRegistry {
         // Skip entities that are already marked as used (e.g., humidity sensors)
         if (this._usedHumidityEntities.has(entity.entity_id)) continue;
 
-        // Skip battery sensors themselves
+        // Skip battery sensors themselves (numeric and binary)
         if (entity.entity_id.startsWith("sensor.")) {
           const state = this._states[entity.entity_id];
           if (state) {
             const attrs = state.attributes as SensorDeviceAttributes;
             if (attrs.device_class === SensorDeviceClass.battery) continue;
+          }
+        }
+        if (entity.entity_id.startsWith("binary_sensor.")) {
+          const state = this._states[entity.entity_id];
+          if (state) {
+            const attrs = state.attributes as { device_class?: string };
+            if (attrs.device_class === "battery") continue;
           }
         }
 

@@ -35,4 +35,24 @@ export class EntityStateProvider extends Service {
     }
     return value;
   }
+
+  /**
+   * Get battery percentage from a battery entity.
+   * Handles both numeric sensors (e.g. sensor.battery → "25.0" → 25)
+   * and binary sensors (e.g. binary_sensor.battery → off=100%, on=0%).
+   * In HA, binary_sensor with device_class=battery uses on=low battery.
+   */
+  getBatteryPercent(entityId: string): number | null {
+    const state = this.getState(entityId);
+    if (!state) {
+      return null;
+    }
+    const numericValue = Number.parseFloat(state.state);
+    if (!Number.isNaN(numericValue)) {
+      return numericValue;
+    }
+    if (state.state === "off") return 100;
+    if (state.state === "on") return 0;
+    return null;
+  }
 }
