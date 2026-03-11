@@ -39,6 +39,9 @@ export function testMatcher(
   entityState?: HomeAssistantEntityState,
   labels?: HomeAssistantLabel[],
 ): boolean {
+  if (matcher.value == null) {
+    return false;
+  }
   switch (matcher.type) {
     case "domain":
       return entity.entity_id.split(".")[0] === matcher.value;

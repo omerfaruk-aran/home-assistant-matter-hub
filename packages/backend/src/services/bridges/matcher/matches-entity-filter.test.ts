@@ -613,4 +613,17 @@ describe("matchEntityFilter.testMatcher", () => {
       ),
     ).toBeFalsy();
   });
+
+  it("should return false for null matcher value", () => {
+    expect(
+      testMatcher(
+        {
+          type: HomeAssistantMatcherType.Pattern,
+          value: null as unknown as string,
+        },
+        undefined,
+        registry,
+      ),
+    ).toBeFalsy();
+  });
 });
