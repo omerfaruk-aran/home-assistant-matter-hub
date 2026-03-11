@@ -138,9 +138,16 @@ export class LegacyEndpoint extends EntityEndpoint {
       }
 
       // 3. Auto-assign battery entity AFTER humidity and pressure
-      // Only applies when autoBatteryMapping feature flag is enabled (default: false)
-      // This ensures battery goes to the combined T+H sensor, not separately
-      if (registry.isAutoBatteryMappingEnabled() && !mapping?.batteryEntity) {
+      // For most entities: only when autoBatteryMapping feature flag is enabled
+      // For vacuum entities: always auto-map because many HA integrations freeze
+      // battery_level on the vacuum entity when docked, while the standalone
+      // battery sensor keeps updating. Without mapping, the fallback reads the
+      // stale attribute and the controller shows a stuck battery level.
+      const isVacuum = entityId.startsWith("vacuum.");
+      if (
+        (registry.isAutoBatteryMappingEnabled() || isVacuum) &&
+        !mapping?.batteryEntity
+      ) {
         const batteryEntityId = registry.findBatteryEntityForDevice(
           entity.device_id,
         );
