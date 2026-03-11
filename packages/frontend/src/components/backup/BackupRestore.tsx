@@ -1,29 +1,49 @@
+import AddIcon from "@mui/icons-material/Add";
 import BackupIcon from "@mui/icons-material/Backup";
-
+import DeleteIcon from "@mui/icons-material/Delete";
+import DownloadIcon from "@mui/icons-material/Download";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import RestoreIcon from "@mui/icons-material/Restore";
 import SecurityIcon from "@mui/icons-material/Security";
+import SettingsIcon from "@mui/icons-material/Settings";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Checkbox from "@mui/material/Checkbox";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Grid from "@mui/material/Grid";
+import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Paper from "@mui/material/Paper";
+import Switch from "@mui/material/Switch";
+import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  type BackupMetadata,
+  type BackupSettings,
+  createBackupSnapshot,
+  deleteBackupSnapshot,
+  downloadBackupSnapshot,
+  fetchBackupSettings,
+  fetchBackupSnapshots,
+  restoreBackupSnapshot,
+  updateBackupSettings,
+} from "../../api/backup.js";
 
 interface BackupPreview {
   version: number;
@@ -48,6 +68,12 @@ interface RestoreResult {
   restartRequired?: boolean;
 }
 
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function BackupRestore() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -64,6 +90,107 @@ export function BackupRestore() {
   const [restartDialogOpen, setRestartDialogOpen] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [snapshots, setSnapshots] = useState<BackupMetadata[]>([]);
+  const [snapshotsLoading, setSnapshotsLoading] = useState(true);
+  const [settings, setSettings] = useState<BackupSettings | null>(null);
+  const [snapshotRestoreTarget, setSnapshotRestoreTarget] = useState<
+    string | null
+  >(null);
+  const [snapshotDeleteTarget, setSnapshotDeleteTarget] = useState<
+    string | null
+  >(null);
+  const [creatingSnapshot, setCreatingSnapshot] = useState(false);
+
+  const loadSnapshots = useCallback(async () => {
+    try {
+      setSnapshotsLoading(true);
+      const [snaps, backupSettings] = await Promise.all([
+        fetchBackupSnapshots(),
+        fetchBackupSettings(),
+      ]);
+      setSnapshots(snaps);
+      setSettings(backupSettings);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load backups");
+    } finally {
+      setSnapshotsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSnapshots();
+  }, [loadSnapshots]);
+
+  const handleCreateSnapshot = async () => {
+    setCreatingSnapshot(true);
+    setError(null);
+    try {
+      await createBackupSnapshot();
+      setSuccess(t("backup.snapshotCreated"));
+      await loadSnapshots();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to create backup");
+    } finally {
+      setCreatingSnapshot(false);
+    }
+  };
+
+  const handleDownloadSnapshot = async (filename: string) => {
+    try {
+      await downloadBackupSnapshot(filename);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to download backup");
+    }
+  };
+
+  const handleRestoreSnapshot = async (filename: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await restoreBackupSnapshot(filename);
+      if (result.errors.length > 0) {
+        setError(
+          `Restored ${result.bridgesRestored} bridges with ${result.errors.length} errors`,
+        );
+      } else {
+        setSuccess(
+          t("backup.snapshotRestored", {
+            bridges: result.bridgesRestored,
+            mappings: result.mappingsRestored,
+            identities: result.identitiesRestored,
+          }),
+        );
+      }
+      setSnapshotRestoreTarget(null);
+      if (result.restartRequired) {
+        setRestartDialogOpen(true);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to restore backup");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteSnapshot = async (filename: string) => {
+    try {
+      await deleteBackupSnapshot(filename);
+      setSnapshotDeleteTarget(null);
+      await loadSnapshots();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete backup");
+    }
+  };
+
+  const handleSettingsChange = async (changes: Partial<BackupSettings>) => {
+    try {
+      const updated = await updateBackupSettings(changes);
+      setSettings(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update settings");
+    }
+  };
 
   const handleDownloadBackup = async (withIdentity: boolean = false) => {
     setLoading(true);
@@ -389,6 +516,173 @@ export function BackupRestore() {
             </Paper>
           </Grid>
         </Grid>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          mb={2}
+        >
+          <Box display="flex" alignItems="center" gap={1}>
+            <BackupIcon color="primary" />
+            <Typography variant="subtitle1" fontWeight="bold">
+              {t("backup.storedBackups")}
+            </Typography>
+            {snapshots.length > 0 && (
+              <Chip
+                label={snapshots.length}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+            )}
+          </Box>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={
+              creatingSnapshot ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <AddIcon />
+              )
+            }
+            onClick={handleCreateSnapshot}
+            disabled={creatingSnapshot}
+          >
+            {t("backup.createSnapshot")}
+          </Button>
+        </Box>
+
+        {snapshotsLoading ? (
+          <Box display="flex" justifyContent="center" p={2}>
+            <CircularProgress size={24} />
+          </Box>
+        ) : snapshots.length === 0 ? (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ textAlign: "center", py: 2 }}
+          >
+            {t("backup.noSnapshots")}
+          </Typography>
+        ) : (
+          <List dense>
+            {snapshots.map((snap) => (
+              <ListItem
+                key={snap.filename}
+                secondaryAction={
+                  <Box display="flex" gap={0.5}>
+                    <Tooltip title={t("backup.downloadSnapshot")}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDownloadSnapshot(snap.filename)}
+                      >
+                        <DownloadIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title={t("backup.restoreSnapshot")}>
+                      <IconButton
+                        size="small"
+                        color="warning"
+                        onClick={() => setSnapshotRestoreTarget(snap.filename)}
+                      >
+                        <RestoreIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title={t("common.delete")}>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => setSnapshotDeleteTarget(snap.filename)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                }
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <BackupIcon
+                    fontSize="small"
+                    color={snap.auto ? "action" : "primary"}
+                  />
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography variant="body2">v{snap.version}</Typography>
+                      <Chip
+                        label={
+                          snap.auto ? t("backup.auto") : t("backup.manual")
+                        }
+                        size="small"
+                        variant="outlined"
+                        color={snap.auto ? "default" : "primary"}
+                      />
+                      <Typography variant="body2" color="text.secondary">
+                        {formatSize(snap.sizeBytes)}
+                      </Typography>
+                    </Box>
+                  }
+                  secondary={new Date(snap.createdAt).toLocaleString()}
+                />
+              </ListItem>
+            ))}
+          </List>
+        )}
+
+        <Divider sx={{ my: 3 }} />
+
+        <Box display="flex" alignItems="center" gap={1} mb={2}>
+          <SettingsIcon color="action" />
+          <Typography variant="subtitle1" fontWeight="bold">
+            {t("backup.settings")}
+          </Typography>
+        </Box>
+
+        {settings && (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              maxWidth: 400,
+            }}
+          >
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={settings.autoBackup}
+                  onChange={(e) =>
+                    handleSettingsChange({ autoBackup: e.target.checked })
+                  }
+                />
+              }
+              label={t("backup.autoBackupLabel")}
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: -1 }}>
+              {t("backup.autoBackupDesc")}
+            </Typography>
+            <TextField
+              label={t("backup.retentionCount")}
+              type="number"
+              size="small"
+              value={settings.backupRetentionCount}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (val >= 1 && val <= 100) {
+                  handleSettingsChange({ backupRetentionCount: val });
+                }
+              }}
+              inputProps={{ min: 1, max: 100 }}
+              helperText={t("backup.retentionCountDesc")}
+              sx={{ maxWidth: 200 }}
+            />
+          </Box>
+        )}
       </CardContent>
 
       <Dialog
@@ -537,6 +831,76 @@ export function BackupRestore() {
             }
           >
             {t("backup.restartNow")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={snapshotRestoreTarget !== null}
+        onClose={() => setSnapshotRestoreTarget(null)}
+      >
+        <DialogTitle>
+          <RestoreIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+          {t("backup.confirmRestore")}
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            {t("backup.confirmRestoreMessage", {
+              filename: snapshotRestoreTarget,
+            })}
+          </Typography>
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            {t("backup.restoreWarning")}
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSnapshotRestoreTarget(null)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={() =>
+              snapshotRestoreTarget &&
+              handleRestoreSnapshot(snapshotRestoreTarget)
+            }
+            disabled={loading}
+            startIcon={
+              loading ? <CircularProgress size={20} color="inherit" /> : null
+            }
+          >
+            {t("backup.restore")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={snapshotDeleteTarget !== null}
+        onClose={() => setSnapshotDeleteTarget(null)}
+      >
+        <DialogTitle>
+          <DeleteIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+          {t("backup.confirmDelete")}
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            {t("backup.confirmDeleteMessage", {
+              filename: snapshotDeleteTarget,
+            })}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSnapshotDeleteTarget(null)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() =>
+              snapshotDeleteTarget && handleDeleteSnapshot(snapshotDeleteTarget)
+            }
+          >
+            {t("common.delete")}
           </Button>
         </DialogActions>
       </Dialog>

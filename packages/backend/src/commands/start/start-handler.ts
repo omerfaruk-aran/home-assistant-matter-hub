@@ -5,6 +5,7 @@ import { configureDefaultEnvironment } from "../../core/app/configure-default-en
 import { Options } from "../../core/app/options.js";
 import { AppEnvironment } from "../../core/ioc/app-environment.js";
 import { patchLevelControlTlv } from "../../matter/patches/patch-level-control-tlv.js";
+import { BackupService } from "../../services/backup/backup-service.js";
 import { BridgeService } from "../../services/bridges/bridge-service.js";
 import { EntityIsolationService } from "../../services/bridges/entity-isolation-service.js";
 import { HomeAssistantRegistry } from "../../services/home-assistant/home-assistant-registry.js";
@@ -134,11 +135,16 @@ export async function startHandler(
   const bridgeService$ = appEnvironment.load(BridgeService);
   const webApi$ = appEnvironment.load(WebApi);
   const registry$ = appEnvironment.load(HomeAssistantRegistry);
+  const backupService$ = appEnvironment.load(BackupService);
 
   // Wire up WebSocket broadcasts for bridge status changes.
   // This ensures the frontend receives live updates as each bridge
   // transitions through Starting → Running during startup.
-  const [bridgeService, webApi] = await Promise.all([bridgeService$, webApi$]);
+  const [bridgeService, webApi, backupService] = await Promise.all([
+    bridgeService$,
+    webApi$,
+    backupService$,
+  ]);
   bridgeService.onBridgeChanged = (bridgeId) => {
     webApi.websocket.broadcastBridgeUpdate(bridgeId);
   };
@@ -151,6 +157,14 @@ export async function startHandler(
     if (shuttingDown) return;
     shuttingDown = true;
     console.log(`Received ${signal}, shutting down gracefully...`);
+    try {
+      await Promise.race([
+        backupService.createAutoBackup(),
+        new Promise((resolve) => setTimeout(resolve, 5_000)),
+      ]);
+    } catch (e) {
+      console.warn("Auto-backup during shutdown failed:", e);
+    }
     try {
       await Promise.race([
         bridgeService.dispose(),

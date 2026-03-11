@@ -5,6 +5,7 @@ import AccessControl from "express-ip-access-control";
 import nocache from "nocache";
 import type { BetterLogger, LoggerService } from "../core/app/logger.js";
 import { Service } from "../core/ioc/service.js";
+import type { BackupService } from "../services/backup/backup-service.js";
 import type { BridgeService } from "../services/bridges/bridge-service.js";
 import { DiagnosticService } from "../services/diagnostics/diagnostic-service.js";
 import type { HomeAssistantClient } from "../services/home-assistant/home-assistant-client.js";
@@ -66,6 +67,7 @@ export class WebApi extends Service {
     private readonly mappingStorage: EntityMappingStorage,
     private readonly lockCredentialStorage: LockCredentialStorage,
     private readonly settingsStorage: AppSettingsStorage,
+    private readonly backupService: BackupService,
     private readonly props: WebApiProps,
   ) {
     super("WebApi");
@@ -115,6 +117,8 @@ export class WebApi extends Service {
           this.bridgeStorage,
           this.mappingStorage,
           this.props.storageLocation,
+          this.backupService,
+          this.settingsStorage,
         ),
       )
       .use("/home-assistant", homeAssistantApi(this.haRegistry, this.haClient))

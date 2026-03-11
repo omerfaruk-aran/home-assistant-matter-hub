@@ -9,7 +9,9 @@ import type { Request } from "express";
 import express from "express";
 import multer from "multer";
 import unzipper from "unzipper";
+import type { BackupService } from "../services/backup/backup-service.js";
 import type { BridgeService } from "../services/bridges/bridge-service.js";
+import type { AppSettingsStorage } from "../services/storage/app-settings-storage.js";
 import type { BridgeStorage } from "../services/storage/bridge-storage.js";
 import type { EntityMappingStorage } from "../services/storage/entity-mapping-storage.js";
 
@@ -32,6 +34,8 @@ export function backupApi(
   bridgeStorage: BridgeStorage,
   mappingStorage: EntityMappingStorage,
   storageLocation: string,
+  backupService: BackupService,
+  settingsStorage: AppSettingsStorage,
   _bridgeService?: BridgeService,
 ): express.Router {
   const router = express.Router();
@@ -285,6 +289,212 @@ export function backupApi(
     setTimeout(() => {
       process.exit(0);
     }, 500);
+  });
+
+  // --- Snapshot management endpoints ---
+
+  router.get("/snapshots", async (_, res) => {
+    try {
+      const backups = backupService.listBackups();
+      res.json(backups);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to list backups";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  router.post("/snapshots/create", async (_, res) => {
+    try {
+      const metadata = await backupService.createBackup(false);
+      res.json(metadata);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to create backup";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  router.get("/snapshots/:filename/download", async (req, res) => {
+    try {
+      const filepath = backupService.getBackupPath(req.params.filename);
+      if (!filepath) {
+        res.status(404).json({ error: "Backup not found" });
+        return;
+      }
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${req.params.filename}"`,
+      );
+      const stream = fs.createReadStream(filepath);
+      stream.pipe(res);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to download backup";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  router.post("/snapshots/:filename/restore", async (req, res) => {
+    try {
+      const filepath = backupService.getBackupPath(req.params.filename);
+      if (!filepath) {
+        res.status(404).json({ error: "Backup not found" });
+        return;
+      }
+
+      const buffer = fs.readFileSync(filepath);
+      const options = (req.body || {}) as {
+        bridgeIds?: string[];
+        overwriteExisting?: boolean;
+        includeMappings?: boolean;
+        restoreIdentity?: boolean;
+      };
+
+      const { backupData, zipDirectory } = await extractBackupData(buffer);
+      const existingIds = new Set(bridgeStorage.bridges.map((b) => b.id));
+
+      const bridgesToRestore = options.bridgeIds
+        ? backupData.bridges.filter((b) => options.bridgeIds!.includes(b.id))
+        : backupData.bridges;
+
+      let bridgesRestored = 0;
+      let bridgesSkipped = 0;
+      let mappingsRestored = 0;
+      let identitiesRestored = 0;
+      let iconsRestored = 0;
+      const errors: Array<{ bridgeId: string; error: string }> = [];
+
+      for (const bridge of bridgesToRestore) {
+        try {
+          const exists = existingIds.has(bridge.id);
+          if (exists && !options.overwriteExisting) {
+            bridgesSkipped++;
+            continue;
+          }
+
+          await bridgeStorage.add(bridge);
+          bridgesRestored++;
+
+          if (options.includeMappings !== false) {
+            const mappings = backupData.entityMappings[bridge.id];
+            if (mappings) {
+              for (const mapping of mappings) {
+                const config = mapping as EntityMappingConfig;
+                await mappingStorage.setMapping({
+                  bridgeId: bridge.id,
+                  entityId: config.entityId,
+                  matterDeviceType: config.matterDeviceType,
+                  customName: config.customName,
+                  disabled: config.disabled,
+                  filterLifeEntity: config.filterLifeEntity,
+                  cleaningModeEntity: config.cleaningModeEntity,
+                  humidityEntity: config.humidityEntity,
+                  pressureEntity: config.pressureEntity,
+                  batteryEntity: config.batteryEntity,
+                  roomEntities: config.roomEntities,
+                  disableLockPin: config.disableLockPin,
+                  powerEntity: config.powerEntity,
+                  energyEntity: config.energyEntity,
+                  suctionLevelEntity: config.suctionLevelEntity,
+                  mopIntensityEntity: config.mopIntensityEntity,
+                });
+                mappingsRestored++;
+              }
+            }
+          }
+
+          if (
+            options.restoreIdentity !== false &&
+            backupData.includesIdentity
+          ) {
+            const identityRestored = await restoreIdentityFiles(
+              zipDirectory,
+              bridge.id,
+              storageLocation,
+            );
+            if (identityRestored) {
+              identitiesRestored++;
+            }
+          }
+
+          if (backupData.includesIcons) {
+            const iconRestored = await restoreBridgeIcon(
+              zipDirectory,
+              bridge.id,
+              storageLocation,
+            );
+            if (iconRestored) {
+              iconsRestored++;
+            }
+          }
+        } catch (e) {
+          errors.push({
+            bridgeId: bridge.id,
+            error: e instanceof Error ? e.message : "Unknown error",
+          });
+        }
+      }
+
+      res.json({
+        bridgesRestored,
+        bridgesSkipped,
+        mappingsRestored,
+        identitiesRestored,
+        iconsRestored,
+        errors,
+        restartRequired: bridgesRestored > 0 || identitiesRestored > 0,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to restore from snapshot";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  router.delete("/snapshots/:filename", async (req, res) => {
+    try {
+      const deleted = backupService.deleteBackup(req.params.filename);
+      if (!deleted) {
+        res.status(404).json({ error: "Backup not found" });
+        return;
+      }
+      res.json({ success: true });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete backup";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // --- Backup settings endpoints ---
+
+  router.get("/settings", async (_, res) => {
+    try {
+      res.json(settingsStorage.backupSettings);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to get settings";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  router.put("/settings", async (req, res) => {
+    try {
+      const body = req.body as {
+        autoBackup?: boolean;
+        backupRetentionCount?: number;
+      };
+      await settingsStorage.setBackupSettings(body);
+      res.json(settingsStorage.backupSettings);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update settings";
+      res.status(500).json({ error: message });
+    }
   });
 
   return router;

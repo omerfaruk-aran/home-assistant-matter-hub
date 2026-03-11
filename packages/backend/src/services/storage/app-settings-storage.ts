@@ -9,8 +9,19 @@ export interface AuthSettings {
   password: string;
 }
 
+export interface BackupSettings {
+  autoBackup: boolean;
+  backupRetentionCount: number;
+}
+
+const DEFAULT_BACKUP_SETTINGS: BackupSettings = {
+  autoBackup: true,
+  backupRetentionCount: 5,
+};
+
 interface StoredSettings {
   auth?: AuthSettings;
+  backup?: Partial<BackupSettings>;
 }
 
 export class AppSettingsStorage extends Service {
@@ -36,6 +47,15 @@ export class AppSettingsStorage extends Service {
 
   async setAuth(auth: AuthSettings | undefined): Promise<void> {
     this.settings.auth = auth;
+    await this.persist();
+  }
+
+  get backupSettings(): BackupSettings {
+    return { ...DEFAULT_BACKUP_SETTINGS, ...this.settings.backup };
+  }
+
+  async setBackupSettings(settings: Partial<BackupSettings>): Promise<void> {
+    this.settings.backup = { ...this.settings.backup, ...settings };
     await this.persist();
   }
 

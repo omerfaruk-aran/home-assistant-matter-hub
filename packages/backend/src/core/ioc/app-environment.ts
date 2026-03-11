@@ -1,5 +1,6 @@
 import { type Environment, StorageService } from "@matter/main";
 import { WebApi } from "../../api/web-api.js";
+import { BackupService } from "../../services/backup/backup-service.js";
 import { BridgeFactory } from "../../services/bridges/bridge-factory.js";
 import { BridgeService } from "../../services/bridges/bridge-service.js";
 import { HomeAssistantActions } from "../../services/home-assistant/home-assistant-actions.js";
@@ -92,6 +93,19 @@ export class AppEnvironment extends EnvironmentBase {
     );
 
     this.set(
+      BackupService,
+      new BackupService(
+        await this.load(BridgeStorage),
+        await this.load(EntityMappingStorage),
+        await this.load(AppSettingsStorage),
+        {
+          storageLocation: this.options.webApi.storageLocation,
+          appVersion: this.options.webApi.version,
+        },
+      ),
+    );
+
+    this.set(
       WebApi,
       new WebApi(
         logger,
@@ -102,6 +116,7 @@ export class AppEnvironment extends EnvironmentBase {
         await this.load(EntityMappingStorage),
         await this.load(LockCredentialStorage),
         await this.load(AppSettingsStorage),
+        await this.load(BackupService),
         this.options.webApi,
       ),
     );
