@@ -230,7 +230,6 @@ const featureFlagSchema: JSONSchema7 = {
       type: "boolean",
     },
   },
-  additionalProperties: false,
 };
 
 export const bridgeConfigSchema: JSONSchema7 = {
