@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { VendorId } from "@matter/main";
 import { BridgedDeviceBasicInformationServer } from "@matter/main/behaviors";
+import { BridgeDataProvider } from "../services/bridges/bridge-data-provider.js";
 import { applyPatchState } from "../utils/apply-patch-state.js";
 import { PluginDeviceBehavior } from "./plugin-behavior.js";
 
@@ -13,8 +14,9 @@ export class PluginBasicInformationServer extends BridgedDeviceBasicInformationS
     await super.initialize();
     const pluginDevice = this.agent.get(PluginDeviceBehavior);
     const device = pluginDevice.device;
+    const { basicInformation } = this.env.get(BridgeDataProvider);
     applyPatchState(this.state, {
-      vendorId: VendorId(0xfff1),
+      vendorId: VendorId(basicInformation.vendorId),
       vendorName: truncate(32, pluginDevice.pluginName),
       productName: truncate(32, device.deviceType),
       nodeLabel: truncate(32, device.name),
