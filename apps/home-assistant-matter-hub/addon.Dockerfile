@@ -32,4 +32,4 @@ COPY package.tgz /install/package.tgz
 RUN npm install -g /install/package.tgz
 RUN rm -rf /install
 
-CMD /docker-entrypoint.sh
+CMD ["/docker-entrypoint.sh"]
