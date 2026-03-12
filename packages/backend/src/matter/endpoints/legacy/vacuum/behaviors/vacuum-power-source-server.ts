@@ -23,10 +23,16 @@ export const VacuumPowerSourceServer = PowerSourceServer({
     const attributes = entity.attributes as VacuumDeviceAttributes;
     // Some vacuums use 'battery_level', others use 'battery' (e.g. Dreame)
     const batteryLevel = attributes.battery_level ?? attributes.battery;
-    if (batteryLevel == null || typeof batteryLevel !== "number") {
+    if (batteryLevel == null) {
       return null;
     }
-    return batteryLevel;
+    if (typeof batteryLevel === "number") {
+      return batteryLevel;
+    }
+    // Some integrations (e.g. Rest980/Roomba) store battery as a string
+    // like "100%" — parse the numeric part.
+    const parsed = Number.parseFloat(String(batteryLevel));
+    return Number.isNaN(parsed) ? null : parsed;
   },
   isCharging(entity) {
     const state = entity.state as VacuumState | "unavailable";
