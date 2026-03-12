@@ -118,6 +118,7 @@ class OnOffServerBase extends Base {
 
   private autoReset() {
     const homeAssistant = this.agent.get(HomeAssistantEntityBehavior);
+    optimisticOnOffState.delete(homeAssistant.entityId);
     this.update(homeAssistant.entity);
   }
 }
