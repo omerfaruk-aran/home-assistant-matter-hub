@@ -23,6 +23,7 @@ import {
   WindowCoveringDevice,
 } from "@matter/main/devices";
 import { IdentifyServer } from "../matter/behaviors/identify-server.js";
+import { validateEndpointType } from "../matter/endpoints/validate-endpoint-type.js";
 import { PluginBasicInformationServer } from "./plugin-basic-information-server.js";
 import { PluginDeviceBehavior } from "./plugin-behavior.js";
 
@@ -170,7 +171,9 @@ export function createPluginEndpointType(
     logger.warn(`Unsupported plugin device type: "${deviceType}"`);
     return undefined;
   }
-  return factory();
+  const endpoint = factory();
+  validateEndpointType(endpoint, `plugin:${deviceType}`);
+  return endpoint;
 }
 
 /**
