@@ -154,6 +154,7 @@ export class BridgeService extends Service {
     for (const bridge of this.bridges) {
       try {
         await bridge.refreshDevices();
+        this.onBridgeChanged?.(bridge.id);
       } catch (e) {
         // Isolate per-bridge failures so one failing bridge doesn't block others
         this.log.error(`Failed to refresh bridge ${bridge.id}:`, e);

@@ -74,14 +74,14 @@ export class HomeAssistantRegistry extends Service {
     this.disableAutoRefresh();
   }
 
-  enableAutoRefresh(onRefresh: () => void) {
+  enableAutoRefresh(onRefresh: () => Promise<void> | void) {
     this.disableAutoRefresh();
 
     this.autoRefresh = setInterval(async () => {
       try {
         const changed = await this.reload();
         if (changed) {
-          onRefresh();
+          await onRefresh();
         }
       } catch (e) {
         logger.warn("Failed to refresh registry, will retry next interval:", e);
